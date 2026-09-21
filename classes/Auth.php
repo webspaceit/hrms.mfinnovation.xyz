@@ -115,7 +115,7 @@ class Auth {
      */
     public static function requireLogin() {
         if (!self::check()) {
-            header('Location: ' . BASE_URL . 'login.php');
+            redirect('login');
             exit;
         }
     }
@@ -162,7 +162,7 @@ class Auth {
      */
     public static function requireTenantLogin() {
         if (!self::checkTenant()) {
-            header('Location: ' . BASE_URL . 'tenant_login.php');
+            redirect('tenant-login');
             exit;
         }
     }

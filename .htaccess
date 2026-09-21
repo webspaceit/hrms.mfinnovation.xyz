@@ -1,3 +1,9 @@
+# IMPORTANT: disable Apache content-negotiation. With MultiViews on,
+# a request for /invoices is auto-mapped to the existing invoices.php
+# (Vary: negotiate) and bypasses the front controller, so converted
+# routes would silently keep serving the legacy files.
+Options -MultiViews
+
 RewriteEngine On
 
 # Pretty URLs: /flats, /tenant-payments, ... -> index.php?r=...

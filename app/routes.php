@@ -21,22 +21,22 @@ $router->controller('logout', App\Controllers\LogoutController::class);
 $router->controller('dashboard', App\Controllers\DashboardController::class);
 $router->controller('buildings', App\Controllers\BuildingsController::class);
 
-// ---- Admin (legacy - conversion pending) ----
-$router->legacy('flats', 'flats.php');
+// ---- Admin (converted) ----
+$router->controller('flats', App\Controllers\FlatsController::class);
 $router->controller('tenants', App\Controllers\TenantsController::class);
 $router->controller('leases', App\Controllers\LeasesController::class);
 $router->controller('payments', App\Controllers\PaymentsController::class);
-$router->legacy('invoices', 'invoices.php');
+$router->controller('invoices', App\Controllers\InvoicesController::class);
 $router->legacy('invoice-view', 'invoice_view.php');
 $router->legacy('receipt', 'receipt.php');
 $router->controller('expenses', App\Controllers\ExpensesController::class);
 $router->controller('reports', App\Controllers\ReportsController::class);
 
-// ---- Tenant portal (legacy - conversion pending) ----
-$router->legacy('tenant-login', 'tenant_login.php');
-$router->legacy('tenant-logout', 'tenant_logout.php');
-$router->legacy('tenant-dashboard', 'tenant_dashboard.php');
-$router->legacy('tenant-dues', 'tenant_dues.php');
+// ---- Tenant portal (converted) ----
+$router->controller('tenant-login', App\Controllers\TenantLoginController::class);
+$router->controller('tenant-logout', App\Controllers\TenantLogoutController::class);
+$router->controller('tenant-dashboard', App\Controllers\TenantDashboardController::class);
+$router->controller('tenant-dues', App\Controllers\TenantDuesController::class);
 $router->legacy('tenant-invoice-view', 'tenant_invoice_view.php');
 $router->legacy('tenant-payments', 'tenant_payments.php');
 $router->legacy('tenant-profile', 'tenant_profile.php');
