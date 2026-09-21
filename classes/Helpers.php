@@ -129,11 +129,37 @@ function paymentStatusBadge($status) {
 }
 
 /**
- * Redirect helper
+ * Build an application URL. Accepts route names ('payments'),
+ * legacy file paths ('payments.php'), or ''/'index.php'/'home'
+ * for the landing page.
+ */
+function url($path = '') {
+    $path = trim((string)$path);
+    if ($path === '' || $path === 'index.php' || $path === 'home' || $path === 'landing') {
+        return BASE_URL;
+    }
+    if (str_ends_with($path, '.php')) {
+        return BASE_URL . $path;
+    }
+    return BASE_URL . ltrim($path, '/');
+}
+
+/**
+ * Redirect helper - accepts routes ('payments') or legacy *.php paths.
  */
 function redirect($url) {
-    header('Location: ' . BASE_URL . $url);
+    header('Location: ' . url($url));
     exit;
+}
+
+/**
+ * True when the given route matches the current request (used by the
+ * shared header to highlight the active nav item). Falls back to the
+ * legacy PHP file name for direct page requests.
+ */
+function routeIs($route) {
+    $current = defined('CURRENT_ROUTE') ? CURRENT_ROUTE : basename($_SERVER['PHP_SELF']);
+    return $current === $route || $current === $route . '.php';
 }
 
 /**

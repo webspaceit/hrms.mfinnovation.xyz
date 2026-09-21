@@ -1,8 +1,8 @@
 RewriteEngine On
-RewriteCond %{REQUEST_FILENAME} !-f
-RewriteCond %{REQUEST_FILENAME} !-d
-RewriteRule ^mvc/([a-z-]+)/?$ mvc.php?r=$1 [L,QSA]
 
+# Pretty URLs: /flats, /tenant-payments, ... -> index.php?r=...
+# Only rewrites paths that are not real files or directories, so
+# assets/, ajax/*.php and (during migration) legacy pages keep working.
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
-RewriteRule ^mvc/([a-z-]+)/([a-z-]+)/?$ mvc.php?r=$1/$2 [L,QSA]
+RewriteRule ^([a-zA-Z0-9_/-]+)/?$ index.php?r=$1 [L,QSA]
