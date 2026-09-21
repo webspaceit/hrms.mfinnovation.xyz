@@ -103,6 +103,7 @@ class TenantInvoiceViewController extends Controller {
         $this->view('tenant-invoice-view/index', [
             'inv'               => $inv,
             'isTenantPortal'    => $isTenantPortal,
+            'currentLang'       => $currentLang,
             'no'                => $no,
             'cur'               => $cur,
             'totalDue'          => $totalDue,

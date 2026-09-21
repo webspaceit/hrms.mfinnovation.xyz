@@ -1,10 +1,12 @@
 <?php
-// Invoice (Demand Note) view - standalone printable + sendable document.
-// Data: isTenantPortal, inv, no, cur, totalDue, totalPaid, amountWords,
-// monthLabel, monthNameBn, propertyType, propertyLabel, propertyLabelEn,
-// propertyLabelBn, issuedDate, dueDate, typeLabel, waUrl, fontFamily,
-// paymentStatus, watermarkText, watermarkColor, paidAmountDisplay, currentLang
-?><!DOCTYPE html>
+// Tenant Invoice View (Demand Note) - data: inv, isTenantPortal, no, cur,
+// totalDue, amountWords, monthLabel, monthNameBn, propertyType,
+// propertyLabel, propertyLabelEn, propertyLabelBn, issuedDate, dueDate,
+// typeLabel, phoneDigits, waUrl, fontFamily, totalPaid, paymentStatus,
+// watermarkLabels, watermarkText, watermarkColor, paidAmountDisplay
+$currentLang = Lang::current();
+?>
+<!DOCTYPE html>
 <html lang="<?php echo $currentLang === 'bn' ? 'bn' : 'en'; ?>">
 <head>
     <meta charset="UTF-8">
@@ -269,12 +271,12 @@
 
     <!-- Toolbar (hidden when printing) -->
     <div class="toolbar no-print flex flex-wrap items-center justify-between gap-2">
-        <a href="<?php echo url($isTenantPortal ? 'tenant-dues' : 'invoices'); ?>" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left mr-1 inline-block"></i><?php echo t('back'); ?></a>
+        <a href="<?php echo url('tenant-dues'); ?>" class="btn btn-outline-secondary btn-sm"><i class="bi bi-arrow-left mr-1 inline-block"></i><?php echo t('back'); ?></a>
         <div class="toolbar-actions w-full md:w-auto flex flex-wrap items-center gap-2">
             <?php if ($currentLang === 'bn'): ?>
-                <a class="btn btn-outline-dark btn-sm btn-tool" href="<?php echo url('invoice-view'); ?>?id=<?php echo (int)$inv['id']; ?>&lang=en<?php echo $isTenantPortal ? '&tenant_portal=1' : ''; ?>"><i class="bi bi-translate mr-1"></i>English</a>
+                <a class="btn btn-outline-dark btn-sm btn-tool" href="<?php echo url('tenant-invoice-view'); ?>?id=<?php echo (int)$inv['id']; ?>&lang=en"><i class="bi bi-translate mr-1"></i>English</a>
             <?php else: ?>
-                <a class="btn btn-outline-dark btn-sm btn-tool" href="<?php echo url('invoice-view'); ?>?id=<?php echo (int)$inv['id']; ?>&lang=bn<?php echo $isTenantPortal ? '&tenant_portal=1' : ''; ?>"><i class="bi bi-translate mr-1"></i>বাংলা</a>
+                <a class="btn btn-outline-dark btn-sm btn-tool" href="<?php echo url('tenant-invoice-view'); ?>?id=<?php echo (int)$inv['id']; ?>&lang=bn"><i class="bi bi-translate mr-1"></i>বাংলা</a>
             <?php endif; ?>
             <button class="btn btn-primary btn-sm btn-tool" onclick="window.print()"><i class="bi bi-printer mr-1"></i><?php echo t('print'); ?></button>
             <?php if (!$isTenantPortal): ?>

@@ -27,8 +27,8 @@ $router->controller('tenants', App\Controllers\TenantsController::class);
 $router->controller('leases', App\Controllers\LeasesController::class);
 $router->controller('payments', App\Controllers\PaymentsController::class);
 $router->controller('invoices', App\Controllers\InvoicesController::class);
-$router->legacy('invoice-view', 'invoice_view.php');
-$router->legacy('receipt', 'receipt.php');
+$router->controller('invoice-view', App\Controllers\InvoiceViewController::class);
+$router->controller('receipt', App\Controllers\ReceiptController::class);
 $router->controller('expenses', App\Controllers\ExpensesController::class);
 $router->controller('reports', App\Controllers\ReportsController::class);
 
@@ -37,9 +37,9 @@ $router->controller('tenant-login', App\Controllers\TenantLoginController::class
 $router->controller('tenant-logout', App\Controllers\TenantLogoutController::class);
 $router->controller('tenant-dashboard', App\Controllers\TenantDashboardController::class);
 $router->controller('tenant-dues', App\Controllers\TenantDuesController::class);
-$router->legacy('tenant-invoice-view', 'tenant_invoice_view.php');
-$router->legacy('tenant-payments', 'tenant_payments.php');
-$router->legacy('tenant-profile', 'tenant_profile.php');
-$router->legacy('tenant-receipt', 'tenant_receipt.php');
+$router->controller('tenant-invoice-view', App\Controllers\TenantInvoiceViewController::class);
+$router->controller('tenant-payments', App\Controllers\TenantPaymentsController::class);
+$router->controller('tenant-profile', App\Controllers\TenantProfileController::class);
+$router->controller('tenant-receipt', App\Controllers\TenantReceiptController::class);
 
 return $router;
