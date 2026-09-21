@@ -1,0 +1,50 @@
+The issue is that the `t()` helper function is defined conditionally with `if (!function_exists('t'))` which means it may not be available when needed. When the receipt page is accessed with `lang=bn`, the translation system fails because the `t()` function isn't defined in all contexts.
+
+The fix is to define the `t()` function globally without the conditional check, ensuring it's always available for translations regardless of when or where it's called.
+
+Here's what needs to be changed:
+
+**File: `classes/Helpers.php`**
+
+**Problem:**
+The `t()` function is defined conditionally:
+```php
+if (!function_exists('t')) {
+    function t($key, $default = null) {
+        return Lang::get($key, $default);
+    }
+}
+```
+
+This conditional definition can cause issues because:
+1. The function might be defined in one context but not in another
+2. If another `t()` function exists (like the static method `Lang::t()`), this won't override it
+3. The translation system may not work consistently across different pages or contexts
+
+**Solution:**
+Define the `t()` function globally without the conditional check:
+```php
+// Global helper function
+function t($key, $default = null) {
+    return Lang::get($key, $default);
+}
+```
+
+This ensures:
+- The `t()` function is always available for use
+- It properly delegates to `Lang::get()` for translation
+- It works consistently across all pages and contexts
+- Bengali translations (and all other languages) will work correctly
+
+**Why this fixes the issue:**
+When the receipt page loads with `lang=bn`, the `t()` function needs to translate keys like 'received_from', 'phone', 'address', 'note', etc. The conditional definition can cause these translations to fail, resulting in English text showing instead of Bengali. By defining `t()` globally, the translation system works consistently.
+
+**Additional fix needed:**
+The `receipt.php` page uses `$waText` and `$body` variables that should be translated to Bengali, but they might be getting the English translations because the `t()` function isn't properly accessible or the language override isn't working.
+
+**Recommended fix:**
+1. Remove the conditional check from `Helpers.php` and define `t()` globally
+2. Ensure the language override in `receipt.php` is working correctly
+3. Test that Bengali translations appear correctly on the receipt page
+
+This simple change will resolve the Bengali translation issue and ensure all receipt labels (Received from, phone, address, comments, etc.) display in the correct language.
