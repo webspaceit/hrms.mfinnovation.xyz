@@ -23,14 +23,14 @@ $router->controller('buildings', App\Controllers\BuildingsController::class);
 
 // ---- Admin (legacy - conversion pending) ----
 $router->legacy('flats', 'flats.php');
-$router->legacy('tenants', 'tenants.php');
-$router->legacy('leases', 'leases.php');
-$router->legacy('payments', 'payments.php');
+$router->controller('tenants', App\Controllers\TenantsController::class);
+$router->controller('leases', App\Controllers\LeasesController::class);
+$router->controller('payments', App\Controllers\PaymentsController::class);
 $router->legacy('invoices', 'invoices.php');
 $router->legacy('invoice-view', 'invoice_view.php');
 $router->legacy('receipt', 'receipt.php');
-$router->legacy('expenses', 'expenses.php');
-$router->legacy('reports', 'reports.php');
+$router->controller('expenses', App\Controllers\ExpensesController::class);
+$router->controller('reports', App\Controllers\ReportsController::class);
 
 // ---- Tenant portal (legacy - conversion pending) ----
 $router->legacy('tenant-login', 'tenant_login.php');
