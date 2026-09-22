@@ -69,6 +69,7 @@ CREATE TABLE IF NOT EXISTS `wsit_tenants` (
   `deed_file` VARCHAR(255) DEFAULT NULL,
   `nid_file` VARCHAR(255) DEFAULT NULL,
   `status` ENUM('active','inactive') NOT NULL DEFAULT 'active',
+  `created_by` INT(11) DEFAULT NULL COMMENT 'User that entered the tenant (landlords only see their own)',
   `portal_username` VARCHAR(100) DEFAULT NULL,
   `portal_password` VARCHAR(255) DEFAULT NULL,
   `portal_enabled` TINYINT(1) NOT NULL DEFAULT 1,

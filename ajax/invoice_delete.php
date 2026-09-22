@@ -17,6 +17,14 @@ if (!$id) {
 }
 
 $invoiceModel = new Invoice();
+$inv = $invoiceModel->find($id);
+if (!$inv) {
+    jsonResponse(['success' => false, 'message' => t('error_occurred')]);
+}
+// Landlords may only delete invoices of tenants they entered.
+if (!tenantAccessible((int)$inv['tenant_id'])) {
+    jsonResponse(['success' => false, 'message' => t('access_denied')], 403);
+}
 $invoiceModel->delete($id);
 
 jsonResponse(['success' => true, 'message' => t('deleted_success')]);

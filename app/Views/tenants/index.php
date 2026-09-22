@@ -30,6 +30,7 @@ require dirname(__DIR__) . '/partials/header.php';
                         <th><?php echo t('nid'); ?></th>
                         <th><?php echo t('documents'); ?></th>
                         <th><?php echo t('status'); ?></th>
+                        <?php if ($isAdmin): ?><th><?php echo t('entered_by'); ?></th><?php endif; ?>
                         <th><?php echo t('flat_shop_no'); ?></th>
                         <th><?php echo t('rent_amount'); ?></th>
                         <th><?php echo t('advance'); ?></th>
@@ -38,7 +39,7 @@ require dirname(__DIR__) . '/partials/header.php';
                 </thead>
                 <tbody>
                     <?php if (empty($tenants)): ?>
-                        <tr><td colspan="12" class="text-muted py-4"><?php echo t('no_data'); ?></td></tr>
+                        <tr><td colspan="<?php echo $isAdmin ? 13 : 12; ?>" class="text-muted py-4"><?php echo t('no_data'); ?></td></tr>
                     <?php else: ?>
                         <?php foreach ($tenants as $i => $tn): ?>
                             <?php $st = statusBadge($tn['status']); ?>
@@ -82,6 +83,15 @@ require dirname(__DIR__) . '/partials/header.php';
                                 <td>
                                     <span class="badge bg-<?php echo $st['class']; ?>-subtle text-<?php echo $st['class']; ?>-emphasis"><?php echo $st['label']; ?></span>
                                 </td>
+                                <?php if ($isAdmin): ?>
+                                <td>
+                                    <?php if (!empty($tn['created_by_name'])): ?>
+                                        <span class="badge bg-secondary-subtle text-secondary-emphasis"><?php echo e($tn['created_by_name']); ?></span>
+                                    <?php else: ?>
+                                        <span class="text-muted">-</span>
+                                    <?php endif; ?>
+                                </td>
+                                <?php endif; ?>
                                 <td>
                                     <?php if ($tn['flat_id']): ?>
                                         <span class="badge bg-info-subtle text-info-emphasis"><?php echo e(localizeText($tn['building_name'])); ?> · <?php echo e(bnFlatCode($tn['flat_no'])); ?></span>
@@ -123,6 +133,19 @@ require dirname(__DIR__) . '/partials/header.php';
                         <label class="form-label"><?php echo t('tenant_name'); ?> <span class="text-danger">*</span></label>
                         <input type="text" name="name" id="tn_name" class="form-control" required>
                     </div>
+                    <?php if ($isAdmin): ?>
+                    <div class="mb-3">
+                        <label class="form-label"><?php echo t('entered_by'); ?></label>
+                        <select name="created_by" id="tn_created_by" class="form-select">
+                            <?php foreach ($users as $u): ?>
+                                <option value="<?php echo (int)$u['id']; ?>"<?php echo (int)$u['id'] === (int)\Auth::id() ? ' selected' : ''; ?>>
+                                    <?php echo e($u['full_name'] ?: $u['username']); ?> (<?php echo e(t($u['role'], $u['role'])); ?>)
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                        <div class="form-text mt-1"><i class="bi bi-info-circle mr-1"></i><?php echo t('entered_by_hint'); ?></div>
+                    </div>
+                    <?php endif; ?>
                     <div class="grid grid-cols-2 gap-3">
                         <div>
                             <label class="form-label"><?php echo t('phone'); ?> <span class="text-danger">*</span></label>
@@ -230,6 +253,7 @@ require dirname(__DIR__) . '/partials/header.php';
 <?php
 $extraJs = '
 <script>
+var currentUserId = ' . (int)\Auth::id() . ';
 function resetTenantForm() {
     document.getElementById("tenantForm").reset();
     document.getElementById("tn_id").value = "";
@@ -239,6 +263,8 @@ function resetTenantForm() {
     document.getElementById("tn_portal_password").value = "";
     document.getElementById("tn_portal_enabled").checked = true;
     document.getElementById("tn_advance").value = "";
+    var ownerEl = document.getElementById("tn_created_by");
+    if (ownerEl) ownerEl.value = currentUserId;
     document.getElementById("tenantModalTitle").textContent = "' . t('add_tenant') . '";
     document.getElementById("tn_submit").textContent = "' . t('save') . '";
 }
@@ -322,6 +348,8 @@ function editTenant(id) {
             document.getElementById("tn_address").value = d.address || "";
             document.getElementById("tn_advance").value = d.advance_amount || "";
             document.getElementById("tn_status").value = d.status;
+            var ownerEl = document.getElementById("tn_created_by");
+            if (ownerEl) ownerEl.value = d.created_by ? d.created_by : currentUserId;
             document.getElementById("tn_portal_username").value = d.portal_username || "";
             document.getElementById("tn_portal_password").value = "";
             document.getElementById("tn_portal_enabled").checked = (d.portal_enabled === undefined ? 1 : d.portal_enabled) == 1;

@@ -21,6 +21,10 @@ $inv = $invoiceModel->find($id);
 if (!$inv) {
     jsonResponse(['success' => false, 'message' => t('error_occurred')]);
 }
+// Landlords may only edit invoices of tenants they entered.
+if (!tenantAccessible((int)$inv['tenant_id'])) {
+    jsonResponse(['success' => false, 'message' => t('access_denied')], 403);
+}
 
 // Reset: revert to calculated values on next generate
 if (post('reset', '') !== '') {

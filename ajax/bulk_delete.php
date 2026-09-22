@@ -45,6 +45,33 @@ if (!isset($entityConfig[$entity])) {
 $modelClass = $entityConfig[$entity]['model'];
 $sideEffect = $entityConfig[$entity]['side_effect'];
 
+// Landlords may only bulk-delete records tied to tenants they entered.
+if (Auth::role() !== 'admin' && Auth::check()) {
+    $uid = (int)Auth::id();
+    $db = Database::getInstance();
+    if ($entity === 'tenants') {
+        $owned = array_flip(array_column($db->fetchAll(
+            "SELECT id FROM tenants WHERE created_by = :u", ['u' => $uid]
+        ), 'id'));
+    } elseif ($entity === 'leases') {
+        $owned = array_flip(array_column($db->fetchAll(
+            "SELECT l.id FROM leases l JOIN tenants t ON t.id = l.tenant_id WHERE t.created_by = :u", ['u' => $uid]
+        ), 'id'));
+    } elseif ($entity === 'payments') {
+        $owned = array_flip(array_column($db->fetchAll(
+            "SELECT p.id FROM payments p JOIN tenants t ON t.id = p.tenant_id WHERE t.created_by = :u", ['u' => $uid]
+        ), 'id'));
+    }
+    if (isset($owned)) {
+        $ids = array_values(array_filter($ids, function ($id) use ($owned) {
+            return isset($owned[$id]);
+        }));
+        if (empty($ids)) {
+            jsonResponse(['success' => false, 'message' => 'No records selected for deletion']);
+        }
+    }
+}
+
 $model = new $modelClass();
 $deletedCount = 0;
 $errorCount = 0;

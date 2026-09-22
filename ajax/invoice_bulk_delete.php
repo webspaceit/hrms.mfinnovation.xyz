@@ -29,6 +29,24 @@ $invoiceModel = new Invoice();
 $deletedCount = 0;
 $errorCount = 0;
 
+// Landlords may only bulk-delete invoices of tenants they entered.
+if (Auth::role() !== 'admin' && Auth::check()) {
+    $uid = (int)Auth::id();
+    $owned = array_flip(array_map('intval', array_column(
+        Database::getInstance()->fetchAll(
+            "SELECT i.id FROM invoices i JOIN tenants t ON t.id = i.tenant_id WHERE t.created_by = :u",
+            ['u' => $uid]
+        ),
+        'id'
+    )));
+    $ids = array_values(array_filter($ids, function ($id) use ($owned) {
+        return isset($owned[$id]);
+    }));
+    if (empty($ids)) {
+        jsonResponse(['success' => false, 'message' => 'No invoices selected for deletion']);
+    }
+}
+
 foreach ($ids as $id) {
     try {
         if ($invoiceModel->delete($id)) {

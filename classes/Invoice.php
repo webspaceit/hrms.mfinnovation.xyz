@@ -136,7 +136,7 @@ class Invoice extends BaseModel {
             JOIN tenants t ON t.id = i.tenant_id
             JOIN flats f ON f.id = i.flat_id
             JOIN buildings b ON b.id = f.building_id
-            WHERE i.month = :month AND i.year = :year
+            WHERE i.month = :month AND i.year = :year" . tenantScope('t') . "
             ORDER BY b.name, f.flat_no
         ", ['month' => (int)$month, 'year' => (int)$year]);
     }
@@ -164,6 +164,7 @@ class Invoice extends BaseModel {
             $sql .= " AND i.year = :y";
             $params['y'] = (int)$year;
         }
+        $sql .= tenantScope('t');
         $sql .= " ORDER BY b.name, f.flat_no, i.year DESC, i.month DESC";
         return $this->db->fetchAll($sql, $params);
     }
@@ -174,6 +175,17 @@ class Invoice extends BaseModel {
      * the single source of truth and the receipt always matches it.
      */
     public function allWithBreakdown() {
+        $scope = tenantScope('t');
+        if ($scope !== '') {
+            return $this->db->fetchAll("
+                SELECT i.lease_id, i.month, i.year, i.rent_amount, i.utility_fee,
+                       i.parking_amount, i.gas_amount, i.water_fee, i.waste_fee, i.arrears,
+                       i.total_due, i.paid_amount, i.payment_status, i.payment_status_override
+                FROM invoices i
+                JOIN tenants t ON t.id = i.tenant_id
+                WHERE 1=1" . $scope
+            );
+        }
         return $this->db->fetchAll("
             SELECT lease_id, month, year, rent_amount, utility_fee,
                    parking_amount, gas_amount, water_fee, waste_fee, arrears,
@@ -193,8 +205,9 @@ class Invoice extends BaseModel {
             JOIN tenants t ON t.id = i.tenant_id
             JOIN flats f ON f.id = i.flat_id
             JOIN buildings b ON b.id = f.building_id
-            WHERE i.id = :id
-        ", ['id' => (int)$id]);
+            WHERE i.id = :id" . tenantScope('t'),
+            ['id' => (int)$id]
+        );
     }
 
     // ------------------------------------------------------------

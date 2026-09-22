@@ -18,7 +18,7 @@ class LeasesController extends Controller {
         $flatModel = new \Flat();
 
         $leases = $leaseModel->allWithDetails();
-        $tenants = $tenantModel->where('status', 'active'); // all active tenants
+        $tenants = $tenantModel->activeVisible(); // scoped to current user
         $allFlats = $flatModel->allWithBuilding();
 
         $this->view('leases/index', [

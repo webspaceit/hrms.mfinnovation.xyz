@@ -210,6 +210,11 @@ If you already had the pre-MVC version:
    user roles feature — it adds the `role` column so you can manage
    admin / landlord accounts from the **Users** page. It is safe to
    re-run, and it keeps every existing account as `admin`.
+   Also run **`tenant_owner_upgrade.sql`** once if your install predates
+   landlord data scoping — it adds `tenants.created_by` so a landlord only
+   sees the tenants they entered (admins always see everything, and can
+   reassign a tenant's owner from the Tenants page). It is safe to re-run;
+   existing tenants keep a NULL owner and stay admin-only until reassigned.
 3. Then replace the files with this package (keep `config/config.php`,
    `uploads/`, `logs/`).
 4. The old page URLs (`payments.php`, `flats.php`, …) are gone — bookmark

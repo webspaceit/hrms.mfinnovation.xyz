@@ -804,3 +804,36 @@ function actionButtons(array $items) {
     $html .= '</div>';
     return $html;
 }
+
+// ------------------------------------------------------------
+// Landlord data scoping
+// ------------------------------------------------------------
+
+/**
+ * Landlord data-scoping SQL fragment. Admins and anonymous sessions (tenant
+ * portal, cron) are unrestricted; a landlord session is restricted to the
+ * tenants the user entered (tenants.created_by).
+ *
+ * @param string $alias Alias of the tenants table in the query; pass '' when
+ *                      the query does not alias its tenants table.
+ * @return string SQL fragment to append ('' when no restriction applies).
+ */
+function tenantScope($alias = 't') {
+    if (!Auth::check() || Auth::role() === 'admin') {
+        return '';
+    }
+    $uid = (int)Auth::id(); // inline int - injection-proof
+    return $alias === '' ? " AND created_by = $uid" : " AND $alias.created_by = $uid";
+}
+
+/**
+ * Can the current user manage (view / edit / delete) the given tenant?
+ * Admins can manage every tenant; landlords only the tenants they entered.
+ */
+function tenantAccessible($tenantId) {
+    if (Auth::role() === 'admin') {
+        return true;
+    }
+    $tenant = (new Tenant())->find((int)$tenantId);
+    return $tenant && (int)$tenant['created_by'] === (int)Auth::id();
+}

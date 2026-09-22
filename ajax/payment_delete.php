@@ -14,6 +14,11 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST' || empty(post('id'))) {
 $paymentModel = new Payment();
 $payment = $paymentModel->find((int)post('id'));
 
+// Landlords may only delete payments of tenants they entered.
+if (!$payment || !tenantAccessible((int)$payment['tenant_id'])) {
+    jsonResponse(['success' => false, 'message' => t('access_denied')], 403);
+}
+
 $paymentModel->delete((int)post('id'));
 
 // Recompute the month's invoice status after the installment is removed.

@@ -29,6 +29,16 @@ if (empty($tenant_id) || empty($flat_id) || empty($start_date)) {
 $leaseModel = new Lease();
 $flatModel = new Flat();
 
+// Landlords may only make / edit leases for tenants they entered.
+if ($id > 0) {
+    $existing = $leaseModel->find($id);
+    if (!$existing || !tenantAccessible((int)$existing['tenant_id']) || !tenantAccessible($tenant_id)) {
+        jsonResponse(['success' => false, 'message' => t('access_denied')], 403);
+    }
+} elseif (!tenantAccessible($tenant_id)) {
+    jsonResponse(['success' => false, 'message' => t('access_denied')], 403);
+}
+
 // Check flat not already leased (when creating new)
 if ($id == 0) {
     if ($leaseModel->hasActiveLeaseForFlat($flat_id)) {

@@ -9,6 +9,7 @@ class Payment extends BaseModel {
     protected $table = 'payments';
 
     public function allWithDetails() {
+        $scope = tenantScope('t');
         return $this->db->fetchAll("
             SELECT p.*, t.name AS tenant_name, f.flat_no, f.unit_type, b.name AS building_name, u.full_name AS collector,
                    iv.total_due, iv.paid_amount AS inv_paid, iv.payment_status, iv.payment_status_override,
@@ -19,6 +20,7 @@ class Payment extends BaseModel {
             LEFT JOIN buildings b ON b.id = f.building_id
             LEFT JOIN users u ON u.id = p.received_by
             LEFT JOIN invoices iv ON iv.lease_id = p.lease_id AND iv.month = p.month AND iv.year = p.year
+            " . ($scope !== '' ? "WHERE 1=1" . $scope : "") . "
             ORDER BY p.payment_date DESC, p.id DESC
         ");
     }
@@ -33,17 +35,20 @@ class Payment extends BaseModel {
             LEFT JOIN flats f ON f.id = p.flat_id
             LEFT JOIN buildings b ON b.id = f.building_id
             LEFT JOIN users u ON u.id = p.received_by
-            WHERE p.id = :id
-        ", ['id' => $id]);
+            WHERE p.id = :id" . tenantScope('t'),
+            ['id' => $id]
+        );
     }
 
     public function lastN($limit = 10) {
+        $scope = tenantScope('t');
         return $this->db->fetchAll("
             SELECT p.*, t.name AS tenant_name, f.flat_no, b.name AS building_name
             FROM payments p
             LEFT JOIN tenants t ON t.id = p.tenant_id
             LEFT JOIN flats f ON f.id = p.flat_id
             LEFT JOIN buildings b ON b.id = f.building_id
+            " . ($scope !== '' ? "WHERE 1=1" . $scope : "") . "
             ORDER BY p.payment_date DESC, p.id DESC
             LIMIT " . (int)$limit
         );
@@ -71,7 +76,11 @@ class Payment extends BaseModel {
     }
 
     public function totalCollected($year = null, $month = null) {
-        $sql = "SELECT COALESCE(SUM(total_amount), 0) FROM payments";
+        $scope = tenantScope('t');
+        $sql = $scope !== ''
+            ? "SELECT COALESCE(SUM(p.total_amount), 0) FROM payments p
+               JOIN tenants t ON t.id = p.tenant_id WHERE 1=1" . $scope
+            : "SELECT COALESCE(SUM(total_amount), 0) FROM payments";
         $params = [];
         $conditions = [];
         if ($year) {
@@ -83,12 +92,23 @@ class Payment extends BaseModel {
             $params['month'] = $month;
         }
         if ($conditions) {
-            $sql .= " WHERE " . implode(' AND ', $conditions);
+            $sql .= $scope !== '' ? " AND " . implode(' AND ', $conditions) : " WHERE " . implode(' AND ', $conditions);
         }
         return (float)$this->db->fetchColumn($sql, $params);
     }
 
     public function monthlySummary($year) {
+        $scope = tenantScope('t');
+        if ($scope !== '') {
+            return $this->db->fetchAll("
+                SELECT month, COALESCE(SUM(p.total_amount), 0) AS total
+                FROM payments p
+                JOIN tenants t ON t.id = p.tenant_id
+                WHERE year = :year" . $scope . "
+                GROUP BY month
+                ORDER BY month
+            ", ['year' => $year]);
+        }
         return $this->db->fetchAll("
             SELECT month, COALESCE(SUM(total_amount), 0) AS total
             FROM payments
@@ -99,6 +119,21 @@ class Payment extends BaseModel {
     }
 
     public function perBuildingSummary($year) {
+        $scope = tenantScope('t');
+        if ($scope !== '') {
+            // Landlord: report their own income per building while still
+            // keeping every building visible (rows with no income show 0).
+            $uid = (int)Auth::id();
+            return $this->db->fetchAll("
+                SELECT b.name, COALESCE(SUM(p.total_amount), 0) AS total
+                FROM buildings b
+                LEFT JOIN flats f ON f.building_id = b.id
+                LEFT JOIN payments p ON p.flat_id = f.id AND p.year = :year
+                    AND p.tenant_id IN (SELECT id FROM tenants WHERE created_by = $uid)
+                GROUP BY b.id, b.name
+                ORDER BY total DESC
+            ", ['year' => $year]);
+        }
         return $this->db->fetchAll("
             SELECT b.name, COALESCE(SUM(p.total_amount), 0) AS total
             FROM buildings b

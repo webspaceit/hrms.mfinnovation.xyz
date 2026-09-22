@@ -27,6 +27,10 @@ $inv = $invoiceModel->find($id);
 if (!$inv) {
     jsonResponse(['success' => false, 'message' => t('error_occurred')]);
 }
+// Landlords may only change the status of invoices of tenants they entered.
+if (!tenantAccessible((int)$inv['tenant_id'])) {
+    jsonResponse(['success' => false, 'message' => t('access_denied')], 403);
+}
 
 $payment_date_raw = trim((string)bnToEnDigits(post('payment_date')));
 $payment_date_ts = $payment_date_raw !== '' ? strtotime($payment_date_raw) : false;

@@ -127,6 +127,8 @@ return [
     // Tenants
     'add_tenant'     => 'Add Tenant',
     'edit_tenant'    => 'Edit Tenant',
+    'entered_by'     => 'Entered by',
+    'entered_by_hint' => 'Who manages this tenant. Landlords can see and manage only the tenants they entered.',
     'tenant_name'    => 'Tenant Name',
     'nid'            => 'NID',
     'deed'           => 'Deed',

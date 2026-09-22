@@ -37,8 +37,12 @@ if (!$id || empty($lease_id) || $month < 1 || $month > 12 || $year < 2000) {
 $paymentModel = new Payment();
 $existing = $paymentModel->find($id);
 
-if (!$existing) {
-    jsonResponse(['success' => false, 'message' => 'Payment not found']);
+// Landlords may only edit payments of tenants they entered.
+$targetLease = (new Lease())->find($lease_id);
+if (!$existing || !$targetLease
+    || !tenantAccessible((int)$existing['tenant_id'])
+    || !tenantAccessible((int)$targetLease['tenant_id'])) {
+    jsonResponse(['success' => false, 'message' => t('access_denied')], 403);
 }
 
 $total_amount = $amount + $parking_amount + $gas_amount + $water_fee + $waste_fee + $arrears;

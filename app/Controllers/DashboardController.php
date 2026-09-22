@@ -29,8 +29,8 @@ class DashboardController extends Controller {
         $totalShops = $flatModel->countByType('shop');
         $occupiedFlats = $flatModel->count("status = 'occupied'");
         $availableFlats = $flatModel->count("status = 'available'");
-        $totalTenants = $tenantModel->count("status = 'active'");
-        $activeLeases = $leaseModel->count("status = 'active'");
+        $totalTenants = $tenantModel->count("status = 'active'" . tenantScope(''));
+        $activeLeases = $leaseModel->activeCountScoped();
 
         // Financial stats
         $totalCollected = $paymentModel->totalCollected();

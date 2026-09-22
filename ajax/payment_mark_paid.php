@@ -28,6 +28,10 @@ $payment = $paymentModel->find($id);
 if (!$payment) {
     jsonResponse(['success' => false, 'message' => t('error_occurred')]);
 }
+// Landlords may only mark paid payments of tenants they entered.
+if (!tenantAccessible((int)$payment['tenant_id'])) {
+    jsonResponse(['success' => false, 'message' => t('access_denied')], 403);
+}
 
 $remaining = $paymentModel->markFullyPaid(
     (int)$payment['lease_id'],

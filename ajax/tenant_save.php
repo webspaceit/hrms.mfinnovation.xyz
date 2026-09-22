@@ -19,6 +19,11 @@ $nid = bnToEnDigits(post('nid'));
 $address = storeText(post('address'));
 $status = post('status', 'active');
 
+// Landlords may only add/edit the tenants they entered; admins manage everyone.
+if ($id > 0 && !tenantAccessible($id)) {
+    jsonResponse(['success' => false, 'message' => t('access_denied')], 403);
+}
+
 if (empty($name) || empty($phone)) {
     jsonResponse(['success' => false, 'message' => t('error_occurred')]);
 }
@@ -52,10 +57,19 @@ if ($newPortalPassword !== '') {
 }
 
 if ($id > 0) {
+    // Admins may reassign the tenant's owner from the edit modal.
+    if (Auth::role() === 'admin') {
+        $ownerId = (int)post('created_by', 0);
+        if ($ownerId > 0 && (new User())->find($ownerId)) {
+            $data['created_by'] = $ownerId;
+        }
+    }
     $tenantModel->update($id, $data);
     $tenantId = $id;
     $created = false;
 } else {
+    // A new tenant is owned by whoever enters it (landlords can then see it).
+    $data['created_by'] = Auth::id();
     $tenantId = (int)$tenantModel->create($data);
     $created = true;
 }

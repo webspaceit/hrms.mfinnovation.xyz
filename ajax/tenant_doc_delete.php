@@ -20,6 +20,9 @@ if (!$id || !$col) {
 }
 
 $tenantModel = new Tenant();
+if (!tenantAccessible($id)) {
+    jsonResponse(['success' => false, 'message' => t('access_denied')], 403);
+}
 $tenant = $tenantModel->find($id);
 if (!$tenant) {
     jsonResponse(['success' => false, 'message' => 'Not found']);

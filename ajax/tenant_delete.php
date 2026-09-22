@@ -12,6 +12,9 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST' || empty(post('id'))) {
 }
 
 $tenantModel = new Tenant();
+if (!tenantAccessible((int)post('id'))) {
+    jsonResponse(['success' => false, 'message' => t('access_denied')], 403);
+}
 $tenant = $tenantModel->find((int)post('id'));
 if ($tenant) {
     deleteUploadedDocument($tenant['deed_file'] ?? '');

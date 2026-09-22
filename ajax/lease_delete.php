@@ -16,6 +16,13 @@ $leaseModel = new Lease();
 $flatModel = new Flat();
 
 $lease = $leaseModel->find($leaseId);
+if (!$lease) {
+    jsonResponse(['success' => false, 'message' => 'Not found']);
+}
+// Landlords may only delete leases of tenants they entered.
+if (!tenantAccessible((int)$lease['tenant_id'])) {
+    jsonResponse(['success' => false, 'message' => t('access_denied')], 403);
+}
 if ($lease) {
     $leaseModel->delete($leaseId);
     $flatModel->refreshStatus($lease['flat_id']);

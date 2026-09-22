@@ -9,13 +9,17 @@ class Tenant extends BaseModel {
     protected $table = 'tenants';
 
     public function allWithLease() {
+        $scope = tenantScope('t');
         return $this->db->fetchAll("
             SELECT t.*, l.id AS lease_id, l.flat_id, l.rent_amount, l.status AS lease_status,
-                   f.flat_no, f.unit_type, f.advance_amount, b.name AS building_name
+                   f.flat_no, f.unit_type, f.advance_amount, b.name AS building_name,
+                   cu.full_name AS created_by_name
             FROM tenants t
             LEFT JOIN leases l ON l.tenant_id = t.id AND l.status = 'active'
             LEFT JOIN flats f ON f.id = l.flat_id
             LEFT JOIN buildings b ON b.id = f.building_id
+            LEFT JOIN users cu ON cu.id = t.created_by
+            " . ($scope !== '' ? "WHERE 1=1" . $scope : "") . "
             ORDER BY t.name
         ");
     }
@@ -39,8 +43,19 @@ class Tenant extends BaseModel {
 
     public function search($term) {
         return $this->db->fetchAll(
-            "SELECT * FROM tenants WHERE name LIKE :name OR phone LIKE :phone OR email LIKE :email",
+            "SELECT * FROM tenants WHERE (name LIKE :name OR phone LIKE :phone OR email LIKE :email)" . tenantScope(''),
             ['name' => "%$term%", 'phone' => "%$term%", 'email' => "%$term%"]
+        );
+    }
+
+    /**
+     * Active tenants visible to the current user (all of them for admins;
+     * only the user's own for landlords). Used for dropdowns such as the
+     * lease form so landlords never see other tenants' names.
+     */
+    public function activeVisible() {
+        return $this->db->fetchAll(
+            "SELECT * FROM tenants WHERE status = 'active'" . tenantScope('')
         );
     }
 

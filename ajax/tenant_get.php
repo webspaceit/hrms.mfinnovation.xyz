@@ -22,6 +22,11 @@ if (!$data) {
     jsonResponse(['success' => false, 'message' => 'Not found']);
 }
 
+// Landlords may only open the tenants they entered.
+if (!tenantAccessible((int)$data['id'])) {
+    jsonResponse(['success' => false, 'message' => t('access_denied')], 403);
+}
+
 // Never expose the portal password hash to the browser.
 unset($data['portal_password']);
 
@@ -44,6 +49,7 @@ $data['portal_username'] = $data['portal_username'] ?? '';
 $data['portal_enabled'] = isset($data['portal_enabled']) ? (int)$data['portal_enabled'] : 1;
 $data['portal_last_login'] = $data['portal_last_login'] ?? null;
 unset($data['portal_password']);
+$data['created_by'] = $data['created_by'] ?? null;
 
 // Advance shown in the Edit Tenant modal comes from the tenant's unit
 // (flats.advance_amount, maintained on the Flats page).

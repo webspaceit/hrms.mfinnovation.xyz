@@ -36,8 +36,9 @@ if (empty($lease_id) || $month < 1 || $month > 12 || $year < 2000) {
 $leaseModel = new Lease();
 $lease = $leaseModel->find($lease_id);
 
-if (!$lease) {
-    jsonResponse(['success' => false, 'message' => 'Lease not found']);
+// Landlords may only collect payments for tenants they entered.
+if (!$lease || !tenantAccessible((int)$lease['tenant_id'])) {
+    jsonResponse(['success' => false, 'message' => t('access_denied')], 403);
 }
 
 $paymentModel = new Payment();
