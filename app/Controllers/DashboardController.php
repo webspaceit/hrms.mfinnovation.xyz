@@ -58,6 +58,20 @@ class DashboardController extends Controller {
         $availableFlatsList = $flatModel->availableFlats();
         $maintenanceCount = $flatModel->count("status = 'maintenance'");
 
+        // Admin-only: quick tenant -> landlord assignment widget.
+        $isAdmin = \Auth::role() === 'admin';
+        $assignTenants = [];
+        $assignUsers = [];
+        if ($isAdmin) {
+            $assignTenants = $tenantModel->allWithLease();
+            // Unassigned tenants (no owner) first - they are the ones that
+            // usually still need a landlord.
+            usort($assignTenants, function ($a, $b) {
+                return ((int)($a['created_by'] ?? 0) ? 1 : 0) <=> ((int)($b['created_by'] ?? 0) ? 1 : 0);
+            });
+            $assignUsers = (new \User())->allUsers('full_name ASC');
+        }
+
         $this->view('dashboard/index', [
             'monthlyIncome'      => $monthlyIncome,
             'totalTenants'       => $totalTenants,
@@ -78,6 +92,9 @@ class DashboardController extends Controller {
             'maintenanceCount'   => $maintenanceCount,
             'year'               => $year,
             'month'              => $month,
+            'isAdmin'            => $isAdmin,
+            'assignTenants'      => $assignTenants,
+            'assignUsers'        => $assignUsers,
         ]);
     }
 }

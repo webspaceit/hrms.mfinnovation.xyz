@@ -187,6 +187,70 @@ require dirname(__DIR__) . '/partials/header.php';
     </div>
 </div>
 
+<?php if (!empty($isAdmin)): ?>
+<!-- Assign tenants to landlords (admin only) -->
+<div class="card fade-in mt-4">
+    <div class="card-header flex items-center justify-between">
+        <span><i class="bi bi-person-check mr-1"></i> <?php echo t('assign_tenants_to_landlords'); ?></span>
+        <a href="<?php echo url('tenants'); ?>" class="btn btn-sm btn-outline-primary"><?php echo t('view'); ?> <i class="bi bi-arrow-right ml-1"></i></a>
+    </div>
+    <div class="card-body p-0">
+        <?php if (empty($assignTenants)): ?>
+            <div class="p-4 text-muted"><?php echo t('no_data'); ?></div>
+        <?php elseif (empty($assignUsers)): ?>
+            <div class="p-4 text-muted"><?php echo t('no_users_for_assignment'); ?></div>
+        <?php else: ?>
+        <div class="table-responsive">
+            <table class="table table-hover table-sm mb-0">
+                <thead>
+                    <tr>
+                        <th><?php echo t('tenant_name'); ?></th>
+                        <th><?php echo t('phone'); ?></th>
+                        <th><?php echo t('flat_shop_no'); ?></th>
+                        <th><?php echo t('entered_by'); ?></th>
+                        <th class="text-end" style="min-width:230px;"><?php echo t('assign'); ?></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($assignTenants as $tn): ?>
+                    <tr>
+                        <td><?php echo e(localizeName($tn['name'])); ?></td>
+                        <td><?php echo e(bnNumeral(enDigits($tn['phone'] ?? ''))); ?></td>
+                        <td>
+                            <?php if (!empty($tn['flat_id']) && !empty($tn['flat_no'])): ?>
+                                <span class="badge bg-info-subtle text-info-emphasis"><?php echo e(bnFlatCode($tn['flat_no'])); ?></span>
+                                <?php if (!empty($tn['building_name'])): ?><small class="text-muted ms-1"><?php echo e(localizeText($tn['building_name'])); ?></small><?php endif; ?>
+                            <?php else: ?>
+                                <span class="text-muted">-</span>
+                            <?php endif; ?>
+                        </td>
+                        <td>
+                            <span id="owner-name-<?php echo (int)$tn['id']; ?>" class="badge <?php echo !empty($tn['created_by_name']) ? 'bg-secondary-subtle text-secondary-emphasis' : 'bg-warning-subtle text-warning-emphasis'; ?>">
+                                <?php echo !empty($tn['created_by_name']) ? e($tn['created_by_name']) : t('unassigned'); ?>
+                            </span>
+                        </td>
+                        <td class="text-end">
+                            <select class="form-select form-select-sm w-auto d-inline-block text-start"
+                                    data-assign-tenant="<?php echo (int)$tn['id']; ?>"
+                                    data-current="<?php echo (int)($tn['created_by'] ?? 0); ?>">
+                                <option value="0"><?php echo t('unassigned'); ?></option>
+                                <?php foreach ($assignUsers as $u): ?>
+                                    <option value="<?php echo (int)$u['id']; ?>"<?php echo (int)$u['id'] === (int)($tn['created_by'] ?? 0) ? ' selected' : ''; ?>>
+                                        <?php echo e($u['full_name'] ?: $u['username']); ?> (<?php echo e(t($u['role'], $u['role'])); ?>)
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </td>
+                    </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+        <?php endif; ?>
+    </div>
+</div>
+<?php endif; ?>
+
 <?php
 $extraJs = '
 <script>
@@ -255,6 +319,37 @@ document.addEventListener("DOMContentLoaded", function() {
             }
         });
     }
+});
+
+// Admin: quick tenant -> landlord assignment (dashboard widget)
+document.querySelectorAll("[data-assign-tenant]").forEach(function (sel) {
+    sel.addEventListener("change", function () {
+        if (this.value === this.dataset.current) return;
+        const tenantId = this.dataset.assignTenant;
+        const select = this;
+        const params = new URLSearchParams();
+        params.append("id", tenantId);
+        params.append("created_by", this.value);
+        params.append("csrf_token", CSRF_TOKEN);
+        fetch(BASE_URL + "ajax/tenant_assign.php", { method: "POST", body: params })
+            .then(function (r) { return r.json(); })
+            .then(function (res) {
+                if (res.success) {
+                    select.dataset.current = select.value;
+                    const badge = document.getElementById("owner-name-" + tenantId);
+                    if (badge) {
+                        badge.textContent = select.options[select.selectedIndex].text;
+                        badge.className = "badge " + (select.value == 0
+                            ? "bg-warning-subtle text-warning-emphasis"
+                            : "bg-secondary-subtle text-secondary-emphasis");
+                    }
+                    showToast(res.message, "success");
+                } else {
+                    showToast(res.message || "Request failed", "danger");
+                }
+            })
+            .catch(function () { showToast("Request failed", "danger"); });
+    });
 });
 </script>';
 require dirname(__DIR__) . '/partials/footer.php';
