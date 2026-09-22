@@ -38,6 +38,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Read SQL file and execute after removing CREATE DATABASE lines
             $sql = file_get_contents(__DIR__ . '/database.sql');
             $sql = preg_replace('/^\s*CREATE\s+DATABASE.*$/im', '', $sql);
+            // Drop the hardcoded USE `oop_rms` line too - the connection is
+            // already pointed at DB_NAME, and a leftover USE of a different
+            // name (e.g. cPanel's user_dbname) would abort the import.
+            $sql = preg_replace('/^\s*USE\s+`[^`]+`.*$/im', '', $sql);
             $pdo->exec("USE `" . DB_NAME . "`");
             $pdo->exec($sql);
 
