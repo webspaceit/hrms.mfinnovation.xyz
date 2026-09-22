@@ -32,6 +32,9 @@ $router->controller('receipt', App\Controllers\ReceiptController::class);
 $router->controller('expenses', App\Controllers\ExpensesController::class);
 $router->controller('reports', App\Controllers\ReportsController::class);
 
+// ---- Admin: user accounts & access levels ----
+$router->controller('users', App\Controllers\UsersController::class);
+
 // ---- Tenant portal (converted) ----
 $router->controller('tenant-login', App\Controllers\TenantLoginController::class);
 $router->controller('tenant-logout', App\Controllers\TenantLogoutController::class);

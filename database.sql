@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS `wsit_users` (
   `email` VARCHAR(150) NOT NULL,
   `password` VARCHAR(255) NOT NULL,
   `full_name` VARCHAR(150) NOT NULL,
+  `role` ENUM('admin','landlord') NOT NULL DEFAULT 'landlord',
   `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   UNIQUE KEY `username` (`username`)
@@ -225,8 +226,8 @@ CREATE TABLE IF NOT EXISTS `wsit_invoice_sends` (
 -- Default Data
 -- ------------------------------------------------------------
 -- Default admin: username: admin / password: admin123
-INSERT INTO `wsit_users` (`username`, `email`, `password`, `full_name`) VALUES
-('admin', 'admin@rms.com', '$2y$12$dJt.B1F9r5LwGbXhleipQevSwPtJtCBkOnDliavhtwhh5Wimw0aN6', 'System Admin')
+INSERT INTO `wsit_users` (`username`, `email`, `password`, `full_name`, `role`) VALUES
+('admin', 'admin@rms.com', '$2y$12$dJt.B1F9r5LwGbXhleipQevSwPtJtCBkOnDliavhtwhh5Wimw0aN6', 'System Admin', 'admin')
 ON DUPLICATE KEY UPDATE `username` = `username`;
 
 INSERT INTO `wsit_settings` (`setting_key`, `setting_value`) VALUES

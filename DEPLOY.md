@@ -206,6 +206,10 @@ If you already had the pre-MVC version:
    `portal_upgrade.sql` only if you upgraded from a version before the
    tenant portal (it adds tenant-portal columns/tables; the file already
    targets `wsit_tenants`).
+   Also run **`users_role_upgrade.sql`** once if your install predates the
+   user roles feature — it adds the `role` column so you can manage
+   admin / landlord accounts from the **Users** page. It is safe to
+   re-run, and it keeps every existing account as `admin`.
 3. Then replace the files with this package (keep `config/config.php`,
    `uploads/`, `logs/`).
 4. The old page URLs (`payments.php`, `flats.php`, …) are gone — bookmark

@@ -188,6 +188,26 @@ return [
     'invalid_cred'   => 'Invalid username or password',
     'logout_msg'     => 'You have been logged out',
 
+    // Users & roles
+    'users'                => 'Users',
+    'add_user'             => 'Add User',
+    'edit_user'            => 'Edit User',
+    'role'                 => 'Role',
+    'admin'                => 'Admin',
+    'landlord'             => 'Landlord',
+    'created_at'           => 'Created',
+    'username_taken'       => 'This username or email is already in use',
+    'cannot_change_own_role' => 'You cannot change your own role',
+    'cannot_delete_self'   => 'You cannot delete your own account',
+    'last_admin_required'  => 'At least one admin account is required',
+    'reset_password'       => 'Reset Password',
+    'password_reset_success' => 'Password reset successfully',
+    'invalid_email'        => 'Please enter a valid email address',
+    'passwords_not_match'  => 'Passwords do not match',
+    'leave_blank_keep'     => 'Leave blank to keep the current password',
+    'delete_user_q'        => 'Delete this user account?',
+    'you_this'             => 'This is you',
+
     // Messages
     'added_success'  => 'Added successfully',
     'updated_success'=> 'Updated successfully',

@@ -69,6 +69,11 @@ $user = Auth::user();
             <a href="<?php echo url('reports') . $langSuffix; ?>" class="nav-link <?php echo routeIs('reports') ? 'active' : ''; ?>">
                 <i class="bi bi-graph-up"></i> <span><?php echo t('reports'); ?></span>
             </a>
+            <?php if (($user['role'] ?? '') === 'admin'): ?>
+            <a href="<?php echo url('users') . $langSuffix; ?>" class="nav-link <?php echo routeIs('users') ? 'active' : ''; ?>">
+                <i class="bi bi-person-gear"></i> <span><?php echo t('users'); ?></span>
+            </a>
+            <?php endif; ?>
             <div class="sidebar-divider"></div>
             <a href="<?php echo url('logout') . $langSuffix; ?>" class="nav-link text-danger">
                 <i class="bi bi-box-arrow-right"></i> <span><?php echo t('logout'); ?></span>

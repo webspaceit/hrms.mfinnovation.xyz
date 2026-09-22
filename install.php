@@ -73,8 +73,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 );
                 $hash = password_hash($password, PASSWORD_DEFAULT);
                 $stmt = $pdo->prepare(Database::prefix(
-                    "INSERT INTO users (username, email, password, full_name)
-                     VALUES (:u, :e, :p, :fn)
+                    "INSERT INTO users (username, email, password, full_name, role)
+                     VALUES (:u, :e, :p, :fn, 'admin')
                      ON DUPLICATE KEY UPDATE password = :p2, email = :e2, full_name = :fn2"
                 ));
                 $stmt->execute([

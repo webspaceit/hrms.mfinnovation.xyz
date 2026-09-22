@@ -39,6 +39,7 @@ class Auth {
         Session::set('username', $user['username']);
         Session::set('full_name', $user['full_name']);
         Session::set('email', $user['email']);
+        Session::set('role', $user['role'] ?? 'landlord');
         Session::set('logged_in', true);
 
         return ['success' => true, 'message' => 'Logged in successfully'];
@@ -106,8 +107,29 @@ class Auth {
             'id' => Session::get('user_id'),
             'username' => Session::get('username'),
             'full_name' => Session::get('full_name'),
-            'email' => Session::get('email')
+            'email' => Session::get('email'),
+            'role' => Session::get('role', 'landlord')
         ];
+    }
+
+    /**
+     * Current user's role ('admin' or 'landlord').
+     */
+    public static function role() {
+        Session::start();
+        return Session::get('role', 'landlord');
+    }
+
+    /**
+     * Require an admin session (login + admin role). Landlords are
+     * silently sent to the dashboard.
+     */
+    public static function requireAdmin() {
+        self::requireLogin();
+        if (self::role() !== 'admin') {
+            redirect('dashboard');
+            exit;
+        }
     }
 
     /**
