@@ -28,6 +28,16 @@ class FlatsController extends Controller {
         }
 
         $flats = $flatModel->allWithBuilding($filterType);
+
+        // Landlords: the building filter may only offer buildings that contain
+        // one of their units (derived from the already-scoped flats list).
+        if (\Auth::check() && \Auth::role() !== 'admin') {
+            $myBuildingIds = array_map(function ($f) { return (int)$f['building_id']; }, $flats);
+            $buildings = array_values(array_filter($buildings, function ($b) use ($myBuildingIds) {
+                return in_array((int)$b['id'], $myBuildingIds, true);
+            }));
+        }
+
         if ($filterBuilding) {
             $flats = array_filter($flats, function($f) use ($filterBuilding) {
                 return $f['building_id'] == $filterBuilding;

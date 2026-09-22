@@ -9,17 +9,22 @@ class Flat extends BaseModel {
     protected $table = 'flats';
 
     public function allWithBuilding($type = '') {
+        // Landlords only see units leased to a tenant they entered
+        // (admins / anonymous see every unit).
+        $scope = unitScope('f');
+        $where = $scope !== '' ? " WHERE 1=1$scope" : '';
+        $params = [];
+        if ($type) {
+            $where .= ($where !== '' ? ' AND ' : ' WHERE ') . 'f.unit_type = :type';
+            $params['type'] = $type;
+        }
         $sql = "
             SELECT f.*, b.name AS building_name
             FROM flats f
             LEFT JOIN buildings b ON b.id = f.building_id
+            $where
+            ORDER BY b.name, f.flat_no
         ";
-        $params = [];
-        if ($type) {
-            $sql .= " WHERE f.unit_type = :type";
-            $params['type'] = $type;
-        }
-        $sql .= " ORDER BY b.name, f.flat_no";
         return $this->db->fetchAll($sql, $params);
     }
 

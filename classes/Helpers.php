@@ -837,3 +837,40 @@ function tenantAccessible($tenantId) {
     $tenant = (new Tenant())->find((int)$tenantId);
     return $tenant && (int)$tenant['created_by'] === (int)Auth::id();
 }
+
+/**
+ * Landlord data-scoping SQL fragment for units (flats/shops). Admins and
+ * anonymous sessions (tenant portal, cron) are unrestricted; a landlord only
+ * sees units that are currently leased to a tenant they entered
+ * (tenants.created_by).
+ *
+ * @param string $alias Alias of the flats table in the query; pass '' when
+ *                      the query does not alias its flats table.
+ * @return string SQL fragment to append ('' when no restriction applies).
+ */
+function unitScope($alias = 'f') {
+    if (!Auth::check() || Auth::role() === 'admin') {
+        return '';
+    }
+    $uid = (int)Auth::id(); // inline int - injection-proof
+    $col = $alias === '' ? 'id' : "$alias.id";
+    return " AND $col IN (SELECT DISTINCT l.flat_id FROM leases l JOIN tenants t ON t.id = l.tenant_id WHERE t.created_by = $uid)";
+}
+
+/**
+ * Landlord data-scoping SQL fragment for buildings. Admins and anonymous
+ * sessions are unrestricted; a landlord only sees buildings that contain a
+ * unit currently leased to a tenant they entered (tenants.created_by).
+ *
+ * @param string $alias Alias of the buildings table in the query; pass '' when
+ *                      the query does not alias its buildings table.
+ * @return string SQL fragment to append ('' when no restriction applies).
+ */
+function buildingScope($alias = 'b') {
+    if (!Auth::check() || Auth::role() === 'admin') {
+        return '';
+    }
+    $uid = (int)Auth::id(); // inline int - injection-proof
+    $col = $alias === '' ? 'id' : "$alias.id";
+    return " AND $col IN (SELECT DISTINCT f.building_id FROM flats f JOIN leases l ON l.flat_id = f.id JOIN tenants t ON t.id = l.tenant_id WHERE t.created_by = $uid)";
+}

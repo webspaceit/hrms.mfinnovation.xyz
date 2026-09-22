@@ -23,12 +23,13 @@ class DashboardController extends Controller {
         $year = date('Y');
         $month = date('n');
 
-        // Stats
-        $totalBuildings = $buildingModel->count();
-        $totalFlats = $flatModel->count();
-        $totalShops = $flatModel->countByType('shop');
-        $occupiedFlats = $flatModel->count("status = 'occupied'");
-        $availableFlats = $flatModel->count("status = 'available'");
+        // Stats - units/buildings are scoped for landlords to the units their
+        // tenants occupy (admins / anonymous see the global numbers).
+        $totalBuildings = $buildingModel->count('1=1' . buildingScope(''));
+        $totalFlats = $flatModel->count('1=1' . unitScope(''));
+        $totalShops = $flatModel->count("unit_type = 'shop'" . unitScope(''));
+        $occupiedFlats = $flatModel->count("status = 'occupied'" . unitScope(''));
+        $availableFlats = $flatModel->count("status = 'available'" . unitScope(''));
         $totalTenants = $tenantModel->count("status = 'active'" . tenantScope(''));
         $activeLeases = $leaseModel->activeCountScoped();
 
@@ -53,10 +54,13 @@ class DashboardController extends Controller {
             $chartData['expense'][] = $expenseModel->totalExpense($y, $m);
         }
 
-        // Recent payments + available units
+        // Recent payments + available units. A landlord's units are all leased
+        // to their tenants, so they never have "free" units to advertise -
+        // keep their list empty instead of showing other buildings' stock.
         $recentPayments = $paymentModel->lastN(8);
-        $availableFlatsList = $flatModel->availableFlats();
-        $maintenanceCount = $flatModel->count("status = 'maintenance'");
+        $availableFlatsList = (\Auth::check() && \Auth::role() !== 'admin')
+            ? [] : $flatModel->availableFlats();
+        $maintenanceCount = $flatModel->count("status = 'maintenance'" . unitScope(''));
 
         // Admin-only: quick tenant -> landlord assignment widget.
         $isAdmin = \Auth::role() === 'admin';
