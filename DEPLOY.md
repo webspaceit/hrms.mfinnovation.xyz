@@ -65,6 +65,9 @@ Then edit `config/config.php`:
   - `'/'` for `example.com/`
   - `'/rms/'` for `example.com/rms/`
   - Keep the **trailing slash** — a missing `/` breaks all URLs.
+- **DB_PREFIX** — leave as `wsit_`. It must match the physical table names
+  created by `database.sql` (they are already prefixed). The PHP code keeps
+  writing plain table names and the prefix is applied automatically.
 
 Leave everything else as-is (error display is already off; logs go to
 `logs/error.log`).
@@ -188,12 +191,24 @@ On hosts that block `exec()` (common on cheap shared hosting), leave
 
 If you already had the pre-MVC version:
 
-1. **Migrate data first** — your old `database.sql`-schema database works
-   as-is; run `portal_upgrade.sql` only if you upgraded from a version
-   before the tenant portal (it adds tenant-portal columns/tables).
-2. Then replace the files with this package (keep `config/config.php`,
+1. **Rename tables to the prefixed schema first** (if your old DB has
+   unprefixed tables). All tables are prefixed with `wsit_`:
+
+   ```sql
+   RENAME TABLE users TO wsit_users, buildings TO wsit_buildings,
+     flats TO wsit_flats, tenants TO wsit_tenants, leases TO wsit_leases,
+     payments TO wsit_payments, expenses TO wsit_expenses,
+     settings TO wsit_settings, translation_cache TO wsit_translation_cache,
+     invoices TO wsit_invoices, invoice_sends TO wsit_invoice_sends;
+   ```
+
+2. **Migrate data first** — your old database works as-is; run
+   `portal_upgrade.sql` only if you upgraded from a version before the
+   tenant portal (it adds tenant-portal columns/tables; the file already
+   targets `wsit_tenants`).
+3. Then replace the files with this package (keep `config/config.php`,
    `uploads/`, `logs/`).
-3. The old page URLs (`payments.php`, `flats.php`, …) are gone — bookmark
+4. The old page URLs (`payments.php`, `flats.php`, …) are gone — bookmark
    the new clean ones (`/payments`, `/flats`, …). Bookmarks pointing at
    the old files return 404 by design.
 

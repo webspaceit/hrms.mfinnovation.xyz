@@ -10,6 +10,7 @@ return [
     'properties'     => 'সম্পত্তি',
     'buildings'      => 'ভবনসমূহ',
     'flats'          => 'ফ্ল্যাটসমূহ',
+    'Flats or Shops' => 'ফ্ল্যাট বা দোকান',
     'tenants'        => 'ভাড়াটিয়া',
     'leases'         => 'লিজ / চুক্তি',
     'lease'          => 'লিজ',

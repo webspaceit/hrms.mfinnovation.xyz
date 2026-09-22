@@ -40,6 +40,11 @@ define('CURRENCY', '৳');
 // Session settings
 define('SESSION_NAME', 'rms_session');
 
+// Database table prefix. MUST match the table names created by
+// database.sql / install.php — change both together, then
+// rename existing tables (RENAME TABLE users TO wsit_users, ...).
+define('DB_PREFIX', 'wsit_');
+
 // Security settings
 define('CSRF_TOKEN_NAME', 'csrf_token');
 define('CSRF_TOKEN_EXPIRY', 3600); // 1 hour

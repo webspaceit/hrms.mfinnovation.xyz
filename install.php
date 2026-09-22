@@ -5,6 +5,7 @@
 // ============================================================
 
 require_once __DIR__ . '/config/config.php';
+require_once __DIR__ . '/classes/Database.php'; // for Database::prefix() on direct queries
 
 function e($str) {
     return htmlspecialchars($str ?? '', ENT_QUOTES, 'UTF-8');
@@ -67,11 +68,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
                 );
                 $hash = password_hash($password, PASSWORD_DEFAULT);
-                $stmt = $pdo->prepare(
+                $stmt = $pdo->prepare(Database::prefix(
                     "INSERT INTO users (username, email, password, full_name)
                      VALUES (:u, :e, :p, :fn)
                      ON DUPLICATE KEY UPDATE password = :p2, email = :e2, full_name = :fn2"
-                );
+                ));
                 $stmt->execute([
                     'u' => $username,
                     'e' => $email,
@@ -99,7 +100,7 @@ try {
     $dbExists = (bool)$stmt->fetch();
     if ($dbExists) {
         $pdo->exec("USE `" . DB_NAME . "`");
-        $stmt = $pdo->query("SELECT COUNT(*) FROM users");
+        $stmt = $pdo->query(Database::prefix("SELECT COUNT(*) FROM users"));
         $adminExists = (bool)$stmt->fetchColumn();
     }
 } catch (Exception $e) {

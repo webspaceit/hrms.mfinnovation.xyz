@@ -47,7 +47,7 @@ class ReceiptController extends Controller {
                     if (move_uploaded_file($signatureFile['tmp_name'], $filepath)) {
                         // Delete old signature if exists
                         $db = \Database::getInstance()->getConnection();
-                        $stmt = $db->prepare("SELECT signature FROM payments WHERE id = :id");
+                        $stmt = $db->prepare(\Database::prefix("SELECT signature FROM payments WHERE id = :id"));
                         $stmt->execute(['id' => $paymentId]);
                         $oldSig = $stmt->fetchColumn();
                         if ($oldSig && file_exists(dirname(__DIR__) . '/' . $oldSig)) {
@@ -55,7 +55,7 @@ class ReceiptController extends Controller {
                         }
                         // Save new signature path
                         $relativePath = 'uploads/signatures/' . $filename;
-                        $stmt = $db->prepare("UPDATE payments SET signature = :sig WHERE id = :id");
+                        $stmt = $db->prepare(\Database::prefix("UPDATE payments SET signature = :sig WHERE id = :id"));
                         $stmt->execute(['sig' => $relativePath, 'id' => $paymentId]);
                     }
                 }
@@ -221,9 +221,9 @@ class ReceiptController extends Controller {
         // maintained by Payments each time an installment is recorded. Mirroring the
         // reference app, installments accumulate until they cover the total due.
         $_db = \Database::getInstance()->getConnection();
-        $_invStmt = $_db->prepare(
+        $_invStmt = $_db->prepare(\Database::prefix(
             "SELECT id, total_due, paid_amount, payment_status, payment_status_override FROM invoices WHERE lease_id = :l AND month = :m AND year = :y LIMIT 1"
-        );
+        ));
         $_invStmt->execute(['l' => (int)$receipt['lease_id'], 'm' => (int)$receipt['month'], 'y' => (int)$receipt['year']]);
         $_invoice = $_invStmt->fetch(\PDO::FETCH_ASSOC);
 

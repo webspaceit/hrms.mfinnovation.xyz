@@ -33,7 +33,12 @@ A lightweight, bilingual (English / Bengali) rent management system built with o
 6. Login and start using the system
 
 Alternatively run `database.sql` manually via phpMyAdmin, then add a user with:
-`INSERT INTO users (username, email, password, full_name) VALUES ('admin','admin@rms.com', PASSWORD_HASH_HERE, 'System Admin');`
+`INSERT INTO wsit_users (username, email, password, full_name) VALUES ('admin','admin@rms.com', PASSWORD_HASH_HERE, 'System Admin');`
+
+> **Table prefix:** all tables use the `wsit_` prefix (e.g. `wsit_invoices`).
+> It is applied automatically at runtime from `DB_PREFIX` in `config/config.php`
+> — the PHP code keeps writing plain names (`users`, `invoices`, …). If you
+> change the prefix, rename the physical tables to match or set `DB_PREFIX = ''`.
 
 ## Deployment (shared hosting)
 

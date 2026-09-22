@@ -49,7 +49,7 @@ $user = Auth::user();
                 <i class="bi bi-buildings"></i> <span><?php echo t('buildings'); ?></span>
             </a>
             <a href="<?php echo url('flats') . $langSuffix; ?>" class="nav-link <?php echo routeIs('flats') ? 'active' : ''; ?>">
-                <i class="bi bi-door-open"></i> <span><?php echo t('flats'); ?></span>
+                <i class="bi bi-door-open"></i> <span><?php echo t('Flats or Shops'); ?></span>
             </a>
             <a href="<?php echo url('tenants') . $langSuffix; ?>" class="nav-link <?php echo routeIs('tenants') ? 'active' : ''; ?>">
                 <i class="bi bi-people"></i> <span><?php echo t('tenants'); ?></span>

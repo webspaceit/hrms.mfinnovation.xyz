@@ -9,6 +9,32 @@ class Database {
     private static $instance = null;
     private $connection;
 
+    // Tables the app uses — keep in sync with database.sql / portal_upgrade.sql.
+    // The runtime prefixer below rewrites these as <DB_PREFIX>tables, so the
+    // rest of the codebase keeps writing plain names ('users', 'invoices', ...).
+    public static $tables = [
+        'users', 'buildings', 'flats', 'tenants', 'leases', 'payments',
+        'expenses', 'settings', 'translation_cache', 'invoices', 'invoice_sends',
+    ];
+
+    // Rewrite known table names with the configured DB_PREFIX.
+    // A word-boundary lookaround keeps column/alias/constraint names
+    // (flat_id, fk_flats_building, ...) untouched.
+    public static function prefix($sql) {
+        $p = defined('DB_PREFIX') ? DB_PREFIX : '';
+        if ($p === '') {
+            return $sql;
+        }
+        foreach (self::$tables as $t) {
+            $sql = preg_replace(
+                '/(?<![A-Za-z0-9_])' . preg_quote($t, '/') . '(?![A-Za-z0-9_])/',
+                $p . $t,
+                $sql
+            );
+        }
+        return $sql;
+    }
+
     private function __construct() {
         try {
             $this->connection = new PDO(
@@ -39,7 +65,7 @@ class Database {
 
     // Helper methods
     public function query($sql, $params = []) {
-        $stmt = $this->connection->prepare($sql);
+        $stmt = $this->connection->prepare(self::prefix($sql));
         $stmt->execute($params);
         return $stmt;
     }

@@ -277,11 +277,11 @@ function translateText($text, $from, $to) {
     try {
         $db = Database::getInstance()->getConnection();
 
-        $stmt = $db->prepare("SELECT result FROM translation_cache WHERE src = :src AND lang_from = :f AND lang_to = :t LIMIT 1");
+        $stmt = $db->prepare(\Database::prefix("SELECT result FROM translation_cache WHERE src = :src AND lang_from = :f AND lang_to = :t LIMIT 1"));
         $stmt->execute([':src' => $text, ':f' => $from, ':t' => $to]);
         $cached = $stmt->fetchColumn();
         if ($cached !== false && $cached !== null && $cached !== '') {
-            $db->prepare("UPDATE translation_cache SET hits = hits + 1 WHERE src = :src AND lang_from = :f AND lang_to = :t")
+            $db->prepare(\Database::prefix("UPDATE translation_cache SET hits = hits + 1 WHERE src = :src AND lang_from = :f AND lang_to = :t"))
                 ->execute([':src' => $text, ':f' => $from, ':t' => $to]);
             return $cached;
         }
@@ -329,7 +329,7 @@ function translateText($text, $from, $to) {
 
     if ($result !== null && $db) {
         try {
-            $db->prepare("INSERT INTO translation_cache (src, lang_from, lang_to, result) VALUES (:src, :f, :t, :r) ON DUPLICATE KEY UPDATE result = VALUES(result)")
+            $db->prepare(\Database::prefix("INSERT INTO translation_cache (src, lang_from, lang_to, result) VALUES (:src, :f, :t, :r) ON DUPLICATE KEY UPDATE result = VALUES(result)"))
                 ->execute([':src' => $text, ':f' => $from, ':t' => $to, ':r' => $result]);
         } catch (Exception $e) {}
     }

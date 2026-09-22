@@ -10,6 +10,7 @@ return [
     'properties'     => 'Properties',
     'buildings'      => 'Buildings',
     'flats'          => 'Flats',
+    'Flats or Shops' => 'Flats or Shops',
     'tenants'        => 'Tenants',
     'leases'         => 'Leases',
     'lease'          => 'Lease',

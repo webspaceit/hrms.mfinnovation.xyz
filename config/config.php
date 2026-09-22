@@ -17,6 +17,11 @@ define('CURRENCY', '৳');
 // Session settings
 define('SESSION_NAME', 'rms_session');
 
+// Database table prefix. MUST match the table names created by
+// database.sql / install.php (e.g. 'users' -> '<prefix>users').
+// Set to '' to disable prefixed tables entirely.
+define('DB_PREFIX', 'wsit_');
+
 // Security settings
 define('CSRF_TOKEN_NAME', 'csrf_token');
 define('CSRF_TOKEN_EXPIRY', 3600); // 1 hour
