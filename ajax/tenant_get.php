@@ -55,5 +55,7 @@ $data['created_by'] = $data['created_by'] ?? null;
 // (flats.advance_amount, maintained on the Flats page).
 $unit = $tenantModel->currentUnit($data['id']);
 $data['advance_amount'] = $unit && $unit['advance_amount'] !== null ? (string)$unit['advance_amount'] : '';
+// The unit type (flat / shop) is exposed for the tenant modal.
+$data['unit_type'] = $unit ? ($unit['unit_type'] ?? null) : null;
 
 jsonResponse(['success' => true, 'data' => $data]);

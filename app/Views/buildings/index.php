@@ -25,6 +25,7 @@ require dirname(__DIR__) . '/partials/header.php';
                         <th><input type="checkbox" id="selectAll" class="form-check-input"></th>
                         <th>#</th>
                         <th><?php echo t('building_name'); ?></th>
+                        <th><?php echo t('holding_no'); ?></th>
                         <th><?php echo t('address'); ?></th>
                         <th><?php echo t('total_flats'); ?></th>
                         <th><?php echo t('available_flats'); ?></th>
@@ -35,7 +36,7 @@ require dirname(__DIR__) . '/partials/header.php';
                 </thead>
                 <tbody>
                     <?php if (empty($buildings)): ?>
-                        <tr><td colspan="9" class="text-muted py-4"><?php echo t('no_data'); ?></td></tr>
+                        <tr><td colspan="10" class="text-muted py-4"><?php echo t('no_data'); ?></td></tr>
                     <?php else: ?>
                         <?php foreach ($buildings as $i => $b): ?>
                             <tr data-id="<?php echo $b['id']; ?>">
@@ -46,6 +47,7 @@ require dirname(__DIR__) . '/partials/header.php';
                                         <i class="bi bi-building mr-1 text-primary"></i><?php echo e(localizeText($b['name'])); ?>
                                     </a>
                                 </td>
+                                <td><?php echo $b['holding_no'] !== null && $b['holding_no'] !== '' ? e(bnFlatCode($b['holding_no'])) : '—'; ?></td>
                                 <td><?php echo e(localizeText($b['address'])); ?></td>
                                 <td>
                                     <span class="text-primary"><?php echo bnNumeral($b['flat_count']); ?></span>
@@ -94,6 +96,10 @@ require dirname(__DIR__) . '/partials/header.php';
                     <div class="mb-3">
                         <label class="form-label"><?php echo t('building_name'); ?> <span class="text-danger">*</span></label>
                         <input type="text" name="name" id="b_name" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label"><?php echo t('holding_no'); ?></label>
+                        <input type="text" name="holding_no" id="b_holding_no" class="form-control" placeholder="e.g. 467/1">
                     </div>
                     <div class="mb-3">
                         <label class="form-label"><?php echo t('address'); ?></label>
@@ -147,6 +153,7 @@ function editBuilding(id) {
         if (result.success) {
             document.getElementById("b_id").value = result.data.id;
             document.getElementById("b_name").value = result.data.name;
+            document.getElementById("b_holding_no").value = result.data.holding_no || "";
             document.getElementById("b_address").value = result.data.address || "";
             document.getElementById("b_description").value = result.data.description || "";
             document.getElementById("buildingModalTitle").textContent = "' . t('edit_building') . '";

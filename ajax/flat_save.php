@@ -18,6 +18,7 @@ if ($unit_type !== 'shop') {
     $unit_type = 'flat';
 }
 $flat_no = enFlatNo(post('flat_no'));
+$shop_name = trim((string)post('shop_name', ''));
 $floor = bnToEnDigits(post('floor'));
 $bedrooms = (int)bnToEnDigits(post('bedrooms', 0));
 $bathrooms = (int)bnToEnDigits(post('bathrooms', 0));
@@ -35,6 +36,7 @@ $data = [
     'building_id' => $building_id,
     'unit_type' => $unit_type,
     'flat_no' => $flat_no,
+    'shop_name' => $shop_name !== '' ? $shop_name : null,
     'floor' => $floor,
     'bedrooms' => $bedrooms,
     'bathrooms' => $bathrooms,

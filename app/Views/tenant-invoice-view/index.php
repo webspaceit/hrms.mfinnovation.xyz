@@ -441,10 +441,10 @@ $currentLang = Lang::current();
                     <?php endif; ?>
                     <?php if ((float)$inv['water_fee'] > 0 || (float)$inv['waste_fee'] > 0): ?>
                     <tr>
-                        <td class="label-cell"><?php echo (float)$inv['water_fee'] > 0 ? 'পানি বিল :' : ''; ?></td>
-                        <td class="value-cell"><?php echo (float)$inv['water_fee'] > 0 ? $cur . ' ' . bnNumeral(number_format((float)$inv['water_fee'], 2)) : ''; ?></td>
-                        <td class="label-cell" style="padding-left:16px;"><?php echo (float)$inv['waste_fee'] > 0 ? 'বর্জ্য ব্যবস্থাপনা বিল :' : ''; ?></td>
+                        <td class="label-cell"><?php echo (float)$inv['waste_fee'] > 0 ? 'বর্জ্য ব্যবস্থাপনা বিল :' : ''; ?></td>
                         <td class="value-cell"><?php echo (float)$inv['waste_fee'] > 0 ? $cur . ' ' . bnNumeral(number_format((float)$inv['waste_fee'], 2)) : ''; ?></td>
+                        <td class="label-cell" style="padding-left:16px;"><?php echo (float)$inv['water_fee'] > 0 ? 'পানি বিল :' : ''; ?></td>
+                        <td class="value-cell"><?php echo (float)$inv['water_fee'] > 0 ? $cur . ' ' . bnNumeral(number_format((float)$inv['water_fee'], 2)) : ''; ?></td>
                     </tr>
                     <?php endif; ?>
                     <?php if ((float)$inv['arrears'] > 0): ?>
@@ -487,10 +487,10 @@ $currentLang = Lang::current();
                     <?php endif; ?>
                     <?php if ((float)$inv['water_fee'] > 0 || (float)$inv['waste_fee'] > 0): ?>
                     <tr>
-                        <td class="label-cell"><?php echo (float)$inv['water_fee'] > 0 ? 'Water Bill :' : ''; ?></td>
-                        <td class="value-cell"><?php echo (float)$inv['water_fee'] > 0 ? $cur . ' ' . number_format((float)$inv['water_fee'], 2) : ''; ?></td>
-                        <td class="label-cell" style="padding-left:16px;"><?php echo (float)$inv['waste_fee'] > 0 ? 'Waste Management Bill :' : ''; ?></td>
+                        <td class="label-cell"><?php echo (float)$inv['waste_fee'] > 0 ? 'Waste Management Bill :' : ''; ?></td>
                         <td class="value-cell"><?php echo (float)$inv['waste_fee'] > 0 ? $cur . ' ' . number_format((float)$inv['waste_fee'], 2) : ''; ?></td>
+                        <td class="label-cell" style="padding-left:16px;"><?php echo (float)$inv['water_fee'] > 0 ? 'Water Bill :' : ''; ?></td>
+                        <td class="value-cell"><?php echo (float)$inv['water_fee'] > 0 ? $cur . ' ' . number_format((float)$inv['water_fee'], 2) : ''; ?></td>
                     </tr>
                     <?php endif; ?>
                     <?php if ((float)$inv['arrears'] > 0): ?>

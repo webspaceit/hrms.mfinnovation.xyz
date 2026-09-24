@@ -61,7 +61,32 @@ if ($invoice) {
     }
 }
 
-$paymentModel->update($id, [
+// Previous month's service charge receipt scan (flat rent only): a newly
+// uploaded file replaces the old one; remove_sc=1 deletes it.
+$scValue = null; // null = leave untouched
+if ($receipt_type === 'rent' && !empty($existing['flat_id'])) {
+    $unitType = (new Flat())->find((int)$existing['flat_id'])['unit_type'] ?? 'flat';
+    if ($unitType === 'flat') {
+        if (post('remove_sc') === '1') {
+            if (!empty($existing['service_charge_file'])) {
+                deleteUploadedDocument($existing['service_charge_file']);
+            }
+            $scValue = '';
+        } elseif (!empty($_FILES['service_charge_file'])
+            && ($_FILES['service_charge_file']['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE) {
+            $path = uploadDocument($_FILES['service_charge_file'], 'service_charge', $id);
+            if ($path === false) {
+                jsonResponse(['success' => false, 'message' => t('invalid_file')]);
+            }
+            if (!empty($existing['service_charge_file'])) {
+                deleteUploadedDocument($existing['service_charge_file']);
+            }
+            $scValue = $path;
+        }
+    }
+}
+
+$data = [
     'lease_id' => $lease_id,
     'tenant_id' => $existing['tenant_id'],
     'flat_id' => $existing['flat_id'],
@@ -78,7 +103,12 @@ $paymentModel->update($id, [
     'receipt_type' => $receipt_type,
     'payment_date' => $payment_date,
     'note' => $note
-]);
+];
+if ($scValue !== null) {
+    $data['service_charge_file'] = $scValue === '' ? null : $scValue;
+}
+
+$paymentModel->update($id, $data);
 
 $paymentModel->reconcileInvoice($lease_id, $month, $year);
 

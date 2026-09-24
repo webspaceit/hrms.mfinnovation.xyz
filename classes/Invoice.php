@@ -200,7 +200,7 @@ class Invoice extends BaseModel {
     public function getWithDetails($id) {
         return $this->db->fetch("
             SELECT i.*, t.name AS tenant_name, t.phone AS tenant_phone, t.email AS tenant_email,
-                   f.flat_no, f.unit_type, b.name AS building_name, b.address AS building_address
+                   f.flat_no, f.unit_type, f.shop_name, b.name AS building_name, b.address AS building_address, b.holding_no AS building_holding_no
             FROM invoices i
             JOIN tenants t ON t.id = i.tenant_id
             JOIN flats f ON f.id = i.flat_id
@@ -404,12 +404,19 @@ class Invoice extends BaseModel {
     public function toPlain($inv) {
         $lang = lang();
         $cur = CURRENCY;
-        $flatLabel = $inv['unit_type'] === 'shop' ? t('shop') : t('flat_no');
+        $flatLabel = $inv['unit_type'] === 'shop' ? t('shop_no') : t('flat_no');
+        $flatValue = bnFlatCode($inv['flat_no']);
+        $shopName = trim((string)($inv['shop_name'] ?? ''));
         $lines = [];
         $lines[] = t('due_invoice') . ' - ' . $this->invoiceNo($inv);
         $lines[] = t('tenant_name') . ': ' . localizeName($inv['tenant_name']);
-        $lines[] = t('building_name') . ': ' . localizeText($inv['building_name']);
-        $lines[] = $flatLabel . ': ' . bnFlatCode($inv['flat_no']);
+        if ($inv['unit_type'] === 'shop') {
+            $lines[] = t('shop_name') . ': ' . ($shopName !== '' ? localizeText($shopName) : '—');
+            $lines[] = t('building_name') . ': ' . localizeText($inv['building_name']);
+        } else {
+            $lines[] = t('building_name') . ': ' . localizeText($inv['building_name']);
+        }
+        $lines[] = $flatLabel . ': ' . $flatValue;
         $lines[] = t('paid_for') . ': ' . monthName($inv['month']) . ' ' . bnNumeral($inv['year']);
         $lines[] = t('monthly_rent') . ': ' . $cur . ' ' . bnNumeral(number_format((float)$inv['rent_amount'], 2));
         if ((float)$inv['parking_amount'] > 0) {
@@ -440,7 +447,8 @@ class Invoice extends BaseModel {
      */
     public function toHtml($inv) {
         $cur = CURRENCY;
-        $flatLabel = $inv['unit_type'] === 'shop' ? t('shop') : t('flat_no');
+        $flatLabel = $inv['unit_type'] === 'shop' ? t('shop_no') : t('flat_no');
+        $shopName = trim((string)($inv['shop_name'] ?? ''));
         $rows = function ($label, $value, $bold = false) {
             $b = $bold ? ' style="font-weight:bold;"' : '';
             return '<tr><td style="padding:4px 8px;color:#555;background:#f7f7f7;"' . $b . '>' . $label . '</td>'
@@ -455,6 +463,9 @@ class Invoice extends BaseModel {
             . '<div style="padding:16px 18px;">'
             . '<table style="width:100%;border-collapse:collapse;">'
             . '<tr><td style="padding:2px 8px;">' . t('tenant_name') . '</td><td style="padding:2px 8px;font-weight:600;text-align:right;">' . localizeName($inv['tenant_name']) . '</td></tr>'
+            . ($inv['unit_type'] === 'shop'
+                ? '<tr><td style="padding:2px 8px;">' . t('shop_name') . '</td><td style="padding:2px 8px;font-weight:600;text-align:right;">' . ($shopName !== '' ? localizeText($shopName) : '—') . '</td></tr>'
+                : '')
             . '<tr><td style="padding:2px 8px;">' . t('building_name') . '</td><td style="padding:2px 8px;font-weight:600;text-align:right;">' . localizeText($inv['building_name']) . '</td></tr>'
             . '<tr><td style="padding:2px 8px;">' . $flatLabel . '</td><td style="padding:2px 8px;font-weight:600;text-align:right;">' . bnFlatCode($inv['flat_no']) . '</td></tr>'
             . '<tr><td style="padding:2px 8px;">' . t('paid_for') . '</td><td style="padding:2px 8px;font-weight:600;text-align:right;">' . monthName($inv['month']) . ' ' . bnNumeral($inv['year']) . '</td></tr>'

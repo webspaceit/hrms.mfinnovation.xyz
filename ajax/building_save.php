@@ -13,6 +13,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 $id = (int)post('id', 0);
 $name = storeText(post('name'));
+$holdingNo = storeText(post('holding_no'));
 $address = storeText(post('address'));
 $description = storeText(post('description'));
 
@@ -23,6 +24,7 @@ if (empty($name)) {
 $buildingModel = new Building();
 $data = [
     'name' => $name,
+    'holding_no' => $holdingNo,
     'address' => $address,
     'description' => $description
 ];

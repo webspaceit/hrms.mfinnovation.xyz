@@ -203,9 +203,15 @@ If you already had the pre-MVC version:
    ```
 
 2. **Migrate data first** — your old database works as-is; run
-   `portal_upgrade.sql` only if you upgraded from a version before the
-   tenant portal (it adds tenant-portal columns/tables; the file already
-   targets `wsit_tenants`).
+   **`db_alter_upgrade.sql`** once — it is the single *ALTER-only*
+   upgrade that adds every column/table a newer build needs
+   (`shop_name`, `holding_no`, `service_charge_file`, user roles,
+   portal columns, parking/gas/water/waste, arrears, invoice status
+   …). It never drops or overwrites data and is fully idempotent,
+   so it is safe on a database that is already current.
+   (The older targeted scripts still work: `portal_upgrade.sql` adds
+   the tenant-portal columns/tables; the file already targets
+   `wsit_tenants`.
    Also run **`users_role_upgrade.sql`** once if your install predates the
    user roles feature — it adds the `role` column so you can manage
    admin / landlord accounts from the **Users** page. It is safe to

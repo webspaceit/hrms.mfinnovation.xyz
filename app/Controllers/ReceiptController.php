@@ -149,6 +149,12 @@ class ReceiptController extends Controller {
         $holdingLabel = $propertyType === 'shop' ? t('shop_no') : t('flat_no');
         $holdingLabelBn = $propertyType === 'shop' ? 'দোকান নং' : 'ফ্ল্যাট নং';
 
+        // Shop business name (only meaningful for shop units).
+        $shopName = $propertyType === 'shop' ? trim((string)($receipt['shop_name'] ?? '')) : '';
+
+        // Building holding number (city corporation / pourashava) — shown on shop receipts.
+        $holdingNo = $propertyType === 'shop' ? trim((string)($receipt['building_holding_no'] ?? '')) : '';
+
         // Format receipt details for WhatsApp/Email (full receipt content)
         $formattedDate = date('d-m-Y', strtotime($receipt['payment_date']));
         $receiptDetails = "";
@@ -159,13 +165,27 @@ class ReceiptController extends Controller {
         $receiptDetails .= t('unit_type') . ": $typeLabel\n";
         $receiptDetails .= str_repeat("-", 30) . "\n";
         if ($currentLang === 'bn') {
-            $receiptDetails .= "$propertyLabelBn নাম : " . localizeText($receipt['building_name']) . "\n";
-            $receiptDetails .= "$holdingLabelBn : " . bnFlatCode($receipt['flat_no']) . "\n";
+            if ($propertyType === 'shop') {
+                $receiptDetails .= "দোকানের নাম : " . ($shopName !== '' ? localizeText($shopName) : '—') . "\n";
+                $receiptDetails .= "দোকান নং : " . bnFlatCode($receipt['flat_no']) . "\n";
+                $receiptDetails .= "ভবন : " . localizeText($receipt['building_name']) . "\n";
+                $receiptDetails .= "হোল্ডিং নং : " . ($holdingNo !== '' ? bnFlatCode($holdingNo) : '—') . "\n";
+            } else {
+                $receiptDetails .= "$propertyLabelBn নাম : " . localizeText($receipt['building_name']) . "\n";
+                $receiptDetails .= "$holdingLabelBn : " . bnFlatCode($receipt['flat_no']) . "\n";
+            }
             $receiptDetails .= "ঠিকানা : " . localizeText($receipt['building_address']) . "\n";
             $receiptDetails .= "ভাড়াটিয়ার নাম : " . localizeName($receipt['tenant_name']) . "\n";
         } else {
-            $receiptDetails .= "$propertyLabelEn Name : " . localizeText($receipt['building_name']) . "\n";
-            $receiptDetails .= "$holdingLabel : " . bnFlatCode($receipt['flat_no']) . "\n";
+            if ($propertyType === 'shop') {
+                $receiptDetails .= "Shop Name : " . ($shopName !== '' ? localizeText($shopName) : '—') . "\n";
+                $receiptDetails .= "Shop No : " . bnFlatCode($receipt['flat_no']) . "\n";
+                $receiptDetails .= "Building : " . localizeText($receipt['building_name']) . "\n";
+                $receiptDetails .= "Holding No : " . ($holdingNo !== '' ? bnFlatCode($holdingNo) : '—') . "\n";
+            } else {
+                $receiptDetails .= "$propertyLabelEn Name : " . localizeText($receipt['building_name']) . "\n";
+                $receiptDetails .= "$holdingLabel : " . bnFlatCode($receipt['flat_no']) . "\n";
+            }
             $receiptDetails .= "Address : " . localizeText($receipt['building_address']) . "\n";
             $receiptDetails .= "Tenant Name : " . localizeName($receipt['tenant_name']) . "\n";
         }
@@ -295,6 +315,8 @@ class ReceiptController extends Controller {
             'feeRowLabel'       => $feeRowLabel,
             'holdingLabel'      => $holdingLabel,
             'holdingLabelBn'    => $holdingLabelBn,
+            'shopName'          => $shopName,
+            'holdingNo'         => $holdingNo,
             'formattedDate'     => $formattedDate,
             'waUrl'             => $waUrl,
             'fontFamily'        => $fontFamily,

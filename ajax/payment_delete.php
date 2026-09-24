@@ -19,6 +19,11 @@ if (!$payment || !tenantAccessible((int)$payment['tenant_id'])) {
     jsonResponse(['success' => false, 'message' => t('access_denied')], 403);
 }
 
+// Remove the attached service-charge receipt scan (if any) from disk.
+if (!empty($payment['service_charge_file'])) {
+    deleteUploadedDocument($payment['service_charge_file']);
+}
+
 $paymentModel->delete((int)post('id'));
 
 // Recompute the month's invoice status after the installment is removed.

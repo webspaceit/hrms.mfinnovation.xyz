@@ -158,6 +158,11 @@ require dirname(__DIR__) . '/partials/header.php';
                         <span class="badge bg-<?php echo $isShop ? 'warning' : 'primary'; ?>-subtle text-<?php echo $isShop ? 'warning' : 'primary'; ?>-emphasis"><?php echo e(bnFlatCode($f['flat_no'])); ?></span>
                         <?php if ($f['size_sqft']): ?><small class="text-muted ml-1"><?php echo e(bnNumeral(enDigits($f['size_sqft']))); ?> <?php echo t('sqft'); ?></small><?php endif; ?>
                     </div>
+                    <?php if ($isShop && !empty($f['shop_name'])): ?>
+                        <div class="fw-semibold text-dark small">
+                            <i class="bi bi-shop mr-1"></i><?php echo e(localizeText($f['shop_name'])); ?>
+                        </div>
+                    <?php endif; ?>
                     <div class="text-muted small mt-1">
                         <i class="bi bi-building mr-1"></i><?php echo e(localizeText($f['building_name'])); ?>
                         <?php if ($f['floor'] !== ''): ?>· <?php echo e(floorLabel($f['floor'])); ?><?php endif; ?>
@@ -219,6 +224,10 @@ require dirname(__DIR__) . '/partials/header.php';
                             <label class="form-label"><?php echo t('floor'); ?></label>
                             <input type="text" name="floor" id="f_floor" class="form-control" data-digits-only>
                         </div>
+                    </div>
+                    <div class="mb-3" id="f_shop_row" style="display:none;">
+                        <label class="form-label"><i class="bi bi-shop mr-1"></i><?php echo t('shop_name'); ?></label>
+                        <input type="text" name="shop_name" id="f_shop_name" class="form-control" placeholder="<?php echo t('shop_name'); ?>">
                     </div>
                     <div class="grid grid-cols-2 gap-3" id="f_room_row">
                         <div>
@@ -287,6 +296,7 @@ $extraJs = '
 const L10N = ' . json_encode([
     'shop_no'   => t('shop_no'),
     'flat_no'   => t('flat_no'),
+    'shop_name' => t('shop_name'),
     'add_flat'  => t('add_flat'),
     'edit_flat' => t('edit_flat'),
     'save'      => t('save'),
@@ -298,6 +308,7 @@ function toggleUnitFields() {
     const type = document.getElementById("f_type").value;
     const isShop = type === "shop";
     document.getElementById("f_room_row").style.display = isShop ? "none" : "";
+    document.getElementById("f_shop_row").style.display = isShop ? "" : "none";
     document.getElementById("f_no_label").innerHTML = (isShop ? L10N.shop_no : L10N.flat_no) + REQUIRED;
 }
 
@@ -310,6 +321,8 @@ function resetFlatForm() {
     document.getElementById("f_size").value = "";
     document.getElementById("f_room_row").style.display = "";
     document.getElementById("f_no_label").innerHTML = L10N.flat_no + REQUIRED;
+    document.getElementById("f_shop_row").style.display = "none";
+    document.getElementById("f_shop_name").value = "";
     document.getElementById("flatModalTitle").textContent = L10N.add_flat;
     document.getElementById("f_submit").textContent = L10N.save;
 }
@@ -322,6 +335,7 @@ function editFlat(id) {
             document.getElementById("f_type").value = d.unit_type || "flat";
             document.getElementById("f_building").value = d.building_id;
             document.getElementById("f_no").value = d.flat_no;
+            document.getElementById("f_shop_name").value = d.shop_name || "";
             document.getElementById("f_floor").value = d.floor || "";
             document.getElementById("f_bed").value = d.bedrooms;
             document.getElementById("f_bath").value = d.bathrooms;

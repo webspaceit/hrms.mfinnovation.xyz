@@ -27,6 +27,7 @@ CREATE TABLE IF NOT EXISTS `wsit_users` (
 CREATE TABLE IF NOT EXISTS `wsit_buildings` (
   `id` INT(11) NOT NULL AUTO_INCREMENT,
   `name` VARCHAR(150) NOT NULL,
+  `holding_no` VARCHAR(50) DEFAULT NULL COMMENT 'City corporation / pourashava holding number',
   `address` VARCHAR(255) DEFAULT NULL,
   `total_flats` INT(11) NOT NULL DEFAULT 0,
   `description` TEXT DEFAULT NULL,
@@ -42,6 +43,7 @@ CREATE TABLE IF NOT EXISTS `wsit_flats` (
   `building_id` INT(11) NOT NULL,
   `unit_type` ENUM('flat','shop') NOT NULL DEFAULT 'flat',
   `flat_no` VARCHAR(50) NOT NULL,
+  `shop_name` VARCHAR(150) DEFAULT NULL COMMENT 'Business name for shop units, shown on the shop rent receipt',
   `floor` VARCHAR(50) DEFAULT NULL,
   `bedrooms` INT(11) NOT NULL DEFAULT 1,
   `bathrooms` INT(11) NOT NULL DEFAULT 1,
@@ -122,6 +124,7 @@ CREATE TABLE IF NOT EXISTS `wsit_payments` (
   `payment_date` DATE NOT NULL,
   `note` VARCHAR(255) DEFAULT NULL,
   `signature` VARCHAR(255) DEFAULT NULL,
+  `service_charge_file` VARCHAR(255) DEFAULT NULL COMMENT 'Previous month service charge receipt scan - flat rent payments only',
   `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `lease_id` (`lease_id`),

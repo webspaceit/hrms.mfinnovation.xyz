@@ -28,7 +28,7 @@ class Payment extends BaseModel {
     public function getReceiptData($id) {
         return $this->db->fetch("
             SELECT p.*, t.name AS tenant_name, t.phone AS tenant_phone, t.address AS tenant_address, t.email AS tenant_email,
-                   f.flat_no, f.unit_type, b.name AS building_name, b.address AS building_address,
+                   f.flat_no, f.unit_type, f.shop_name, b.name AS building_name, b.address AS building_address, b.holding_no AS building_holding_no,
                    u.full_name AS collector, u.username AS collector_user
             FROM payments p
             LEFT JOIN tenants t ON t.id = p.tenant_id

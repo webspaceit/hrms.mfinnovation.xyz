@@ -26,7 +26,6 @@ require dirname(__DIR__) . '/partials/header.php';
                         <th>#</th>
                         <th><?php echo t('tenant_name'); ?></th>
                         <th><?php echo t('phone'); ?></th>
-                        <th><?php echo t('email'); ?></th>
                         <th><?php echo t('nid'); ?></th>
                         <th><?php echo t('documents'); ?></th>
                         <th><?php echo t('status'); ?></th>
@@ -39,7 +38,7 @@ require dirname(__DIR__) . '/partials/header.php';
                 </thead>
                 <tbody>
                     <?php if (empty($tenants)): ?>
-                        <tr><td colspan="<?php echo $isAdmin ? 13 : 12; ?>" class="text-muted py-4"><?php echo t('no_data'); ?></td></tr>
+                        <tr><td colspan="<?php echo $isAdmin ? 12 : 11; ?>" class="text-muted py-4"><?php echo t('no_data'); ?></td></tr>
                     <?php else: ?>
                         <?php foreach ($tenants as $i => $tn): ?>
                             <?php $st = statusBadge($tn['status']); ?>
@@ -58,7 +57,6 @@ require dirname(__DIR__) . '/partials/header.php';
                                     <?php endif; ?>
                                 </td>
                                 <td><?php echo e(bnNumeral(enDigits($tn['phone']))); ?></td>
-                                <td><?php echo e($tn['email'] ?: '-'); ?></td>
                                 <td><?php echo $tn['nid'] ? e(bnNumeral(enDigits($tn['nid']))) : '-'; ?></td>
                                 <td>
                                     <span id="doc-<?php echo $tn['id']; ?>-deed">

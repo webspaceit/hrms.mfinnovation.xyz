@@ -53,7 +53,7 @@ if ($remaining !== null && $total_amount > $remaining + 0.009) {
     jsonResponse(['success' => false, 'message' => t('overpay_not_allowed') . ': ' . t('remaining_due') . ' ' . money($remaining)]);
 }
 
-$paymentModel->create([
+$paymentId = (int)$paymentModel->create([
     'lease_id' => $lease_id,
     'tenant_id' => $lease['tenant_id'],
     'flat_id' => $lease['flat_id'],
@@ -72,6 +72,23 @@ $paymentModel->create([
     'payment_date' => $payment_date,
     'note' => $note
 ]);
+
+// Previous month's service charge receipt scan — attached to the payment
+// itself so every month's rent keeps its own scan. FLAT units booked as
+// rent only; an invalid file rejects the whole payment.
+if ($receipt_type === 'rent' && !empty($lease['flat_id'])) {
+    $unitType = (new Flat())->find((int)$lease['flat_id'])['unit_type'] ?? 'flat';
+    if ($unitType === 'flat' && !empty($_FILES['service_charge_file'])
+        && ($_FILES['service_charge_file']['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_NO_FILE) {
+        $path = uploadDocument($_FILES['service_charge_file'], 'service_charge', $paymentId);
+        if ($path === false) {
+            $paymentModel->delete($paymentId);
+            $paymentModel->reconcileInvoice($lease_id, $month, $year);
+            jsonResponse(['success' => false, 'message' => t('invalid_file')]);
+        }
+        $paymentModel->update($paymentId, ['service_charge_file' => $path]);
+    }
+}
 
 $paymentModel->reconcileInvoice($lease_id, $month, $year);
 

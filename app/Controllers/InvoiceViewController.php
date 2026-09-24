@@ -58,6 +58,12 @@ class InvoiceViewController extends Controller {
         $propertyLabel = $propertyType === 'shop' ? t('shop') : t('flat_no');
         $propertyLabelEn = $propertyType === 'shop' ? 'Shop' : 'Flat';
         $propertyLabelBn = $propertyType === 'shop' ? 'দোকান' : 'অ্যাপার্টমেন্ট';
+        // Shop business name (only meaningful for shop units).
+        $shopName = $propertyType === 'shop' ? trim((string)($inv['shop_name'] ?? '')) : '';
+
+        // Building holding number (city corporation / pourashava) — shown on shop invoices.
+        $holdingNo = $propertyType === 'shop' ? trim((string)($inv['building_holding_no'] ?? '')) : '';
+
         $issuedDate = date('d-m-Y');
         $dueDate = date('d-m-Y', strtotime(sprintf('%04d-%02d-01', $inv['year'], $inv['month']) . ' +1 month -1 day'));
 
@@ -123,6 +129,8 @@ class InvoiceViewController extends Controller {
             'propertyLabel'     => $propertyLabel,
             'propertyLabelEn'   => $propertyLabelEn,
             'propertyLabelBn'   => $propertyLabelBn,
+            'shopName'          => $shopName,
+            'holdingNo'         => $holdingNo,
             'issuedDate'        => $issuedDate,
             'dueDate'           => $dueDate,
             'typeLabel'         => $typeLabel,

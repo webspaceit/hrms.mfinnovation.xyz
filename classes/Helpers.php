@@ -269,10 +269,92 @@ function isBengali($str) {
 /**
  * Translate a short text via MyMemory with a DB-backed cache.
  * Returns the original text on failure (offline, quota exceeded, etc.).
+ *
+ * Manual overrides are consulted first: machine translators leave Bengali
+ * proper nouns / place names unchanged (e.g. "Poribagh" -> "Poribagh"),
+ * which would otherwise render as English on the Bengali UI.
  */
 function translateText($text, $from, $to) {
     $text = trim((string)$text);
     if ($text === '') return $text;
+
+    // Manual en<->bn overrides for common Bangladesh place names.
+    static $manual = [
+        'en|bn' => [
+            'Dhaka' => 'ঢাকা', 'Chittagong' => 'চট্টগ্রাম', 'Chattogram' => 'চট্টগ্রাম',
+            'Sylhet' => 'সিলেট', 'Rajshahi' => 'রাজশাহী', 'Khulna' => 'খুলনা',
+            'Barisal' => 'বরিশাল', 'Rangpur' => 'রংপুর', 'Mymensingh' => 'ময়মনসিংহ',
+            'Comilla' => 'কুমিল্লা', 'Cumilla' => 'কুমিল্লা', 'Gazipur' => 'গাজীপুর',
+            'Narayanganj' => 'নারায়ণগঞ্জ', 'Tangail' => 'টাঙ্গাইল', 'Jamalpur' => 'জামালপুর',
+            'Bogra' => 'বগুড়া', 'Pabna' => 'পাবনা', 'Sirajganj' => 'সিরাজগঞ্জ',
+            'Kushtia' => 'কুষ্টিয়া', 'Jhenaidah' => 'ঝিনাইদহ', 'Meherpur' => 'মেহেরপুর',
+            'Chuadanga' => 'চুয়াডাঙ্গা', 'Chandpur' => 'চাঁদপুর', 'Noakhali' => 'নোয়াখালী',
+            'Feni' => 'ফেনী', 'Brahmanbaria' => 'ব্রাহ্মণবাড়িয়া', 'Jessore' => 'যশোর',
+            'Satkhira' => 'সাতক্ষীরা', 'Faridpur' => 'ফরিদপুর', 'Gopalganj' => 'গোপালগঞ্জ',
+            'Madaripur' => 'মাদারীপুর', 'Shariatpur' => 'শরীয়তপুর', 'Manikganj' => 'মানিকগঞ্জ',
+            'Narsingdi' => 'নরসিংদী', 'Munshiganj' => 'মুন্সিগঞ্জ', 'Sherpur' => 'শেরপুর',
+            'Netrokona' => 'নেত্রকোণা', 'Kishoreganj' => 'কিশোরগঞ্জ', 'Habiganj' => 'হবিগঞ্জ',
+            'Moulvibazar' => 'মৌলভীবাজার', 'Sunamganj' => 'সুনামগঞ্জ', 'Lakshmipur' => 'লক্ষ্মীপুর',
+            'Patuakhali' => 'পটুয়াখালী', 'Bhola' => 'ভোলা', 'Pirojpur' => 'পিরোজপুর',
+            'Jhalokati' => 'ঝালকাঠি', 'Barguna' => 'বরগুনা', 'Naogaon' => 'নওগাঁ',
+            'Natore' => 'নাটোর', 'Chapainawabganj' => 'চাঁপাইনবাবগঞ্জ', 'Joypurhat' => 'জয়পুরহাট',
+            'Dinajpur' => 'দিনাজপুর', 'Thakurgaon' => 'ঠাকুরগাঁও', 'Panchagarh' => 'পঞ্চগড়',
+            'Nilphamari' => 'নীলফামারী', 'Lalmonirhat' => 'লালমনিরহাট', 'Kurigram' => 'কুড়িগ্রাম',
+            'Gaibandha' => 'গাইবান্ধা', 'Cox\'s Bazar' => 'কক্সবাজার', 'Bandarban' => 'বান্দরবান',
+            'Khagrachari' => 'খাগড়াছড়ি', 'Rangamati' => 'রাঙ্গামাটি', 'Sher-e-Bangla Nagar' => 'শেরেবাংলা নগর',
+            'Motijheel' => 'মতিঝিল', 'Paltan' => 'পল্টন', 'Shahbagh' => 'শাহবাগ',
+            'Dhanmondi' => 'ধানমন্ডি', 'Mirpur' => 'মিরপুর', 'Uttara' => 'উত্তরা',
+            'Banani' => 'বনানী', 'Gulshan' => 'গুলশান', 'Bashundhara' => 'বসুন্ধরা',
+            'Mohakhali' => 'মহাখালী', 'Tejgaon' => 'তেজগাঁও', 'Farmgate' => 'ফার্মগেট',
+            'Khilgaon' => 'খিলগাঁও', 'Mohammadpur' => 'মোহাম্মদপুর', 'Jatrabari' => 'যাত্রাবাড়ী',
+            'Shyamoli' => 'শ্যামলী', 'Agargaon' => 'আগারগাঁও', 'Rampura' => 'রামপুরা',
+            'Badda' => 'বাড্ডা', 'Khilket' => 'খিলক্ষেত', 'Aftabnagar' => 'আফতাবনগর',
+            'Rayerbazar' => 'রায়েরবাজার', 'Kazipara' => 'কাজীপাড়া', 'Kafrul' => 'কাফরুল',
+            'Poribagh' => 'পরীবাগ', 'Pallabi' => 'পল্লবী', 'Cantonment' => 'ক্যান্টনমেন্ট',
+            'Savar' => 'সাভার', 'Keraniganj' => 'কেরানীগঞ্জ', 'Nabinagar' => 'নবীগঞ্জ',
+            'Baridhara' => 'বারিধারা', 'Niketan' => 'নিকেতন', 'Moghbazar' => 'মগবাজার',
+            'Malibagh' => 'মালিবাগ', 'Shantinagar' => 'শান্তিনগর', 'Kamalapur' => 'কমলাপুর',
+        ],
+        'bn|en' => [
+            'ঢাকা' => 'Dhaka', 'চট্টগ্রাম' => 'Chittagong', 'সিলেট' => 'Sylhet',
+            'রাজশাহী' => 'Rajshahi', 'খুলনা' => 'Khulna', 'বরিশাল' => 'Barisal',
+            'রংপুর' => 'Rangpur', 'ময়মনসিংহ' => 'Mymensingh', 'কুমিল্লা' => 'Comilla',
+            'গাজীপুর' => 'Gazipur', 'নারায়ণগঞ্জ' => 'Narayanganj', 'টাঙ্গাইল' => 'Tangail',
+            'জামালপুর' => 'Jamalpur', 'বগুড়া' => 'Bogra', 'পাবনা' => 'Pabna',
+            'সিরাজগঞ্জ' => 'Sirajganj', 'কুষ্টিয়া' => 'Kushtia', 'ঝিনাইদহ' => 'Jhenaidah',
+            'মেহেরপুর' => 'Meherpur', 'চুয়াডাঙ্গা' => 'Chuadanga', 'চাঁদপুর' => 'Chandpur',
+            'নোয়াখালী' => 'Noakhali', 'ফেনী' => 'Feni', 'ব্রাহ্মণবাড়িয়া' => 'Brahmanbaria',
+            'যশোর' => 'Jessore', 'সাতক্ষীরা' => 'Satkhira', 'ফরিদপুর' => 'Faridpur',
+            'গোপালগঞ্জ' => 'Gopalganj', 'মাদারীপুর' => 'Madaripur', 'শরীয়তপুর' => 'Shariatpur',
+            'মানিকগঞ্জ' => 'Manikganj', 'নরসিংদী' => 'Narsingdi', 'মুন্সিগঞ্জ' => 'Munshiganj',
+            'শেরপুর' => 'Sherpur', 'নেত্রকোণা' => 'Netrokona', 'কিশোরগঞ্জ' => 'Kishoreganj',
+            'হবিগঞ্জ' => 'Habiganj', 'মৌলভীবাজার' => 'Moulvibazar', 'সুনামগঞ্জ' => 'Sunamganj',
+            'লক্ষ্মীপুর' => 'Lakshmipur', 'পটুয়াখালী' => 'Patuakhali', 'ভোলা' => 'Bhola',
+            'পিরোজপুর' => 'Pirojpur', 'ঝালকাঠি' => 'Jhalokati', 'বরগুনা' => 'Barguna',
+            'নওগাঁ' => 'Naogaon', 'নাটোর' => 'Natore', 'চাঁপাইনবাবগঞ্জ' => 'Chapainawabganj',
+            'জয়পুরহাট' => 'Joypurhat', 'দিনাজপুর' => 'Dinajpur', 'ঠাকুরগাঁও' => 'Thakurgaon',
+            'পঞ্চগড়' => 'Panchagarh', 'নীলফামারী' => 'Nilphamari', 'লালমনিরহাট' => 'Lalmonirhat',
+            'কুড়িগ্রাম' => 'Kurigram', 'গাইবান্ধা' => 'Gaibandha', 'কক্সবাজার' => "Cox's Bazar",
+            'বান্দরবান' => 'Bandarban', 'খাগড়াছড়ি' => 'Khagrachari', 'রাঙ্গামাটি' => 'Rangamati',
+            'শেরেবাংলা নগর' => 'Sher-e-Bangla Nagar', 'মতিঝিল' => 'Motijheel', 'পল্টন' => 'Paltan',
+            'শাহবাগ' => 'Shahbagh', 'ধানমন্ডি' => 'Dhanmondi', 'মিরপুর' => 'Mirpur',
+            'উত্তরা' => 'Uttara', 'বনানী' => 'Banani', 'গুলশান' => 'Gulshan',
+            'বসুন্ধরা' => 'Bashundhara', 'মহাখালী' => 'Mohakhali', 'তেজগাঁও' => 'Tejgaon',
+            'ফার্মগেট' => 'Farmgate', 'খিলগাঁও' => 'Khilgaon', 'মোহাম্মদপুর' => 'Mohammadpur',
+            'যাত্রাবাড়ী' => 'Jatrabari', 'শ্যামলী' => 'Shyamoli', 'আগারগাঁও' => 'Agargaon',
+            'রামপুরা' => 'Rampura', 'বাড্ডা' => 'Badda', 'খিলক্ষেত' => 'Khilket',
+            'আফতাবনগর' => 'Aftabnagar', 'রায়েরবাজার' => 'Rayerbazar', 'কাজীপাড়া' => 'Kazipara',
+            'কাফরুল' => 'Kafrul', 'পরীবাগ' => 'Poribagh', 'পল্লবী' => 'Pallabi',
+            'ক্যান্টনমেন্ট' => 'Cantonment', 'সাভার' => 'Savar', 'কেরানীগঞ্জ' => 'Keraniganj',
+            'নবীগঞ্জ' => 'Nabinagar', 'বারিধারা' => 'Baridhara', 'নিকেতন' => 'Niketan',
+            'মগবাজার' => 'Moghbazar', 'মালিবাগ' => 'Malibagh', 'শান্তিনগর' => 'Shantinagar',
+            'কমলাপুর' => 'Kamalapur',
+        ],
+    ];
+    $key = "$from|$to";
+    if (isset($manual[$key][$text])) {
+        return $manual[$key][$text];
+    }
 
     try {
         $db = Database::getInstance()->getConnection();

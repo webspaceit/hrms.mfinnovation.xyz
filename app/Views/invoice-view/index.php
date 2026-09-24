@@ -225,6 +225,18 @@
             .total-row .value-cell {
                 font-size: 16px !important;
             }
+            /* 4-column shop details table: let labels share the row nicely */
+            .details table.fourcol td:first-child {
+                width: auto;
+                min-width: 74px;
+            }
+            .details table.fourcol .label-cell {
+                white-space: normal;
+                font-size: 13px;
+            }
+            .details table.fourcol .value-cell {
+                font-size: 14px;
+            }
             .amount-box span.fw-semibold {
                 font-size: 15px !important;
             }
@@ -338,71 +350,147 @@
             </div>
 
             <div class="details">
-                <table>
+                <?php if ($propertyType === 'shop'): ?>
+                <table class="fourcol">
                     <colgroup>
-                        <col style="width:24%;">
-                        <col style="width:76%;">
+                        <col style="width:16%;">
+                        <col style="width:34%;">
+                        <col style="width:16%;">
+                        <col style="width:34%;">
                     </colgroup>
                     <?php if ($currentLang === 'bn'): ?>
                     <tr>
-                        <td class="label-cell"><?php echo $propertyLabelBn; ?> নাম :</td>
-                        <td class="value-cell"><?php echo e(localizeText($inv['building_name'])); ?></td>
-                    </tr>
-                    <tr>
-                        <td class="label-cell"><?php echo $propertyType === 'shop' ? 'দোকান নং' : 'ফ্ল্যাট নং'; ?> :</td>
+                        <td class="label-cell">দোকানের নাম :</td>
+                        <td class="value-cell" style="white-space:normal;"><?php echo e(localizeText($shopName !== '' ? $shopName : '—')); ?></td>
+                        <td class="label-cell" style="padding-left:16px;">দোকান নং :</td>
                         <td class="value-cell"><?php echo e(bnFlatCode($inv['flat_no'])); ?></td>
                     </tr>
                     <tr>
+                        <td class="label-cell">ভবন :</td>
+                        <td class="value-cell"><?php echo e(localizeText($inv['building_name'])); ?></td>
+                        <td class="label-cell" style="padding-left:16px;">হোল্ডিং নং :</td>
+                        <td class="value-cell"><?php echo e($holdingNo !== '' ? bnFlatCode($holdingNo) : '—'); ?></td>
+                    </tr>
+                    <tr>
                         <td class="label-cell">ঠিকানা :</td>
-                        <td class="value-cell"><?php echo e(localizeText($inv['building_address'])); ?></td>
+                        <td class="value-cell" colspan="3"><?php echo e(localizeText($inv['building_address'])); ?></td>
                     </tr>
                     <tr>
                         <td class="label-cell">ভাড়াটিয়ার নাম :</td>
-                        <td class="value-cell"><?php echo e(localizeName($inv['tenant_name'])); ?></td>
+                        <td class="value-cell" colspan="3"><?php echo e(localizeName($inv['tenant_name'])); ?></td>
                     </tr>
                     <?php if ($inv['tenant_phone']): ?>
                     <tr>
                         <td class="label-cell">ফোন :</td>
-                        <td class="value-cell"><?php echo e(bnNumeral(enDigits($inv['tenant_phone']))); ?></td>
+                        <td class="value-cell" colspan="3"><?php echo e(bnNumeral(enDigits($inv['tenant_phone']))); ?></td>
                     </tr>
                     <?php endif; ?>
                     <?php if ($inv['tenant_email']): ?>
                     <tr>
                         <td class="label-cell">ইমেইল :</td>
-                        <td class="value-cell"><?php echo e($inv['tenant_email']); ?></td>
+                        <td class="value-cell" colspan="3"><?php echo e($inv['tenant_email']); ?></td>
+                    </tr>
+                    <?php endif; ?>
+                    <?php else: ?>
+                    <tr>
+                        <td class="label-cell">Shop Name :</td>
+                        <td class="value-cell" style="white-space:normal;"><?php echo e(localizeText($shopName !== '' ? $shopName : '—')); ?></td>
+                        <td class="label-cell" style="padding-left:16px;">Shop No :</td>
+                        <td class="value-cell"><?php echo e(bnFlatCode($inv['flat_no'])); ?></td>
+                    </tr>
+                    <tr>
+                        <td class="label-cell">Building :</td>
+                        <td class="value-cell"><?php echo e(localizeText($inv['building_name'])); ?></td>
+                        <td class="label-cell" style="padding-left:16px;">Holding No :</td>
+                        <td class="value-cell"><?php echo e($holdingNo !== '' ? bnFlatCode($holdingNo) : '—'); ?></td>
+                    </tr>
+                    <tr>
+                        <td class="label-cell">Address :</td>
+                        <td class="value-cell" colspan="3"><?php echo e(localizeText($inv['building_address'])); ?></td>
+                    </tr>
+                    <tr>
+                        <td class="label-cell">Tenant Name :</td>
+                        <td class="value-cell" colspan="3"><?php echo e(localizeName($inv['tenant_name'])); ?></td>
+                    </tr>
+                    <?php if ($inv['tenant_phone']): ?>
+                    <tr>
+                        <td class="label-cell">Phone :</td>
+                        <td class="value-cell" colspan="3"><?php echo e(bnNumeral(enDigits($inv['tenant_phone']))); ?></td>
+                    </tr>
+                    <?php endif; ?>
+                    <?php if ($inv['tenant_email']): ?>
+                    <tr>
+                        <td class="label-cell">Email :</td>
+                        <td class="value-cell" colspan="3"><?php echo e($inv['tenant_email']); ?></td>
+                    </tr>
+                    <?php endif; ?>
+                    <?php endif; ?>
+                </table>
+                <?php else: ?>
+                <table class="fourcol">
+                    <colgroup>
+                        <col style="width:16%;">
+                        <col style="width:34%;">
+                        <col style="width:16%;">
+                        <col style="width:34%;">
+                    </colgroup>
+                    <?php if ($currentLang === 'bn'): ?>
+                    <tr>
+                        <td class="label-cell"><?php echo $propertyLabelBn; ?> নাম :</td>
+                        <td class="value-cell"><?php echo e(localizeText($inv['building_name'])); ?></td>
+                        <td class="label-cell" style="padding-left:16px;"><?php echo $propertyType === 'shop' ? 'দোকান নং' : 'ফ্ল্যাট নং'; ?> :</td>
+                        <td class="value-cell"><?php echo e(bnFlatCode($inv['flat_no'])); ?></td>
+                    </tr>
+                    <tr>
+                        <td class="label-cell">ঠিকানা :</td>
+                        <td class="value-cell" colspan="3"><?php echo e(localizeText($inv['building_address'])); ?></td>
+                    </tr>
+                    <tr>
+                        <td class="label-cell">ভাড়াটিয়ার নাম :</td>
+                        <td class="value-cell" colspan="3"><?php echo e(localizeName($inv['tenant_name'])); ?></td>
+                    </tr>
+                    <?php if ($inv['tenant_phone']): ?>
+                    <tr>
+                        <td class="label-cell">ফোন :</td>
+                        <td class="value-cell" colspan="3"><?php echo e(bnNumeral(enDigits($inv['tenant_phone']))); ?></td>
+                    </tr>
+                    <?php endif; ?>
+                    <?php if ($inv['tenant_email']): ?>
+                    <tr>
+                        <td class="label-cell">ইমেইল :</td>
+                        <td class="value-cell" colspan="3"><?php echo e($inv['tenant_email']); ?></td>
                     </tr>
                     <?php endif; ?>
                     <?php else: ?>
                     <tr>
                         <td class="label-cell">Property / <?php echo e($propertyLabelEn); ?> Name :</td>
                         <td class="value-cell"><?php echo e(localizeText($inv['building_name'])); ?></td>
-                    </tr>
-                    <tr>
-                        <td class="label-cell"><?php echo e($propertyLabel); ?> :</td>
+                        <td class="label-cell" style="padding-left:16px;"><?php echo e($propertyLabel); ?> :</td>
                         <td class="value-cell"><?php echo e(bnFlatCode($inv['flat_no'])); ?></td>
                     </tr>
                     <tr>
                         <td class="label-cell">Address :</td>
-                        <td class="value-cell"><?php echo e(localizeText($inv['building_address'])); ?></td>
+                        <td class="value-cell" colspan="3"><?php echo e(localizeText($inv['building_address'])); ?></td>
                     </tr>
                     <tr>
                         <td class="label-cell">Tenant Name :</td>
-                        <td class="value-cell"><?php echo e(localizeName($inv['tenant_name'])); ?></td>
+                        <td class="value-cell" colspan="3"><?php echo e(localizeName($inv['tenant_name'])); ?></td>
                     </tr>
                     <?php if ($inv['tenant_phone']): ?>
                     <tr>
                         <td class="label-cell">Phone :</td>
-                        <td class="value-cell"><?php echo e(bnNumeral(enDigits($inv['tenant_phone']))); ?></td>
+                        <td class="value-cell" colspan="3"><?php echo e(bnNumeral(enDigits($inv['tenant_phone']))); ?></td>
                     </tr>
                     <?php endif; ?>
                     <?php if ($inv['tenant_email']): ?>
                     <tr>
                         <td class="label-cell">Email :</td>
-                        <td class="value-cell"><?php echo e($inv['tenant_email']); ?></td>
+                        <td class="value-cell" colspan="3"><?php echo e($inv['tenant_email']); ?></td>
                     </tr>
                     <?php endif; ?>
                     <?php endif; ?>
                 </table>
+                <?php endif; ?>
 
                 <table style="margin-top:12px; width:100%;">
                     <colgroup>
@@ -439,10 +527,10 @@
                     <?php endif; ?>
                     <?php if ((float)$inv['water_fee'] > 0 || (float)$inv['waste_fee'] > 0): ?>
                     <tr>
-                        <td class="label-cell"><?php echo (float)$inv['water_fee'] > 0 ? 'পানি বিল :' : ''; ?></td>
-                        <td class="value-cell"><?php echo (float)$inv['water_fee'] > 0 ? $cur . ' ' . bnNumeral(number_format((float)$inv['water_fee'], 2)) : ''; ?></td>
-                        <td class="label-cell" style="padding-left:16px;"><?php echo (float)$inv['waste_fee'] > 0 ? 'বর্জ্য ব্যবস্থাপনা বিল :' : ''; ?></td>
+                        <td class="label-cell"><?php echo (float)$inv['waste_fee'] > 0 ? 'বর্জ্য ব্যবস্থাপনা বিল :' : ''; ?></td>
                         <td class="value-cell"><?php echo (float)$inv['waste_fee'] > 0 ? $cur . ' ' . bnNumeral(number_format((float)$inv['waste_fee'], 2)) : ''; ?></td>
+                        <td class="label-cell" style="padding-left:16px;"><?php echo (float)$inv['water_fee'] > 0 ? 'পানি বিল :' : ''; ?></td>
+                        <td class="value-cell"><?php echo (float)$inv['water_fee'] > 0 ? $cur . ' ' . bnNumeral(number_format((float)$inv['water_fee'], 2)) : ''; ?></td>
                     </tr>
                     <?php endif; ?>
                     <?php if ((float)$inv['arrears'] > 0): ?>
@@ -485,10 +573,10 @@
                     <?php endif; ?>
                     <?php if ((float)$inv['water_fee'] > 0 || (float)$inv['waste_fee'] > 0): ?>
                     <tr>
-                        <td class="label-cell"><?php echo (float)$inv['water_fee'] > 0 ? 'Water Bill :' : ''; ?></td>
-                        <td class="value-cell"><?php echo (float)$inv['water_fee'] > 0 ? $cur . ' ' . number_format((float)$inv['water_fee'], 2) : ''; ?></td>
-                        <td class="label-cell" style="padding-left:16px;"><?php echo (float)$inv['waste_fee'] > 0 ? 'Waste Management Bill :' : ''; ?></td>
+                        <td class="label-cell"><?php echo (float)$inv['waste_fee'] > 0 ? 'Waste Management Bill :' : ''; ?></td>
                         <td class="value-cell"><?php echo (float)$inv['waste_fee'] > 0 ? $cur . ' ' . number_format((float)$inv['waste_fee'], 2) : ''; ?></td>
+                        <td class="label-cell" style="padding-left:16px;"><?php echo (float)$inv['water_fee'] > 0 ? 'Water Bill :' : ''; ?></td>
+                        <td class="value-cell"><?php echo (float)$inv['water_fee'] > 0 ? $cur . ' ' . number_format((float)$inv['water_fee'], 2) : ''; ?></td>
                     </tr>
                     <?php endif; ?>
                     <?php if ((float)$inv['arrears'] > 0): ?>

@@ -86,7 +86,13 @@ require dirname(__DIR__) . '/partials/header.php';
                                 <td><?php echo $isDue ? '<span class="text-muted">&mdash;</span>' : e(bnNumeral(date('d-m-Y', strtotime($p['payment_date'])))); ?></td>
                                 <td class="fw-semibold"><?php echo e(localizeName($p['tenant_name'])); ?></td>
                                 <td><?php echo e(localizeText($p['building_name'])); ?></td>
-                                <td><span class="badge bg-primary-subtle text-primary-emphasis"><?php echo e(bnFlatCode($p['flat_no'])); ?></span></td>
+                                <td><span class="badge bg-primary-subtle text-primary-emphasis"><?php echo e(bnFlatCode($p['flat_no'])); ?></span>
+                                <?php if (!empty($p['service_charge_file']) && ($p['unit_type'] ?? 'flat') === 'flat'): ?>
+                                    <button type="button" class="btn btn-sm btn-light border ml-1" title="<?php echo t('service_charge_receipt'); ?>" onclick="viewDocument('<?php echo e($p['service_charge_file']); ?>', '<?php echo e(t('service_charge_receipt')); ?>')">
+                                        <i class="bi bi-paperclip"></i>
+                                    </button>
+                                <?php endif; ?>
+                            </td>
                                 <td>
                                     <?php if (($p['unit_type'] ?? 'flat') === 'shop'): ?>
                                         <span class="badge bg-warning-subtle text-warning-emphasis"><i class="bi bi-shop mr-1"></i><?php echo t('shop_unit'); ?></span>
@@ -273,6 +279,13 @@ require dirname(__DIR__) . '/partials/header.php';
                         <label class="form-label"><?php echo t('note'); ?></label>
                         <input type="text" name="note" id="p_note" class="form-control">
                     </div>
+                    <div class="mb-3" id="p_sc_wrap" style="display:none;">
+                        <label class="form-label"><i class="bi bi-paperclip mr-1"></i><?php echo t('service_charge_receipt'); ?>
+                            <span class="text-muted small fw-normal">(<?php echo t('service_charge_hint'); ?>)</span></label>
+                        <input type="file" name="service_charge_file" id="p_sc_file" class="form-control" accept=".pdf,image/*">
+                        <div class="form-text mt-1" id="p_sc_link"></div>
+                        <input type="hidden" name="remove_sc" id="p_sc_remove" value="">
+                    </div>
                     <div class="alert alert-info py-2 small">
                         <i class="bi bi-info-circle mr-1"></i> <?php echo t('total'); ?>: <strong id="p_total"><?php echo money(0); ?></strong>
                         <span id="p_remaining_hint" class="d-block mt-1 text-muted"></span>
@@ -309,6 +322,21 @@ require dirname(__DIR__) . '/partials/header.php';
     </div>
 </div>
 
+<!-- Document Viewer Modal -->
+<div class="modal" id="docViewerModal">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-0 bg-primary text-white">
+                <h5 class="modal-title"><i class="bi bi-paperclip mr-1"></i><span id="docViewerTitle"></span></h5>
+                <button type="button" class="btn-close btn-close-white" onclick="closeModal('docViewerModal')" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0">
+                <iframe id="docViewerFrame" src="" style="width:100%;height:75vh;border:0;display:block;" title="Document"></iframe>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Confirm Delete Modal -->
 <div class="modal" id="confirmModal">
     <div class="modal-dialog modal-dialog-centered modal-sm">
@@ -335,6 +363,17 @@ window.PAYMENTS = ' . $paymentsJson . ';
 window.UNPAID_INVOICES = ' . $unpaidJson . ';
 window.INVOICE_MAP = ' . $invoiceMapJson . ';
 
+function viewDocument(url, title) {
+    document.getElementById("docViewerFrame").src = BASE_URL + url;
+    document.getElementById("docViewerTitle").textContent = title || "";
+    openModal("docViewerModal");
+}
+document.addEventListener("modal:closed", function(e) {
+    if (e.detail && e.detail.id === "docViewerModal") {
+        document.getElementById("docViewerFrame").src = "";
+    }
+});
+
 function openCollectPayment(invId) {
     const inv = (window.UNPAID_INVOICES || []).find(x => x.id == invId);
     if (!inv) return;
@@ -360,6 +399,7 @@ function openCollectPayment(invId) {
         water: inv.water_fee, waste: inv.waste_fee, arrears: inv.arrears
     }, bn);
     document.getElementById("p_receipt_type").disabled = inv.unit_type === "shop";
+    updateScWrap();
     updateTotal();
     showInvoiceHint(sel, inv.month, inv.year);
     openModal("paymentModal");
@@ -394,7 +434,42 @@ function p_lease_selected() {
         }
         updateTotal();
         updateRemainingHint();
+        updateScWrap();
     }
+}
+
+function updateScWrap() {
+    const sel = document.getElementById("p_lease");
+    const opt = sel.options[sel.selectedIndex];
+    const isFlatRent = opt && opt.value && opt.dataset.unit !== "shop"
+        && document.getElementById("p_receipt_type").value === "rent";
+    document.getElementById("p_sc_wrap").style.display = isFlatRent ? "" : "none";
+}
+
+function setPaymentScLink(path, id) {
+    const el = document.getElementById("p_sc_link");
+    el.innerHTML = "";
+    document.getElementById("p_sc_remove").value = "";
+    if (!path) return;
+    const name = path.split("/").pop();
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "btn btn-link btn-sm p-0";
+    btn.title = "' . t('current_file') . ' " + name;
+    btn.innerHTML = "<i class=\"bi bi-paperclip\"></i> <span class=\"text-muted\">" + name + "</span>";
+    btn.addEventListener("click", function() { viewDocument(path, name); });
+    el.appendChild(btn);
+    const del = document.createElement("button");
+    del.type = "button";
+    del.className = "btn btn-link btn-sm p-0 text-danger ml-2";
+    del.title = "' . t('remove') . '";
+    del.innerHTML = "<i class=\"bi bi-x-circle\"></i>";
+    del.addEventListener("click", function() {
+        el.innerHTML = "";
+        document.getElementById("p_sc_remove").value = "1";
+        document.getElementById("p_sc_file").value = "";
+    });
+    el.appendChild(del);
 }
 
 function toggleCharge(key) {
@@ -496,6 +571,7 @@ document.getElementById("p_gas").addEventListener("input", updateTotal);
 document.getElementById("p_water").addEventListener("input", updateTotal);
 document.getElementById("p_waste").addEventListener("input", updateTotal);
 document.getElementById("p_arrears").addEventListener("input", updateTotal);
+document.getElementById("p_receipt_type").addEventListener("change", updateScWrap);
 
 function resetPaymentForm() {
     document.getElementById("paymentForm").reset();
@@ -511,6 +587,10 @@ function resetPaymentForm() {
         document.getElementById("p_" + k).value = "0";
         document.getElementById("p_" + k).style.display = "none";
     });
+    document.getElementById("p_sc_link").innerHTML = "";
+    document.getElementById("p_sc_remove").value = "";
+    document.getElementById("p_sc_wrap").style.display = "none";
+    updateScWrap();
     updateTotal();
 }
 
@@ -560,7 +640,9 @@ function editPayment(id) {
     document.getElementById("p_receipt_type").value = p.receipt_type;
     document.getElementById("p_receipt_type").disabled = p.unit_type === "shop";
     document.getElementById("p_note").value = p.note || "";
+    setPaymentScLink(p.service_charge_file || "", p.id);
     updateTotal();
+    updateScWrap();
 
     openModal("paymentModal");
 }
