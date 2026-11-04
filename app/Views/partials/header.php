@@ -25,6 +25,8 @@ $user = Auth::user();
     <!-- Custom CSS -->
     <link href="<?php echo url('assets/css/style.css'); ?>" rel="stylesheet">
     <link rel="icon" type="image/svg+xml" href="<?php echo url('assets/images/favicon.svg'); ?>">
+    <!-- Core app JS loaded early with defer so toggleDropdown etc. are always defined -->
+    <script src="<?php echo url('assets/js/app.js'); ?>" defer></script>
 </head>
 <body class="bg-[#f4f7f5]">
 <div class="flex" id="wrapper">
@@ -73,6 +75,9 @@ $user = Auth::user();
             <a href="<?php echo url('users') . $langSuffix; ?>" class="nav-link <?php echo routeIs('users') ? 'active' : ''; ?>">
                 <i class="bi bi-person-gear"></i> <span><?php echo t('users'); ?></span>
             </a>
+            <a href="<?php echo url('settings') . $langSuffix; ?>" class="nav-link <?php echo routeIs('settings') ? 'active' : ''; ?>">
+                <i class="bi bi-gear"></i> <span><?php echo t('settings'); ?></span>
+            </a>
             <?php endif; ?>
             <div class="sidebar-divider"></div>
             <a href="<?php echo url('logout') . $langSuffix; ?>" class="nav-link text-danger">
@@ -109,7 +114,7 @@ $user = Auth::user();
                 <!-- User -->
                 <div class="dropdown">
                     <button class="btn btn-sm btn-outline-primary dropdown-toggle" type="button" onclick="toggleDropdown(this)">
-                        <i class="bi bi-person-circle mr-1"></i> <span class="user-name"><?php echo e($user['full_name']); ?></span>
+                        <i class="bi bi-person-circle mr-1"></i> <span class="user-name"><?php echo e(localizeName($user['full_name'])); ?></span>
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end">
                         <li><span class="dropdown-item-text small text-muted"><?php echo e($user['email']); ?></span></li>

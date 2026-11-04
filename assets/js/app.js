@@ -28,7 +28,7 @@ function closeOnEscape(e) {
 }
 
 // Close the off-canvas sidebar when a nav link is tapped (persistent nav links only)
-document.addEventListener('click', function(e) {
+document.addEventListener('click', function (e) {
     const link = e.target.closest('#sidebar a[href]');
     const isMobile = window.matchMedia('(max-width: 767.98px)').matches;
     if (link && isMobile) {
@@ -46,46 +46,121 @@ function setLanguage(lang) {
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: 'lang=' + encodeURIComponent(lang) + '&csrf_token=' + encodeURIComponent(CSRF_TOKEN)
     })
-    .then(res => res.json())
-    .then(data => {
-        if (data.success) {
-            const url = new URL(window.location.href);
-            url.searchParams.set('lang', lang);
-            window.location.href = url.toString();
-        } else {
-            showToast(data.message || 'Could not change language', 'danger');
-        }
-    })
-    .catch(() => showToast('Request failed', 'danger'));
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                const url = new URL(window.location.href);
+                url.searchParams.set('lang', lang);
+                window.location.href = url.toString();
+            } else {
+                showToast(data.message || 'Could not change language', 'danger');
+            }
+        })
+        .catch(() => showToast('Request failed', 'danger'));
 }
 
 // ---- Dropdowns (custom) ----
-function toggleDropdown(btn) {
-    const menu = btn && btn.nextElementSibling;
-    if (!menu || !menu.classList.contains('dropdown-menu')) return;
-    const isOpen = menu.classList.contains('open');
+// The open menu is anchored to the button's viewport rect with position:fixed.
+// It used to walk up from the button and set overflow:visible on every
+// clipping ancestor instead, but that is what broke phones: making a
+// horizontally scrolled .table-responsive overflow-x:visible resets its
+// scrollLeft to 0, so the whole table snapped back to the left and the menu
+// was rendered far outside the screen - tapping the actions button did
+// nothing visible. A fixed menu escapes the scroll container without
+// disturbing it. No DOM teleport, so click events stay normal.
 
-    // Close all other open dropdowns
-    document.querySelectorAll('.dropdown-menu.open').forEach(m => m !== menu && m.classList.remove('open'));
+var _ddBtn = null;
+var _ddMenu = null;
+var _ddAnchor = null;   // button rect captured when the menu opened
 
-    if (isOpen) {
-        menu.classList.remove('open');
-    } else {
-        menu.classList.add('open');
+function _ddClose() {
+    if (_ddMenu) {
+        _ddMenu.classList.remove('open');
+        _ddMenu.style.position = '';
+        _ddMenu.style.top = '';
+        _ddMenu.style.left = '';
+        _ddMenu.style.right = '';
     }
+    _ddBtn = null;
+    _ddMenu = null;
+    _ddAnchor = null;
 }
 
-// Close dropdowns on outside click / Escape
-document.addEventListener('click', function(e) {
-    if (!e.target.closest('.dropdown')) {
-        document.querySelectorAll('.dropdown-menu.open').forEach(m => m.classList.remove('open'));
+function toggleDropdown(btn) {
+    var menu = btn && btn.nextElementSibling;
+    if (!menu || !menu.classList.contains('dropdown-menu')) return;
+
+    if (_ddBtn === btn) { _ddClose(); return; }   // same button → close
+    _ddClose();                                    // different button → close old
+
+    menu.classList.add('open');
+    // Pin to the viewport first, then measure. While the menu is still
+    // position:absolute its top/right resolve against .dropdown, so the
+    // measured box would be the one we are trying to correct.
+    menu.style.position = 'fixed';
+    menu.style.top = '0px';
+    menu.style.left = '0px';
+    menu.style.right = 'auto';
+
+    var b = btn.getBoundingClientRect();
+    // offsetWidth/Height, not getBoundingClientRect: the menu's entrance
+    // animation scales it, and a transform would shrink the measured box and
+    // throw the clamping below off by a few pixels. offset* ignores transforms.
+    var mw = menu.offsetWidth;
+    var mh = menu.offsetHeight;
+    var vw = document.documentElement.clientWidth;
+    var vh = document.documentElement.clientHeight;
+    var pad = 8;
+
+    // Same anchor the old right:0 produced, then keep the whole menu on screen.
+    var left = b.right - mw;
+    if (left + mw > vw - pad) left = vw - mw - pad;
+    if (left < pad) left = pad;
+
+    // Below the button, or flipped above when there is no room underneath.
+    var top = b.bottom + 6;
+    if (top + mh > vh - pad) {
+        var above = b.top - mh - 6;
+        top = above >= pad ? above : Math.max(pad, vh - mh - pad);
     }
+
+    menu.style.left = Math.round(left) + 'px';
+    menu.style.top = Math.round(top) + 'px';
+
+    _ddBtn = btn;
+    _ddMenu = menu;
+    _ddAnchor = { left: b.left, top: b.top };
+}
+
+// Close on outside click
+document.addEventListener('click', function (e) {
+    if (!_ddMenu) return;
+    if (_ddMenu.contains(e.target)) return;   // click inside menu → let it fire
+    if (_ddBtn && _ddBtn.contains(e.target)) return;  // button click → toggleDropdown handles
+    _ddClose();
 });
 
-document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') {
-        document.querySelectorAll('.dropdown-menu.open').forEach(m => m.classList.remove('open'));
-    }
+document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') _ddClose();
+});
+
+// A fixed menu stays put while its button moves, so close it when the page
+// scrolls (any scroll container, hence capture) or the window resizes.
+// Only close once the button has actually shifted: a tap on a touch screen can
+// emit a one or two pixel scroll, and closing on that would cancel the very
+// tap the user made on the menu item.
+function _ddAnchorMoved() {
+    if (!_ddBtn || !_ddAnchor) return false;
+    var r = _ddBtn.getBoundingClientRect();
+    return Math.abs(r.left - _ddAnchor.left) > 2 || Math.abs(r.top - _ddAnchor.top) > 2;
+}
+
+document.addEventListener('scroll', function () {
+    if (_ddMenu && _ddAnchorMoved()) _ddClose();
+}, true);
+
+window.addEventListener('resize', function () {
+    if (_ddMenu) _ddClose();
 });
 
 // Table actions use inline buttons (no dropdown), so nothing to manage here.
@@ -110,20 +185,24 @@ function closeModal(id) {
     document.dispatchEvent(new CustomEvent('modal:closed', { detail: { id: modal.id } }));
 }
 
-// Escape closes the topmost open modal
-document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') {
-        const open = document.querySelector('.modal.open');
-        if (open) closeModal(open);
-    }
-});
+// Escape closes the topmost open modal (unless modal has data-close-on-escape="false")
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') {
+            const open = document.querySelector('.modal.open');
+            if (open && open.dataset.closeOnEscape !== 'false') {
+                closeModal(open);
+            }
+        }
+    });
 
-// Backdrop click closes the clicked modal
-document.addEventListener('click', function(e) {
-    if (e.target.classList && e.target.classList.contains('modal')) {
-        closeModal(e.target);
-    }
-});
+    // Backdrop click closes the clicked modal (unless modal has data-close-on-backdrop="false")
+    document.addEventListener('click', function (e) {
+        if (e.target.classList && e.target.classList.contains('modal')) {
+            if (e.target.dataset.closeOnBackdrop !== 'false') {
+                closeModal(e.target);
+            }
+        }
+    });
 
 // Re-attach helpers when a modal opens (fields inside modals)
 document.addEventListener('modal:opened', function () {
@@ -326,7 +405,7 @@ function ajax(url, data, callback) {
     for (var key in data) {
         var val = data[key];
         if (Array.isArray(val)) {
-            val.forEach(function(v) { params.append(key + '[]', v); });
+            val.forEach(function (v) { params.append(key + '[]', v); });
         } else {
             params.append(key, val);
         }
@@ -336,12 +415,12 @@ function ajax(url, data, callback) {
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: params
     })
-    .then(res => res.json())
-    .then(result => callback(result))
-    .catch(err => {
-        console.error('AJAX Error:', err);
-        showToast('Request failed', 'danger');
-    });
+        .then(res => res.json())
+        .then(result => callback(result))
+        .catch(err => {
+            console.error('AJAX Error:', err);
+            showToast('Request failed', 'danger');
+        });
 }
 
 // ---- Generic Delete Confirmation ----
@@ -375,23 +454,23 @@ function executeDelete(endpoint, id) {
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: params
     })
-    .then(res => res.json())
-    .then(result => {
-        if (result.success) {
-            showToast(result.message, 'success');
-            setTimeout(() => location.reload(), 500);
-        } else {
-            showToast(result.message || 'Failed', 'danger');
-        }
-    })
-    .catch(() => showToast('Request failed', 'danger'));
+        .then(res => res.json())
+        .then(result => {
+            if (result.success) {
+                showToast(result.message, 'success');
+                setTimeout(() => location.reload(), 500);
+            } else {
+                showToast(result.message || 'Failed', 'danger');
+            }
+        })
+        .catch(() => showToast('Request failed', 'danger'));
 }
 
 // Confirm modal action
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     const confirmBtn = document.getElementById('confirmDeleteBtn');
     if (confirmBtn) {
-        confirmBtn.addEventListener('click', function() {
+        confirmBtn.addEventListener('click', function () {
             if (deleteAction) {
                 closeModal('confirmModal');
                 executeDelete(deleteAction.url, deleteAction.id);
@@ -410,20 +489,20 @@ function submitModalForm(formId, url, onSuccess) {
         method: 'POST',
         body: data
     })
-    .then(res => res.json())
-    .then(result => {
-        if (result.success) {
-            showToast(result.message, 'success');
-            const modalEl = form.closest('.modal');
-            if (modalEl) closeModal(modalEl);
-            form.reset();
-            if (typeof onSuccess === 'function') onSuccess(result);
-            else setTimeout(() => location.reload(), 600);
-        } else {
-            showToast(result.message || 'Error', 'danger');
-        }
-    })
-    .catch(() => showToast('Request failed', 'danger'));
+        .then(res => res.json())
+        .then(result => {
+            if (result.success) {
+                showToast(result.message, 'success');
+                const modalEl = form.closest('.modal');
+                if (modalEl) closeModal(modalEl);
+                form.reset();
+                if (typeof onSuccess === 'function') onSuccess(result);
+                else setTimeout(() => location.reload(), 600);
+            } else {
+                showToast(result.message || 'Error', 'danger');
+            }
+        })
+        .catch(() => showToast('Request failed', 'danger'));
 }
 
 // ---- Number / currency formatting ----
@@ -437,7 +516,7 @@ function formatMoney(amount) {
 function preventDoubleSubmit(formId) {
     const form = document.getElementById(formId);
     if (form) {
-        form.addEventListener('submit', function(e) {
+        form.addEventListener('submit', function (e) {
             const btn = form.querySelector('button[type="submit"]');
             if (btn) {
                 btn.disabled = true;
@@ -448,7 +527,7 @@ function preventDoubleSubmit(formId) {
 }
 
 // ---- Auto close alerts ----
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     setTimeout(() => {
         document.querySelectorAll('.alert-dismissible').forEach(el => {
             if (el) el.remove();

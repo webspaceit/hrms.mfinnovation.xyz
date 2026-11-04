@@ -99,12 +99,16 @@
             vertical-align: baseline;
         }
         .label-cell {
-            white-space: nowrap;
-            font-size: 17px;
+            white-space: normal;
+            font-size: <?php echo $currentLang === 'bn' ? '20px' : '17px'; ?>;
         }
-        .details tr > td:first-child {
-            width: 196px;
-            min-width: 196px;
+        /* The details tables are laid out from their <colgroup> so both label
+           columns stay the same width at ANY container width. A fixed px on the
+           first cell only matched the on-screen width; on A4 the first label
+           stayed 196px while the second collapsed to 16%, which is what made
+           the print layout differ from the screen. */
+        .details table.fourcol {
+            table-layout: fixed;
         }
         .value-cell {
             text-align: left;
@@ -225,11 +229,8 @@
             .total-row .value-cell {
                 font-size: 16px !important;
             }
-            /* 4-column shop details table: let labels share the row nicely */
-            .details table.fourcol td:first-child {
-                width: auto;
-                min-width: 74px;
-            }
+            /* Column widths come from the <colgroup> (table-layout: fixed), so
+               only the type scale needs to shrink on a phone. */
             .details table.fourcol .label-cell {
                 white-space: normal;
                 font-size: 13px;
@@ -255,10 +256,11 @@
             white-space: nowrap;
             pointer-events: none;
             z-index: 5;
-            letter-spacing: 4px;
+            letter-spacing: <?php echo $currentLang === 'bn' ? '0' : '4px'; ?>;
             opacity: 1;
             color: <?php echo $watermarkColor; ?>;
-            text-transform: uppercase;
+            font-family: <?php echo $fontFamily; ?>;
+            <?php if ($currentLang !== 'bn'): ?>text-transform: uppercase;<?php endif; ?>
             user-select: none;
         }
         .payment-status-bar {
@@ -288,7 +290,7 @@
             <?php else: ?>
                 <a class="btn btn-outline-dark btn-sm btn-tool" href="<?php echo url('invoice-view'); ?>?id=<?php echo (int)$inv['id']; ?>&lang=bn<?php echo $isTenantPortal ? '&tenant_portal=1' : ''; ?>"><i class="bi bi-translate mr-1"></i>বাংলা</a>
             <?php endif; ?>
-            <button class="btn btn-primary btn-sm btn-tool" onclick="window.print()"><i class="bi bi-printer mr-1"></i><?php echo t('print'); ?></button>
+            <button class="btn btn-primary btn-sm btn-tool" onClick="window.print()"><i class="bi bi-printer mr-1"></i><?php echo t('print'); ?></button>
             <?php if (!$isTenantPortal): ?>
             <?php if ($inv['tenant_phone']): ?>
                 <a class="btn btn-success btn-sm btn-tool" href="<?php echo e($waUrl); ?>" target="_blank" rel="noopener">
@@ -296,12 +298,12 @@
                 </a>
             <?php endif; ?>
             <?php if ($inv['tenant_email']): ?>
-                <button class="btn btn-info btn-sm btn-tool text-white" onclick="sendInvoice(<?php echo (int)$inv['id']; ?>, 'email')">
+                <button class="btn btn-info btn-sm btn-tool text-white" onClick="sendInvoice(<?php echo (int)$inv['id']; ?>, 'email')">
                     <i class="bi bi-envelope mr-1"></i><?php echo t('send_email'); ?>
                 </button>
             <?php endif; ?>
             <?php if ($inv['tenant_phone']): ?>
-                <button class="btn btn-warning btn-sm btn-tool" onclick="sendInvoice(<?php echo (int)$inv['id']; ?>, 'sms')">
+                <button class="btn btn-warning btn-sm btn-tool" onClick="sendInvoice(<?php echo (int)$inv['id']; ?>, 'sms')">
                     <i class="bi bi-chat-dots mr-1"></i><?php echo t('send_sms'); ?>
                 </button>
             <?php endif; ?>
@@ -329,7 +331,7 @@
                     <?php endif; ?>
                 </span>
 <?php if ($paymentStatus !== 'paid' && !$isTenantPortal): ?>
-                    <button class="btn btn-success btn-sm ml-2" onclick="markInvoicePaid(<?php echo (int)$inv['id']; ?>">
+                    <button class="btn btn-success btn-sm ml-2" onClick="markInvoicePaid(<?php echo (int)$inv['id']; ?>">
                         <i class="bi bi-check2-circle mr-1"></i> Mark as Paid
                     </button>
                 <?php endif; ?>
@@ -354,9 +356,9 @@
                 <table class="fourcol">
                     <colgroup>
                         <col style="width:16%;">
-                        <col style="width:34%;">
-                        <col style="width:16%;">
-                        <col style="width:34%;">
+                        <col style="width:40%;">
+                        <col style="width:15%;">
+                        <col style="width:20%;">
                     </colgroup>
                     <?php if ($currentLang === 'bn'): ?>
                     <tr>
@@ -376,19 +378,20 @@
                         <td class="value-cell" colspan="3"><?php echo e(localizeText($inv['building_address'])); ?></td>
                     </tr>
                     <tr>
-                        <td class="label-cell">ভাড়াটিয়ার নাম :</td>
-                        <td class="value-cell" colspan="3"><?php echo e(localizeName($inv['tenant_name'])); ?></td>
+                        <td class="label-cell">মালিকের নাম :</td>
+                        <td class="value-cell" colspan="3"><?php echo e(localizeName($landownerName !== '' ? $landownerName : '—')); ?></td>
                     </tr>
                     <?php if ($inv['tenant_phone']): ?>
                     <tr>
-                        <td class="label-cell">ফোন :</td>
-                        <td class="value-cell" colspan="3"><?php echo e(bnNumeral(enDigits($inv['tenant_phone']))); ?></td>
+                        <td class="label-cell">ভাড়াটিয়ার নাম :</td>
+                        <td class="value-cell"><?php echo e(localizeName($inv['tenant_name'])); ?></td>
+                        <td class="label-cell" style="padding-left:16px;">ফোন :</td>
+                        <td class="value-cell"><?php echo e(bnNumeral(enDigits($inv['tenant_phone']))); ?></td>
                     </tr>
-                    <?php endif; ?>
-                    <?php if ($inv['tenant_email']): ?>
+                    <?php else: ?>
                     <tr>
-                        <td class="label-cell">ইমেইল :</td>
-                        <td class="value-cell" colspan="3"><?php echo e($inv['tenant_email']); ?></td>
+                        <td class="label-cell">ভাড়াটিয়ার নাম :</td>
+                        <td class="value-cell" colspan="3"><?php echo e(localizeName($inv['tenant_name'])); ?></td>
                     </tr>
                     <?php endif; ?>
                     <?php else: ?>
@@ -409,19 +412,20 @@
                         <td class="value-cell" colspan="3"><?php echo e(localizeText($inv['building_address'])); ?></td>
                     </tr>
                     <tr>
-                        <td class="label-cell">Tenant Name :</td>
-                        <td class="value-cell" colspan="3"><?php echo e(localizeName($inv['tenant_name'])); ?></td>
+                        <td class="label-cell">Landlord Name :</td>
+                        <td class="value-cell" colspan="3"><?php echo e(localizeName($landownerName !== '' ? $landownerName : '—')); ?></td>
                     </tr>
                     <?php if ($inv['tenant_phone']): ?>
                     <tr>
-                        <td class="label-cell">Phone :</td>
-                        <td class="value-cell" colspan="3"><?php echo e(bnNumeral(enDigits($inv['tenant_phone']))); ?></td>
+                        <td class="label-cell">Tenant Name :</td>
+                        <td class="value-cell"><?php echo e(localizeName($inv['tenant_name'])); ?></td>
+                        <td class="label-cell" style="padding-left:16px;">Phone :</td>
+                        <td class="value-cell"><?php echo e(bnNumeral(enDigits($inv['tenant_phone']))); ?></td>
                     </tr>
-                    <?php endif; ?>
-                    <?php if ($inv['tenant_email']): ?>
+                    <?php else: ?>
                     <tr>
-                        <td class="label-cell">Email :</td>
-                        <td class="value-cell" colspan="3"><?php echo e($inv['tenant_email']); ?></td>
+                        <td class="label-cell">Tenant Name :</td>
+                        <td class="value-cell" colspan="3"><?php echo e(localizeName($inv['tenant_name'])); ?></td>
                     </tr>
                     <?php endif; ?>
                     <?php endif; ?>
@@ -430,9 +434,9 @@
                 <table class="fourcol">
                     <colgroup>
                         <col style="width:16%;">
-                        <col style="width:34%;">
-                        <col style="width:16%;">
-                        <col style="width:34%;">
+                        <col style="width:40%;">
+                        <col style="width:15%;">
+                        <col style="width:20%;">
                     </colgroup>
                     <?php if ($currentLang === 'bn'): ?>
                     <tr>
@@ -446,19 +450,20 @@
                         <td class="value-cell" colspan="3"><?php echo e(localizeText($inv['building_address'])); ?></td>
                     </tr>
                     <tr>
-                        <td class="label-cell">ভাড়াটিয়ার নাম :</td>
-                        <td class="value-cell" colspan="3"><?php echo e(localizeName($inv['tenant_name'])); ?></td>
+                        <td class="label-cell">মালিকের নাম :</td>
+                        <td class="value-cell" colspan="3"><?php echo e(localizeName($landownerName !== '' ? $landownerName : '—')); ?></td>
                     </tr>
                     <?php if ($inv['tenant_phone']): ?>
                     <tr>
-                        <td class="label-cell">ফোন :</td>
-                        <td class="value-cell" colspan="3"><?php echo e(bnNumeral(enDigits($inv['tenant_phone']))); ?></td>
+                        <td class="label-cell">ভাড়াটিয়ার নাম :</td>
+                        <td class="value-cell"><?php echo e(localizeName($inv['tenant_name'])); ?></td>
+                        <td class="label-cell" style="padding-left:16px;">ফোন :</td>
+                        <td class="value-cell"><?php echo e(bnNumeral(enDigits($inv['tenant_phone']))); ?></td>
                     </tr>
-                    <?php endif; ?>
-                    <?php if ($inv['tenant_email']): ?>
+                    <?php else: ?>
                     <tr>
-                        <td class="label-cell">ইমেইল :</td>
-                        <td class="value-cell" colspan="3"><?php echo e($inv['tenant_email']); ?></td>
+                        <td class="label-cell">ভাড়াটিয়ার নাম :</td>
+                        <td class="value-cell" colspan="3"><?php echo e(localizeName($inv['tenant_name'])); ?></td>
                     </tr>
                     <?php endif; ?>
                     <?php else: ?>
@@ -473,31 +478,32 @@
                         <td class="value-cell" colspan="3"><?php echo e(localizeText($inv['building_address'])); ?></td>
                     </tr>
                     <tr>
-                        <td class="label-cell">Tenant Name :</td>
-                        <td class="value-cell" colspan="3"><?php echo e(localizeName($inv['tenant_name'])); ?></td>
+                        <td class="label-cell">Landlord Name :</td>
+                        <td class="value-cell" colspan="3"><?php echo e(localizeName($landownerName !== '' ? $landownerName : '—')); ?></td>
                     </tr>
                     <?php if ($inv['tenant_phone']): ?>
                     <tr>
-                        <td class="label-cell">Phone :</td>
-                        <td class="value-cell" colspan="3"><?php echo e(bnNumeral(enDigits($inv['tenant_phone']))); ?></td>
+                        <td class="label-cell">Tenant Name :</td>
+                        <td class="value-cell"><?php echo e(localizeName($inv['tenant_name'])); ?></td>
+                        <td class="label-cell" style="padding-left:16px;">Phone :</td>
+                        <td class="value-cell"><?php echo e(bnNumeral(enDigits($inv['tenant_phone']))); ?></td>
                     </tr>
-                    <?php endif; ?>
-                    <?php if ($inv['tenant_email']): ?>
+                    <?php else: ?>
                     <tr>
-                        <td class="label-cell">Email :</td>
-                        <td class="value-cell" colspan="3"><?php echo e($inv['tenant_email']); ?></td>
+                        <td class="label-cell">Tenant Name :</td>
+                        <td class="value-cell" colspan="3"><?php echo e(localizeName($inv['tenant_name'])); ?></td>
                     </tr>
                     <?php endif; ?>
                     <?php endif; ?>
                 </table>
                 <?php endif; ?>
 
-                <table style="margin-top:12px; width:100%;">
+                <table class="fourcol" style="margin-top:12px; width:100%;">
                     <colgroup>
-                        <col style="width:24%;">
-                        <col style="width:22%;">
+                        <col style="width:16%;">
+                        <col style="width:40%;">
+                        <col style="width:15%;">
                         <col style="width:20%;">
-                        <col style="width:34%;">
                     </colgroup>
                     <?php if ($currentLang === 'bn'): ?>
                     <tr>
@@ -541,7 +547,7 @@
                     <?php endif; ?>
                     <tr>
                         <td class="label-cell"><?php echo t('due_date'); ?> :</td>
-                        <td class="value-cell"><?php echo e(bnNumeral($dueDate)); ?></td>
+                        <td class="value-cell"><?php echo e(dateLong($dueDateIso, 'bn')); ?></td>
                         <td class="label-cell" style="padding-left:16px;"><?php echo t('total_due'); ?> :</td>
                         <td class="value-cell"><?php echo $cur . ' ' . bnNumeral(number_format($totalDue, 2)); ?></td>
                     </tr>
@@ -587,7 +593,7 @@
                     <?php endif; ?>
                     <tr>
                         <td class="label-cell"><?php echo t('due_date'); ?> :</td>
-                        <td class="value-cell"><?php echo e($dueDate); ?></td>
+                        <td class="value-cell"><?php echo e(dateLong($dueDateIso, 'en')); ?></td>
                         <td class="label-cell" style="padding-left:16px;"><?php echo t('total_due'); ?> :</td>
                         <td class="value-cell"><?php echo $cur . ' ' . number_format($totalDue, 2); ?></td>
                     </tr>
@@ -610,9 +616,11 @@
                         <td style="font-weight:600; color:#dc2626; font-size:17px;"><?php echo $cur . ' ' . bnNumeral(number_format($totalDue - $totalPaid, 2)); ?> টাকা</td>
                     </tr>
                     <?php elseif ($paymentStatus === 'unpaid'): ?>
+                    <?php if ($propertyType !== 'shop'): ?>
                     <tr>
                         <td style="font-weight:600; color:#dc2626;" colspan="2">সার্ভিস চার্জ : অপরিশোধিত (<?php echo e(monthName($inv['month'], 'bn') . ' ' . bnNumeral($inv['year'])); ?>)</td>
                     </tr>
+                    <?php endif; ?>
                     <?php endif; ?>
                     <?php else: ?>
                     <tr class="total-row">
@@ -629,9 +637,11 @@
                         <td style="font-weight:600; color:#dc2626; font-size:17px;"><?php echo $cur . ' ' . number_format($totalDue - $totalPaid, 2); ?></td>
                     </tr>
                     <?php elseif ($paymentStatus === 'unpaid'): ?>
+                    <?php if ($propertyType !== 'shop'): ?>
                     <tr>
                         <td style="font-weight:600; color:#dc2626;" colspan="2">Status: Unpaid (<?php echo e(monthName($inv['month']) . ' ' . $inv['year']); ?>)</td>
                     </tr>
+                    <?php endif; ?>
                     <?php endif; ?>
                     <?php endif; ?>
                 </table>

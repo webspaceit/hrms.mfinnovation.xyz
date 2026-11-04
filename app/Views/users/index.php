@@ -42,11 +42,15 @@ $roleLabels = [
                                 <td><?php echo bnNumeral($i + 1); ?></td>
                                 <td class="fw-semibold">
                                     <i class="bi bi-person-circle mr-1 text-primary"></i>
-                                    <?php echo e($u['full_name']); ?>
+                                    <?php echo e(localizeName($u['full_name'])); ?>
                                     <?php if ($isSelf): ?>
-                                        <span class="badge bg-secondary" title="<?php echo t('you_this', 'It is you'); ?>"><i class="bi bi-person-check"></i></span>
+                                        <span class="badge bg-secondary text-white" title="<?php echo t('you_this', 'It is you'); ?>"><i class="bi bi-person-check"></i></span>
                                     <?php endif; ?>
                                 </td>
+                                <?php /* username and email are login identifiers, not display
+                                         text: they are typed by hand and looked up verbatim by
+                                         Auth::findByUsername(), so they are printed as stored.
+                                         Only the display name is script-converted. */ ?>
                                 <td><?php echo e($u['username']); ?></td>
                                 <td><?php echo e($u['email'] ?: '-'); ?></td>
                                 <td>
@@ -67,7 +71,7 @@ $roleLabels = [
                                         <i class="bi bi-pencil"></i>
                                     </button>
                                     <button class="btn btn-sm btn-outline-warning" title="<?php echo t('reset_password'); ?>"
-                                            onclick="openPwdModal(<?php echo (int)$u['id']; ?>, '<?php echo addslashes($u['full_name']); ?>')">
+                                            onclick="openPwdModal(<?php echo (int)$u['id']; ?>, <?php echo e(jsQuote(localizeName($u['full_name']))); ?>)">
                                         <i class="bi bi-key"></i>
                                     </button>
                                     <button class="btn btn-sm btn-outline-danger" title="<?php echo t('delete'); ?>"
@@ -89,7 +93,7 @@ $roleLabels = [
 </div>
 
 <!-- Add / Edit User Modal -->
-<div class="modal fade" id="userModal" tabindex="-1">
+<div class="modal" id="userModal" data-close-on-backdrop="false" data-close-on-escape="false">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header border-0 bg-primary text-white">
@@ -135,7 +139,7 @@ $roleLabels = [
 </div>
 
 <!-- Reset Password Modal -->
-<div class="modal fade" id="pwdModal" tabindex="-1">
+<div class="modal" id="pwdModal" data-close-on-backdrop="false" data-close-on-escape="false">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header border-0 bg-warning text-dark">
@@ -166,7 +170,7 @@ $roleLabels = [
 </div>
 
 <!-- Delete confirm -->
-<div class="modal" id="confirmModal">
+<div class="modal" id="confirmModal" data-close-on-backdrop="false" data-close-on-escape="false">
     <div class="modal-dialog modal-dialog-centered modal-sm">
         <div class="modal-content">
             <div class="modal-header border-0 bg-danger text-white">
@@ -184,7 +188,7 @@ $roleLabels = [
 </div>
 
 <script>
-const USERS = <?php echo json_encode($users, JSON_UNESCAPED_UNICODE); ?>;
+const USERS = <?php echo jsonForScript($users); ?>;
 const CURRENT_USER_ID = <?php echo (int)$currentUserId; ?>;
 
 function openUserModal(id) {
@@ -204,6 +208,10 @@ function openUserModal(id) {
         if (!u) return;
         document.getElementById('userModalTitle').textContent = <?php echo jsQuote(t('edit_user')); ?>;
         document.getElementById('user_id').value = u.id;
+        // The RAW stored name, never the localized one: ajax/user_save.php
+        // stores full_name exactly as typed, so pre-filling a translation here
+        // would write that translation back over the original on every save
+        // and the name could never be converted the other way again.
         document.getElementById('user_full_name').value = u.full_name;
         document.getElementById('user_username').value = u.username;
         document.getElementById('user_email').value = u.email || '';
@@ -238,7 +246,12 @@ function changeRole(id, el) {
             sel.value = sel.dataset.default; // revert
             showToast(result.message || 'Error', 'danger');
         } else {
-            sel.dataset.default = role;
+            // Remember the newly saved role so a later failed change reverts
+            // to it. This must be sel.value - a bare `role` here is an
+            // undefined identifier, which throws inside this callback and gets
+            // swallowed by ajax()'s catch as "Request failed" even though the
+            // save succeeded.
+            sel.dataset.default = sel.value;
             showToast(result.message, 'success');
         }
     });
@@ -246,6 +259,20 @@ function changeRole(id, el) {
 
 document.getElementById('userForm').addEventListener('submit', function(e) {
     e.preventDefault();
+    // A disabled <select> is omitted from FormData, so mirror its value into a
+    // real input first - otherwise editing your own account posts no role.
+    const role = document.getElementById('user_role');
+    if (role && role.disabled) {
+        let mirror = document.getElementById('user_role_mirror');
+        if (!mirror) {
+            mirror = document.createElement('input');
+            mirror.type = 'hidden';
+            mirror.name = 'role';
+            mirror.id = 'user_role_mirror';
+            document.getElementById('userForm').appendChild(mirror);
+        }
+        mirror.value = role.value;
+    }
     submitModalForm('userForm', '<?php echo BASE_URL; ?>ajax/user_save.php');
 });
 

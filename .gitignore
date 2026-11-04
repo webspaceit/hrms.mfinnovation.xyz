@@ -2,3 +2,18 @@
 /uploads/
 /oop-rms-deploy.zip
 /oop-rms.zip
+
+# Staging folder for the deploy package (tools/build_deploy.php)
+/_deploy-stage/
+
+# Leftover extracted deploy package
+/oop-rms-deploy/
+
+# Local AI/editor tooling metadata
+/.commandcode/
+
+# Scratch/debug files
+/_diag.php
+
+# Superseded one-off migration (db_alter_upgrade.sql replaces it)
+/service_charge_multi_month_upgrade.sql

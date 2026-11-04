@@ -81,6 +81,26 @@ function monthName($month, $lang = null) {
 }
 
 /**
+ * Format a date as a readable long date with the month name, e.g.
+ * "11 November 2026" (English) or "১১ নভেম্বর ২০২৬" (Bengali).
+ * Accepts any strtotime()-parsable value (prefer Y-m-d for clarity).
+ */
+function dateLong($date, $lang = null) {
+    $ts = is_int($date) ? $date : strtotime((string)$date);
+    if ($ts === false) {
+        return (string)$date;
+    }
+    $lang = $lang ?: Lang::current();
+    $day = date('j', $ts);
+    $year = date('Y', $ts);
+    $month = monthName((int)date('n', $ts), $lang);
+    if ($lang === 'bn') {
+        return bnNumeral($day) . ' ' . $month . ' ' . bnNumeral($year);
+    }
+    return $day . ' ' . $month . ' ' . $year;
+}
+
+/**
  * Format a status for display with badge classes
  */
 function statusBadge($status) {
@@ -187,6 +207,20 @@ function post($key, $default = '') {
 }
 
 /**
+ * Get a post field that may arrive as a list of values (a group of checkboxes
+ * posts as name[]). A single value is returned as a one item list, a missing
+ * field as an empty array. Values are raw, so cast or validate them at the
+ * call site - post() only handles strings.
+ */
+function postArray($key): array {
+    $value = $_POST[$key] ?? [];
+    if (!is_array($value)) {
+        return $value === '' || $value === null ? [] : [$value];
+    }
+    return array_values($value);
+}
+
+/**
  * Generate and store CSRF token in session
  */
 function csrf_token() {
@@ -267,6 +301,35 @@ function isBengali($str) {
 }
 
 /**
+ * Detect if a string contains Latin (ASCII/Latin-1/Latin Extended) letters.
+ * Used to reject machine-translation output written in the wrong script.
+ */
+function isLatin($str) {
+    return (bool)preg_match('/\p{L}/u', (string)$str)
+        && !preg_match('/[^\p{Script=Latin}\p{N}\p{P}\p{Z}\p{S}]/u', (string)$str);
+}
+
+/**
+ * Reject a translation that came back in the wrong script.
+ *
+ * Machine translators routinely return garbage for Bengali proper nouns
+ * (person names, place names): "bn|en" can come back in Arabic, Cyrillic,
+ * etc. Left unchecked that text is shown to the user *and* written to
+ * translation_cache, so one bad API response poisons the name permanently.
+ *
+ * @return string|null the translation if it is in the expected script,
+ *                     null if it must be discarded.
+ */
+function translationScriptOk($translated, $to) {
+    $translated = trim((string)$translated);
+    if ($translated === '') return null;
+    $hasBengali = isBengali($translated);
+    if ($to === 'bn' && $hasBengali) return $translated;
+    if ($to === 'en' && !$hasBengali && isLatin($translated)) return $translated;
+    return null;
+}
+
+/**
  * Translate a short text via MyMemory with a DB-backed cache.
  * Returns the original text on failure (offline, quota exceeded, etc.).
  *
@@ -314,6 +377,7 @@ function translateText($text, $from, $to) {
             'Savar' => 'সাভার', 'Keraniganj' => 'কেরানীগঞ্জ', 'Nabinagar' => 'নবীগঞ্জ',
             'Baridhara' => 'বারিধারা', 'Niketan' => 'নিকেতন', 'Moghbazar' => 'মগবাজার',
             'Malibagh' => 'মালিবাগ', 'Shantinagar' => 'শান্তিনগর', 'Kamalapur' => 'কমলাপুর',
+            'Rahmullah' => 'রহমতুল্লাহ',
         ],
         'bn|en' => [
             'ঢাকা' => 'Dhaka', 'চট্টগ্রাম' => 'Chittagong', 'সিলেট' => 'Sylhet',
@@ -349,6 +413,12 @@ function translateText($text, $from, $to) {
             'নবীগঞ্জ' => 'Nabinagar', 'বারিধারা' => 'Baridhara', 'নিকেতন' => 'Niketan',
             'মগবাজার' => 'Moghbazar', 'মালিবাগ' => 'Malibagh', 'শান্তিনগর' => 'Shantinagar',
             'কমলাপুর' => 'Kamalapur',
+            // Personal names. MyMemory answers a Bengali theophoric name with
+            // its Arabic etymon instead of a Latin transliteration - e.g.
+            // "রহমতুল্লাহ" comes back as "رحمة الله" (Arabic), which
+            // translationScriptOk() rejects, so the English UI kept showing the
+            // Bengali original. Names that transliterate must be listed here.
+            'রহমতুল্লাহ' => 'Rahmullah',
         ],
     ];
     $key = "$from|$to";
@@ -363,9 +433,17 @@ function translateText($text, $from, $to) {
         $stmt->execute([':src' => $text, ':f' => $from, ':t' => $to]);
         $cached = $stmt->fetchColumn();
         if ($cached !== false && $cached !== null && $cached !== '') {
-            $db->prepare(\Database::prefix("UPDATE translation_cache SET hits = hits + 1 WHERE src = :src AND lang_from = :f AND lang_to = :t"))
-                ->execute([':src' => $text, ':f' => $from, ':t' => $to]);
-            return $cached;
+            // A cached row stored in the wrong script is a poisoned entry
+            // (see translationScriptOk). Ignore it and re-translate.
+            if (translationScriptOk($cached, $to) === null) {
+                $db->prepare(\Database::prefix("DELETE FROM translation_cache WHERE src = :src AND lang_from = :f AND lang_to = :t"))
+                    ->execute([':src' => $text, ':f' => $from, ':t' => $to]);
+                $cached = null;
+            } else {
+                $db->prepare(\Database::prefix("UPDATE translation_cache SET hits = hits + 1 WHERE src = :src AND lang_from = :f AND lang_to = :t"))
+                    ->execute([':src' => $text, ':f' => $from, ':t' => $to]);
+                return $cached;
+            }
         }
     } catch (Exception $e) {
         $db = null;
@@ -394,7 +472,7 @@ function translateText($text, $from, $to) {
             $j = json_decode($raw, true);
             $txt = $j['responseData']['translatedText'] ?? null;
             if ($txt && stripos($txt, 'MYMEMORY') === false) {
-                $result = $txt;
+                $result = translationScriptOk($txt, $to);
             }
         }
     } else {
@@ -404,7 +482,7 @@ function translateText($text, $from, $to) {
             $j = json_decode($raw, true);
             $txt = $j['responseData']['translatedText'] ?? null;
             if ($txt && stripos($txt, 'MYMEMORY') === false) {
-                $result = $txt;
+                $result = translationScriptOk($txt, $to);
             }
         }
     }
@@ -451,6 +529,114 @@ function localizeName($name) {
  */
 function localizeText($text) {
     return localizeName($text);
+}
+
+/**
+ * Short codes that can be typed inside a payment note. The service charge
+ * month/year picked in the payment form is printed in place of the code, so
+ * the note does not have to repeat it by hand:
+ *   {sc} = month + year   {m} = month only   {y} = year only
+ * A code with no chosen month/year is dropped, so a note never shows raw
+ * braces; the stored note keeps the code, so editing the payment still
+ * shows the short form. $month may be a single month or a list of months.
+ */
+function applyNoteCodes($text, $month = null, $year = null, $lang = null) {
+    $text = (string)$text;
+    if (strpos($text, '{') === false) {
+        return $text;
+    }
+    $lang = $lang ?: Lang::current();
+    $months = monthList($month);
+    $year = (int)$year;
+    $yearLabel = $year >= 2000 ? ($lang === 'bn' ? bnNumeral($year) : (string)$year) : '';
+    $monthNames = [];
+    foreach ($months as $m) {
+        $monthNames[] = monthName($m, $lang);
+    }
+    $values = [
+        'sc' => $yearLabel !== '' ? monthListLabel($months, $year, $lang) : implode(', ', $monthNames),
+        'm'  => implode(', ', $monthNames),
+        'y'  => $yearLabel,
+    ];
+    $dropped = false;
+    $out = preg_replace_callback('/\{\s*(sc|m|y)\s*\}/i', function ($m) use ($values, &$dropped) {
+        $value = $values[strtolower($m[1])];
+        if ($value === '') {
+            $dropped = true;
+        }
+        return $value;
+    }, $text);
+    if ($out === null) {
+        return $text;
+    }
+    if ($dropped) {
+        // Tidy up the gap a removed code left behind.
+        $out = trim(preg_replace('/[ \t]{2,}/', ' ', $out));
+    }
+    return $out;
+}
+
+/**
+ * Normalize a month selection into month numbers (1-12, unique, calendar
+ * order). Accepts the form's array of checkboxes or the comma separated
+ * string kept in the database.
+ */
+function monthList($value): array {
+    if (is_string($value)) {
+        $value = preg_split('/\s*,\s*/', trim($value), -1, PREG_SPLIT_NO_EMPTY);
+    }
+    if (!is_array($value)) {
+        $value = $value === null || $value === '' ? [] : [$value];
+    }
+    // A single item may itself hold a comma separated list ("7,8"), so flatten
+    // before reading the numbers.
+    $items = [];
+    foreach ($value as $item) {
+        if (is_string($item) && strpos($item, ',') !== false) {
+            foreach (preg_split('/\s*,\s*/', $item, -1, PREG_SPLIT_NO_EMPTY) as $part) {
+                $items[] = $part;
+            }
+        } else {
+            $items[] = $item;
+        }
+    }
+    $months = [];
+    foreach ($items as $m) {
+        $m = (int)$m;
+        if ($m >= 1 && $m <= 12) {
+            $months[$m] = $m;
+        }
+    }
+    ksort($months);
+    return array_values($months);
+}
+
+/**
+ * Comma separated form of a month selection, ready for the database
+ * (null when nothing is selected).
+ */
+function monthListToDb($value): ?string {
+    $months = monthList($value);
+    return $months ? implode(',', $months) : null;
+}
+
+/**
+ * "জুলাই ২০২৬, আগস্ট ২০২৬" for a month selection, each month carrying the year.
+ * Pass null as the year to print month names only.
+ */
+function monthListLabel($value, $year = null, $lang = null): string {
+    $months = monthList($value);
+    if (!$months) {
+        return '';
+    }
+    $lang = $lang ?: Lang::current();
+    $year = (int)$year;
+    $labels = [];
+    foreach ($months as $m) {
+        $labels[] = monthName($m, $lang)
+            . ($year >= 2000 ? ' ' . ($lang === 'bn' ? bnNumeral($year) : (string)$year) : '');
+    }
+    return implode(', ', $labels);
 }
 
 /**
@@ -591,6 +777,40 @@ function bnFlatCode($str) {
     }
     $str = strtr(strtoupper($str), bnLetterMap());
     return bnNumeral($str);
+}
+
+/**
+ * Filename for a downloaded receipt PDF:
+ *   <UnitType>-<UnitNo>-<d-M-y>-<H-i-s>-<lang>.pdf
+ *   e.g. Shop-S-05-29-sep-26-17-34-05-en.pdf
+ *
+ * Deliberately ASCII-only. A downloaded filename carrying Bengali characters is
+ * unreliable across filesystems, e-mail clients and some Android browsers, and
+ * unit numbers can be stored with Bengali digits/letters on older rows, so the
+ * code is run through enFlatNo() first.
+ *
+ * The timestamp keeps same-day downloads from colliding ("Flat-5A-29-sep-26.pdf"
+ * twice in a row is indistinguishable in a downloads folder). Time is written
+ * 24-hour and colon-free: a colon is rejected outright on Windows, so
+ * H:i:s would produce a file that cannot be saved there.
+ */
+function receiptPdfFilename($receipt, $lang = null) {
+    $lang = $lang ?: Lang::current();
+    $lang = $lang === 'bn' ? 'bn' : 'en';
+
+    $type = (($receipt['unit_type'] ?? 'flat') === 'shop') ? 'Shop' : 'Flat';
+
+    // "5A" / "A-12" are fine; anything else collapses to a single separator.
+    $no = enFlatNo((string)($receipt['flat_no'] ?? ''));
+    $no = trim((string)preg_replace('/[^A-Za-z0-9]+/', '-', $no), '-');
+    if ($no === '') {
+        $no = 'NA';
+    }
+
+    $date = strtolower(date('d-M-y'));   // 29-Sep-26
+    $time = date('H-i-s');               // 17-34-05
+
+    return $type . '-' . $no . '-' . $date . '-' . $time . '-' . $lang . '.pdf';
 }
 
 /**
@@ -810,14 +1030,14 @@ function compressPdfWithGhostscript($srcPath, $destPath) {
     if (!function_exists('exec') || !defined('GS_PATH') || GS_PATH === '') {
         return false;
     }
-    @exec('"' . GS_PATH . '" --version 2>&1', $availOut, $availCode);
+    @exec(escapeshellarg(GS_PATH) . ' --version 2>&1', $availOut, $availCode);
     if ($availCode !== 0) {
         return false;
     }
 
-    $cmd = '"' . GS_PATH . '" -sDEVICE=pdfwrite -dPDFSETTINGS=/ebook -dCompatibilityLevel=1.4'
+    $cmd = escapeshellarg(GS_PATH) . ' -sDEVICE=pdfwrite -dPDFSETTINGS=/ebook -dCompatibilityLevel=1.4'
          . ' -dNOPAUSE -dQUIET -dBATCH -dDetectDuplicateImages=true'
-         . ' -sOutputFile="' . $destPath . '" "' . $srcPath . '" 2>&1';
+         . ' -sOutputFile=' . escapeshellarg($destPath) . ' ' . escapeshellarg($srcPath) . ' 2>&1';
     @exec($cmd, $out, $code);
 
     if ($code !== 0 || !is_file($destPath) || filesize($destPath) >= filesize($srcPath)) {
@@ -845,9 +1065,38 @@ function deleteUploadedDocument($relativePath) {
 /**
  * JSON-encode a PHP string as a clean JavaScript string literal
  * (forward slashes and Unicode kept readable).
+ *
+ * JSON_INVALID_UTF8_SUBSTITUTE matters: plain json_encode() returns FALSE for
+ * invalid UTF-8, which would emit `confirmDelete(, )` and leave the inline
+ * handler syntactically broken (the click then does nothing, silently).
  */
 function jsQuote($str) {
-    return json_encode((string)$str, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+    $json = json_encode((string)$str, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
+    return $json === false ? '""' : $json;
+}
+
+/**
+ * JSON-encode a value for embedding inside an inline <script> block, e.g.
+ * `window.PAYMENTS = <?php echo jsonForScript($rows); ?>;`
+ *
+ * Plain json_encode() is unsafe here for two reasons:
+ *   - it returns FALSE when the data contains invalid UTF-8, silently
+ *     producing `window.PAYMENTS = ;`, which is a SyntaxError that discards
+ *     the ENTIRE script block (every function in it becomes undefined);
+ *   - raw output can contain "</script>" and close the tag early.
+ *
+ * This helper always returns valid, self-contained JavaScript.
+ */
+function jsonForScript($data) {
+    $json = json_encode(
+        $data,
+        JSON_HEX_TAG | JSON_HEX_AMP | JSON_INVALID_UTF8_SUBSTITUTE | JSON_UNESCAPED_UNICODE
+    );
+    if ($json === false) {
+        error_log('jsonForScript: unable to encode payload');
+        return 'null';
+    }
+    return $json;
 }
 
 /**

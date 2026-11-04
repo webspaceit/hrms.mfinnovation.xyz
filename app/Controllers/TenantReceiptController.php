@@ -130,6 +130,45 @@ class TenantReceiptController extends Controller {
         // Building holding number (city corporation / pourashava) — shown on shop receipts.
         $holdingNo = $propertyType === 'shop' ? trim((string)($receipt['building_holding_no'] ?? '')) : '';
 
+        // Landowner name: the landlord account that manages this tenant.
+        $landownerName = trim((string)($receipt['landowner_name'] ?? ''));
+
+        // Service charge receipt label: use the months/year chosen in the
+        // payment form when the scan was attached; fall back to the previous
+        // month of this receipt's month when nothing was selected.
+        $scMonths   = monthList($receipt['service_charge_month'] ?? '');
+        $scYearSel  = (int)($receipt['service_charge_year'] ?? 0);
+        $hasScMonth = !empty($scMonths) && $scYearSel >= 2000;
+        if ($hasScMonth) {
+            $scLabelMonths = $scMonths;
+            $scLabelYear   = $scYearSel;
+        } else {
+            $scLabelMonths = [(int)$receipt['month'] == 1 ? 12 : (int)$receipt['month'] - 1];
+            $scLabelYear   = (int)$receipt['month'] == 1 ? (int)$receipt['year'] - 1 : (int)$receipt['year'];
+        }
+        $scLabelBn = 'সার্ভিস চার্জ রসিদ (' . monthListLabel($scLabelMonths, $scLabelYear, 'bn') . ')';
+        $scLabelEn = 'Service Charge Receipt (' . monthListLabel($scLabelMonths, $scLabelYear, 'en') . ')';
+
+        // Note line: the months/year actually picked in the payment form. The
+        // previous-month fallback above is only used for the fee label, so a
+        // receipt with no selection shows no month in the note.
+        $scNoteBn = $hasScMonth ? monthListLabel($scMonths, $scYearSel, 'bn') : '';
+        $scNoteEn = $hasScMonth ? monthListLabel($scMonths, $scYearSel, 'en') : '';
+
+        // Resolve the note short codes ({sc} / {m} / {y}) to the chosen
+        // service charge month and year, so every output of this receipt
+        // (view, WhatsApp, email) shows the resolved text.
+        $receipt['note'] = applyNoteCodes($receipt['note'], $scMonths, $scYearSel, $currentLang);
+
+        // Note block styling: color + font chosen when the payment was recorded.
+        $noteStyle = '';
+        if (!empty($receipt['note_color']) && preg_match('/^#[0-9a-fA-F]{6}$/', (string)$receipt['note_color'])) {
+            $noteStyle .= ' color:' . $receipt['note_color'] . ';';
+        }
+        if (!empty($receipt['note_font'])) {
+            $noteStyle .= ' font-family:' . $receipt['note_font'] . ';';
+        }
+
         // Format receipt details for WhatsApp/Email (full receipt content)
         $formattedDate = date('d-m-Y', strtotime($receipt['payment_date']));
         $receiptDetails = "";
@@ -266,7 +305,7 @@ class TenantReceiptController extends Controller {
         // permanent default (assets/images/signature.jpg).
         $ownerSig = url('assets/images/signature.jpg');
         $sigSrc = (!empty($receipt['signature']) && file_exists(dirname(__DIR__, 2) . '/' . $receipt['signature']))
-            ? url($receipt['signature'])
+            ? BASE_URL . 'file.php?f=' . urlencode($receipt['signature'])
             : $ownerSig;
 
         $this->view('tenant-receipt/index', [
@@ -293,6 +332,12 @@ class TenantReceiptController extends Controller {
             'holdingLabelBn'    => $holdingLabelBn,
             'shopName'          => $shopName,
             'holdingNo'         => $holdingNo,
+            'landownerName'     => $landownerName,
+            'scLabelBn'         => $scLabelBn,
+            'scLabelEn'         => $scLabelEn,
+            'scNoteBn'          => $scNoteBn,
+            'scNoteEn'          => $scNoteEn,
+            'noteStyle'         => $noteStyle,
             'formattedDate'     => $formattedDate,
             'receiptDetails'    => $receiptDetails,
             'phoneDigits'       => $phoneDigits,

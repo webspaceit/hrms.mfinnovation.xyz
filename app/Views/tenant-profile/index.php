@@ -92,7 +92,7 @@ require dirname(__DIR__) . '/partials/tenant_header.php';
     </div>
 
     <!-- Document Viewer Modal -->
-    <div class="modal" id="docViewerModal">
+    <div class="modal" id="docViewerModal" data-close-on-backdrop="false" data-close-on-escape="false">
         <div class="modal-dialog modal-lg modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header border-0 bg-primary text-white">
@@ -133,7 +133,7 @@ require dirname(__DIR__) . '/partials/tenant_header.php';
 
 <script>
 function viewDocument(url, title) {
-    document.getElementById("docViewerFrame").src = BASE_URL + url;
+    document.getElementById("docViewerFrame").src = BASE_URL + 'file.php?f=' + encodeURIComponent(url);
     document.getElementById("docViewerTitle").textContent = title || "<?php echo t('documents'); ?>";
     openModal("docViewerModal");
 }

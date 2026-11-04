@@ -10,9 +10,12 @@
 --   * Is fully IDEMPOTENT — safe to run on a database that is
 --     already current (it simply makes 0 changes)
 --
+-- A FRESH install does not need this file: import database.sql,
+-- or just run install.php.
+--
 -- How to run:
 --   1. phpMyAdmin -> select your database
---   2. Import tab -> choose this file (or paste it in the SQL tab)
+--   2. Import tab -> choose this file (or paste in the SQL tab)
 --   3. Run. A green "0 rows affected" per statement is normal.
 --
 -- Note: existing rows keep their values. New columns get safe
@@ -26,10 +29,10 @@
 -- the RENAME TABLE block at the very bottom of this file, and
 -- only afterwards re-run this file.
 -- ------------------------------------------------------------
-SELECT TABLE_NAME FROM information_schema.TABLES
-WHERE TABLE_SCHEMA = DATABASE()
-  AND TABLE_NAME IN ('wsit_users','wsit_buildings','wsit_flats','wsit_tenants',
-                     'wsit_leases','wsit_payments','wsit_invoices');
+-- SELECT TABLE_NAME FROM information_schema.TABLES
+-- WHERE TABLE_SCHEMA = DATABASE()
+--   AND TABLE_NAME IN ('wsit_users','wsit_buildings','wsit_flats','wsit_tenants',
+--                      'wsit_leases','wsit_payments','wsit_invoices');
 
 -- ------------------------------------------------------------
 -- Helper procedures (idempotent add-column / add-key)
@@ -78,7 +81,7 @@ CALL rms_add_col('wsit_flats', 'shop_name', 'VARCHAR(150) DEFAULT NULL COMMENT '
 CALL rms_add_col('wsit_flats', 'unit_type', 'ENUM(''flat'',''shop'') NOT NULL DEFAULT ''flat''');
 
 -- ------------------------------------------------------------
--- Tenants
+-- Tenants (documents, ownership, tenant portal)
 -- ------------------------------------------------------------
 CALL rms_add_col('wsit_tenants', 'photo', 'VARCHAR(255) DEFAULT NULL');
 CALL rms_add_col('wsit_tenants', 'deed_file', 'VARCHAR(255) DEFAULT NULL');
@@ -99,14 +102,35 @@ CALL rms_add_col('wsit_users', 'role', 'ENUM(''admin'',''landlord'') NOT NULL DE
 -- roles existed). Adjust individual accounts later from the Users page.
 UPDATE `wsit_users` SET `role` = 'admin';
 
+-- An older database.sql declared the column with DEFAULT 'landlord', while
+-- database.sql uses DEFAULT 'admin'. Align it so an upgraded install and a
+-- fresh install behave the same. (user_save.php always sets the role
+-- explicitly, so this only affects hand-written INSERTs.)
+ALTER TABLE `wsit_users`
+  MODIFY COLUMN `role` ENUM('admin','landlord') NOT NULL DEFAULT 'admin';
+
 -- ------------------------------------------------------------
--- Payments (parking / gas / water / waste bill amounts)
+-- Payments (service bills, arrears, receipt styling, service charge)
 -- ------------------------------------------------------------
 CALL rms_add_col('wsit_payments', 'parking_amount', 'DECIMAL(10,2) NOT NULL DEFAULT 0');
 CALL rms_add_col('wsit_payments', 'gas_amount', 'DECIMAL(10,2) NOT NULL DEFAULT 0');
 CALL rms_add_col('wsit_payments', 'water_fee', 'DECIMAL(10,2) NOT NULL DEFAULT 0');
 CALL rms_add_col('wsit_payments', 'waste_fee', 'DECIMAL(10,2) NOT NULL DEFAULT 0');
-CALL rms_add_col('wsit_payments', 'service_charge_file', 'VARCHAR(255) DEFAULT NULL COMMENT ''Previous month service charge receipt scan - flat rent payments only''');
+CALL rms_add_col('wsit_payments', 'arrears', 'DECIMAL(12,2) NOT NULL DEFAULT 0');
+CALL rms_add_col('wsit_payments', 'receipt_type', 'ENUM(''rent'',''parking'',''gas'',''water'',''waste'') NOT NULL DEFAULT ''rent''');
+CALL rms_add_col('wsit_payments', 'service_charge_file', 'VARCHAR(255) DEFAULT NULL COMMENT ''Service charge receipt scan - flat rent payments only''');
+CALL rms_add_col('wsit_payments', 'service_charge_month', 'VARCHAR(20) DEFAULT NULL COMMENT ''Comma separated month list the scan covers, e.g. "7,8"''');
+CALL rms_add_col('wsit_payments', 'service_charge_year', 'SMALLINT UNSIGNED DEFAULT NULL');
+CALL rms_add_col('wsit_payments', 'note_color', 'VARCHAR(20) DEFAULT NULL COMMENT ''Hex colour for the note block on the receipt''');
+CALL rms_add_col('wsit_payments', 'note_font', 'VARCHAR(60) DEFAULT NULL COMMENT ''Key from NOTE_FONT_CHOICES in config''');
+
+-- Older builds declared service_charge_month as a single month and
+-- receipt_type without water/waste. Both are widening changes: no
+-- stored value is altered, only the allowed range grows.
+ALTER TABLE `wsit_payments`
+  MODIFY COLUMN `service_charge_month` VARCHAR(20) NULL DEFAULT NULL;
+ALTER TABLE `wsit_payments`
+  MODIFY COLUMN `receipt_type` ENUM('rent','parking','gas','water','waste') NOT NULL DEFAULT 'rent';
 
 -- ------------------------------------------------------------
 -- Invoices (bill amounts, arrears, status tracking)
@@ -119,6 +143,7 @@ CALL rms_add_col('wsit_invoices', 'arrears', 'DECIMAL(10,2) NOT NULL DEFAULT 0')
 CALL rms_add_col('wsit_invoices', 'arrears_months', 'INT(11) NOT NULL DEFAULT 0');
 CALL rms_add_col('wsit_invoices', 'payment_status_override', 'ENUM(''paid'',''partial'',''unpaid'') NULL DEFAULT NULL');
 CALL rms_add_col('wsit_invoices', 'paid_at', 'DATETIME DEFAULT NULL');
+CALL rms_add_col('wsit_invoices', 'due_date', 'DATE DEFAULT NULL');
 CALL rms_add_col('wsit_invoices', 'is_manual', 'TINYINT(1) NOT NULL DEFAULT 0');
 CALL rms_add_col('wsit_invoices', 'status', 'ENUM(''draft'',''sent'') NOT NULL DEFAULT ''draft''');
 
@@ -134,7 +159,7 @@ CREATE TABLE IF NOT EXISTS `wsit_translation_cache` (
   `hits` INT(11) NOT NULL DEFAULT 0,
   `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `uq_src` (`src`, `lang_from`, `lang_to`)
+  UNIQUE KEY `uq_src` (`src`,`lang_from`,`lang_to`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS `wsit_invoice_sends` (
@@ -146,7 +171,8 @@ CREATE TABLE IF NOT EXISTS `wsit_invoice_sends` (
   `error` VARCHAR(255) DEFAULT NULL,
   `sent_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
-  KEY `invoice_id` (`invoice_id`)
+  KEY `invoice_id` (`invoice_id`),
+  CONSTRAINT `fk_inv_sends_invoice` FOREIGN KEY (`invoice_id`) REFERENCES `wsit_invoices` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ------------------------------------------------------------
@@ -158,7 +184,7 @@ DROP PROCEDURE IF EXISTS `rms_add_key`;
 -- ============================================================
 -- ONLY for the OLD non-prefixed database (users, flats, ...):
 -- rename the tables first, then run the top part again.
--- Uncomment and run this block once, then re-run this whole file.
+-- Uncomment and run this block once, then re-run this file.
 -- ============================================================
 -- RENAME TABLE users TO wsit_users, buildings TO wsit_buildings,
 --   flats TO wsit_flats, tenants TO wsit_tenants, leases TO wsit_leases,

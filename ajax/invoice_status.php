@@ -13,7 +13,8 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 $id = (int)post('id', 0);
-if (!$id) {
+$paymentId = (int)post('payment_id', 0);
+if (!$id && !$paymentId) {
     jsonResponse(['success' => false, 'message' => t('error_occurred')]);
 }
 
@@ -23,6 +24,23 @@ if (!in_array($status, ['paid', 'partial', 'unpaid', 'auto'], true)) {
 }
 
 $invoiceModel = new Invoice();
+$paymentModel = new Payment();
+
+// A receipt can exist for a month with no invoice - rent collected before the
+// lease started, which generateForMonth() deliberately skips. The status is
+// stored on the invoice, so back-fill one from the payment before editing it.
+if (!$id && $paymentId) {
+    $payment = $paymentModel->find($paymentId);
+    if (!$payment || !tenantAccessible((int)$payment['tenant_id'])) {
+        jsonResponse(['success' => false, 'message' => t('access_denied')], 403);
+    }
+    $created = $invoiceModel->ensureForPayment($payment);
+    if (!$created) {
+        jsonResponse(['success' => false, 'message' => t('error_occurred')]);
+    }
+    $id = (int)$created['id'];
+}
+
 $inv = $invoiceModel->find($id);
 if (!$inv) {
     jsonResponse(['success' => false, 'message' => t('error_occurred')]);
@@ -41,7 +59,6 @@ $invoiceModel->update($id, [
 ]);
 
 if ($status === 'paid' && $inv['lease_id']) {
-    $paymentModel = new Payment();
     $paymentModel->markFullyPaid(
         (int)$inv['lease_id'],
         (int)$inv['month'],

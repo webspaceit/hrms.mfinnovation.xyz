@@ -24,6 +24,8 @@ $portalCurrent = basename($_SERVER['PHP_SELF']);
     <!-- Custom CSS -->
     <link href="<?php echo url('assets/css/style.css'); ?>" rel="stylesheet">
     <link rel="icon" type="image/svg+xml" href="<?php echo url('assets/images/favicon.svg'); ?>">
+    <!-- Core app JS loaded early with defer so toggleDropdown etc. are always defined -->
+    <script src="<?php echo url('assets/js/app.js'); ?>" defer></script>
 </head>
 <body class="bg-[#f4f7f5]">
 <div class="flex" id="wrapper">

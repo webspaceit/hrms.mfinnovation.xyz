@@ -101,12 +101,16 @@ $currentLang = Lang::current();
             vertical-align: baseline;
         }
         .label-cell {
-            white-space: nowrap;
+            white-space: normal;
             font-size: 17px;
         }
-        .details tr > td:first-child {
-            width: 196px;
-            min-width: 196px;
+        /* The details tables are laid out from their <colgroup> so both label
+           columns stay the same width at ANY container width. A fixed px on the
+           first cell only matched the on-screen width; on A4 the first label
+           stayed 196px while the second collapsed to 16%, which is what made
+           the print layout differ from the screen. */
+        .details table.fourcol {
+            table-layout: fixed;
         }
         .value-cell {
             text-align: left;
@@ -224,6 +228,15 @@ $currentLang = Lang::current();
             .value-cell-sm {
                 min-width: 60px;
             }
+            /* Column widths come from the <colgroup> (table-layout: fixed), so
+               only the type scale needs to shrink on a phone. */
+            .details table.fourcol .label-cell {
+                white-space: normal;
+                font-size: 13px;
+            }
+            .details table.fourcol .value-cell {
+                font-size: 14px;
+            }
             .total-row .value-cell {
                 font-size: 16px !important;
             }
@@ -245,10 +258,11 @@ $currentLang = Lang::current();
             white-space: nowrap;
             pointer-events: none;
             z-index: 5;
-            letter-spacing: 4px;
+            letter-spacing: <?php echo $currentLang === 'bn' ? '0' : '4px'; ?>;
             opacity: 1;
             color: <?php echo $watermarkColor; ?>;
-            text-transform: uppercase;
+            font-family: <?php echo $fontFamily; ?>;
+            <?php if ($currentLang !== 'bn'): ?>text-transform: uppercase;<?php endif; ?>
             user-select: none;
         }
         .payment-status-bar {
@@ -340,78 +354,78 @@ $currentLang = Lang::current();
             </div>
 
             <div class="details">
-                <table>
+                <table class="fourcol">
                     <colgroup>
-                        <col style="width:24%;">
-                        <col style="width:76%;">
+                        <col style="width:16%;">
+                        <col style="width:40%;">
+                        <col style="width:15%;">
+                        <col style="width:20%;">
                     </colgroup>
                     <?php if ($currentLang === 'bn'): ?>
                     <tr>
                         <td class="label-cell"><?php echo $propertyLabelBn; ?> নাম :</td>
                         <td class="value-cell"><?php echo e(localizeText($inv['building_name'])); ?></td>
-                    </tr>
-                    <tr>
-                        <td class="label-cell"><?php echo $propertyType === 'shop' ? 'দোকান নং' : 'ফ্ল্যাট নং'; ?> :</td>
+                        <td class="label-cell" style="padding-left:16px;"><?php echo $propertyType === 'shop' ? 'দোকান নং' : 'ফ্ল্যাট নং'; ?> :</td>
                         <td class="value-cell"><?php echo e(bnFlatCode($inv['flat_no'])); ?></td>
                     </tr>
                     <tr>
                         <td class="label-cell">ঠিকানা :</td>
-                        <td class="value-cell"><?php echo e(localizeText($inv['building_address'])); ?></td>
+                        <td class="value-cell" colspan="3"><?php echo e(localizeText($inv['building_address'])); ?></td>
                     </tr>
                     <tr>
-                        <td class="label-cell">ভাড়াটিয়ার নাম :</td>
-                        <td class="value-cell"><?php echo e(localizeName($inv['tenant_name'])); ?></td>
+                        <td class="label-cell">মালিকের নাম :</td>
+                        <td class="value-cell" colspan="3"><?php echo e(localizeName($landownerName !== '' ? $landownerName : '—')); ?></td>
                     </tr>
                     <?php if ($inv['tenant_phone']): ?>
                     <tr>
-                        <td class="label-cell">ফোন :</td>
+                        <td class="label-cell">ভাড়াটিয়ার নাম :</td>
+                        <td class="value-cell"><?php echo e(localizeName($inv['tenant_name'])); ?></td>
+                        <td class="label-cell" style="padding-left:16px;">ফোন :</td>
                         <td class="value-cell"><?php echo e(bnNumeral(enDigits($inv['tenant_phone']))); ?></td>
                     </tr>
-                    <?php endif; ?>
-                    <?php if ($inv['tenant_email']): ?>
+                    <?php else: ?>
                     <tr>
-                        <td class="label-cell">ইমেইল :</td>
-                        <td class="value-cell"><?php echo e($inv['tenant_email']); ?></td>
+                        <td class="label-cell">ভাড়াটিয়ার নাম :</td>
+                        <td class="value-cell" colspan="3"><?php echo e(localizeName($inv['tenant_name'])); ?></td>
                     </tr>
                     <?php endif; ?>
                     <?php else: ?>
                     <tr>
                         <td class="label-cell">Property / <?php echo e($propertyLabelEn); ?> Name :</td>
                         <td class="value-cell"><?php echo e(localizeText($inv['building_name'])); ?></td>
-                    </tr>
-                    <tr>
-                        <td class="label-cell"><?php echo e($propertyLabel); ?> :</td>
+                        <td class="label-cell" style="padding-left:16px;"><?php echo e($propertyLabel); ?> :</td>
                         <td class="value-cell"><?php echo e(bnFlatCode($inv['flat_no'])); ?></td>
                     </tr>
                     <tr>
                         <td class="label-cell">Address :</td>
-                        <td class="value-cell"><?php echo e(localizeText($inv['building_address'])); ?></td>
+                        <td class="value-cell" colspan="3"><?php echo e(localizeText($inv['building_address'])); ?></td>
                     </tr>
                     <tr>
-                        <td class="label-cell">Tenant Name :</td>
-                        <td class="value-cell"><?php echo e(localizeName($inv['tenant_name'])); ?></td>
+                        <td class="label-cell">Landlord Name :</td>
+                        <td class="value-cell" colspan="3"><?php echo e(localizeName($landownerName !== '' ? $landownerName : '—')); ?></td>
                     </tr>
                     <?php if ($inv['tenant_phone']): ?>
                     <tr>
-                        <td class="label-cell">Phone :</td>
+                        <td class="label-cell">Tenant Name :</td>
+                        <td class="value-cell"><?php echo e(localizeName($inv['tenant_name'])); ?></td>
+                        <td class="label-cell" style="padding-left:16px;">Phone :</td>
                         <td class="value-cell"><?php echo e(bnNumeral(enDigits($inv['tenant_phone']))); ?></td>
                     </tr>
-                    <?php endif; ?>
-                    <?php if ($inv['tenant_email']): ?>
+                    <?php else: ?>
                     <tr>
-                        <td class="label-cell">Email :</td>
-                        <td class="value-cell"><?php echo e($inv['tenant_email']); ?></td>
+                        <td class="label-cell">Tenant Name :</td>
+                        <td class="value-cell" colspan="3"><?php echo e(localizeName($inv['tenant_name'])); ?></td>
                     </tr>
                     <?php endif; ?>
                     <?php endif; ?>
                 </table>
 
-                <table style="margin-top:12px; width:100%;">
+                <table class="fourcol" style="margin-top:12px; width:100%;">
                     <colgroup>
-                        <col style="width:24%;">
-                        <col style="width:22%;">
+                        <col style="width:16%;">
+                        <col style="width:40%;">
+                        <col style="width:15%;">
                         <col style="width:20%;">
-                        <col style="width:34%;">
                     </colgroup>
                     <?php if ($currentLang === 'bn'): ?>
                     <tr>
@@ -455,7 +469,7 @@ $currentLang = Lang::current();
                     <?php endif; ?>
                     <tr>
                         <td class="label-cell"><?php echo t('due_date'); ?> :</td>
-                        <td class="value-cell"><?php echo e(bnNumeral($dueDate)); ?></td>
+                        <td class="value-cell"><?php echo e(dateLong($dueDateIso, 'bn')); ?></td>
                         <td class="label-cell" style="padding-left:16px;"><?php echo t('total_due'); ?> :</td>
                         <td class="value-cell"><?php echo $cur . ' ' . bnNumeral(number_format($totalDue, 2)); ?></td>
                     </tr>
@@ -501,7 +515,7 @@ $currentLang = Lang::current();
                     <?php endif; ?>
                     <tr>
                         <td class="label-cell"><?php echo t('due_date'); ?> :</td>
-                        <td class="value-cell"><?php echo e($dueDate); ?></td>
+                        <td class="value-cell"><?php echo e(dateLong($dueDateIso, 'en')); ?></td>
                         <td class="label-cell" style="padding-left:16px;"><?php echo t('total_due'); ?> :</td>
                         <td class="value-cell"><?php echo $cur . ' ' . number_format($totalDue, 2); ?></td>
                     </tr>

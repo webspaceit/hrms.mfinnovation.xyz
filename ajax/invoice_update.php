@@ -42,6 +42,18 @@ $arrears = (float)bnToEnDigits(post('arrears', 0));
 $arrearsMonths = max(0, (int)bnToEnDigits(post('arrears_months', 0)));
 $note = mb_substr(trim(post('note')), 0, 255);
 
+// Optional per-invoice due date. Store as Y-m-d; empty clears it and the
+// invoice view falls back to the last day of the invoice month.
+$dueDateInput = trim((string)post('due_date', ''));
+$dueDate = null;
+if ($dueDateInput !== '') {
+    $dueTs = strtotime(bnToEnDigits($dueDateInput));
+    if ($dueTs === false) {
+        jsonResponse(['success' => false, 'message' => t('invalid_date')]);
+    }
+    $dueDate = date('Y-m-d', $dueTs);
+}
+
 // Utility fee is a screen-only reference line (shown on the invoice view,
 // never billed) — the invoice total is rent + service bills + arrears.
 $totalDue = $rent + $parking + $gas + $water + $waste + $arrears;
@@ -57,7 +69,15 @@ $invoiceModel->update($id, [
     'arrears_months' => $arrearsMonths,
     'total_due' => $totalDue,
     'note' => $note !== '' ? $note : null,
+    'due_date' => $dueDate,
     'is_manual' => 1,
 ]);
+
+// Changing the total changes what is owed, so the stored status has to be
+// re-derived from the payments. Without this, raising a bill that was already
+// settled leaves it flagged "Paid" while paid_amount sits below total_due - the
+// dashboard then understates what is outstanding. A manual status override is
+// left untouched, since it is meant to win over the computed value.
+(new Payment())->reconcileInvoice((int)$inv['lease_id'], (int)$inv['month'], (int)$inv['year']);
 
 jsonResponse(['success' => true, 'message' => t('saved_success')]);

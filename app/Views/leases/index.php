@@ -76,7 +76,7 @@ require dirname(__DIR__) . '/partials/header.php';
 </div>
 
 <!-- Lease Modal -->
-<div class="modal" id="leaseModal">
+<div class="modal" id="leaseModal" data-close-on-backdrop="false" data-close-on-escape="false">
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content">
             <div class="modal-header border-0 bg-primary text-white">
@@ -143,7 +143,7 @@ require dirname(__DIR__) . '/partials/header.php';
 </div>
 
 <!-- Confirm Delete Modal -->
-<div class="modal" id="confirmModal">
+<div class="modal" id="confirmModal" data-close-on-backdrop="false" data-close-on-escape="false">
     <div class="modal-dialog modal-dialog-centered modal-sm">
         <div class="modal-content">
             <div class="modal-header border-0 bg-danger text-white">

@@ -35,6 +35,18 @@ ini_set('error_log', __DIR__ . '/../logs/error.log');
 // Default language
 define('DEFAULT_LANG', 'bn');
 
+// Font choices offered for a payment's note block on the receipt, as
+// [css font-family => label shown in the dropdown]. The value is written
+// into a style attribute, so the list is fixed and validated on save
+// (ajax/payment_save.php, ajax/payment_update.php).
+define('NOTE_FONT_CHOICES', [
+    "'Noto Serif Bengali', serif" => 'Noto Serif Bengali',
+    'serif'          => 'Serif',
+    'sans-serif'     => 'Sans-serif',
+    'monospace'      => 'Monospace',
+    'cursive'        => 'Cursive',
+]);
+
 // Upload settings
 define('MAX_UPLOAD_SIZE', 20971520); // 20 MB
 define('MAX_IMAGE_DIM', 1600);       // compress images taller/wider than this

@@ -11,8 +11,8 @@ class Payment extends BaseModel {
     public function allWithDetails() {
         $scope = tenantScope('t');
         return $this->db->fetchAll("
-            SELECT p.*, t.name AS tenant_name, f.flat_no, f.unit_type, b.name AS building_name, u.full_name AS collector,
-                   iv.total_due, iv.paid_amount AS inv_paid, iv.payment_status, iv.payment_status_override,
+            SELECT p.*, t.name AS tenant_name, f.flat_no, f.unit_type, f.building_id, b.name AS building_name, u.full_name AS collector,
+                   iv.id AS invoice_id, iv.total_due, iv.paid_amount AS inv_paid, iv.payment_status, iv.payment_status_override,
                    COALESCE(NULLIF(iv.payment_status_override, ''), iv.payment_status) AS inv_status_effective
             FROM payments p
             LEFT JOIN tenants t ON t.id = p.tenant_id
@@ -21,7 +21,7 @@ class Payment extends BaseModel {
             LEFT JOIN users u ON u.id = p.received_by
             LEFT JOIN invoices iv ON iv.lease_id = p.lease_id AND iv.month = p.month AND iv.year = p.year
             " . ($scope !== '' ? "WHERE 1=1" . $scope : "") . "
-            ORDER BY p.payment_date DESC, p.id DESC
+            ORDER BY b.name ASC, f.unit_type ASC, f.flat_no ASC, p.payment_date DESC, p.id DESC
         ");
     }
 
@@ -29,12 +29,14 @@ class Payment extends BaseModel {
         return $this->db->fetch("
             SELECT p.*, t.name AS tenant_name, t.phone AS tenant_phone, t.address AS tenant_address, t.email AS tenant_email,
                    f.flat_no, f.unit_type, f.shop_name, b.name AS building_name, b.address AS building_address, b.holding_no AS building_holding_no,
-                   u.full_name AS collector, u.username AS collector_user
+                   u.full_name AS collector, u.username AS collector_user,
+                   u2.full_name AS landowner_name
             FROM payments p
             LEFT JOIN tenants t ON t.id = p.tenant_id
             LEFT JOIN flats f ON f.id = p.flat_id
             LEFT JOIN buildings b ON b.id = f.building_id
             LEFT JOIN users u ON u.id = p.received_by
+            LEFT JOIN users u2 ON u2.id = t.created_by
             WHERE p.id = :id" . tenantScope('t'),
             ['id' => $id]
         );
@@ -95,6 +97,43 @@ class Payment extends BaseModel {
             $sql .= $scope !== '' ? " AND " . implode(' AND ', $conditions) : " WHERE " . implode(' AND ', $conditions);
         }
         return (float)$this->db->fetchColumn($sql, $params);
+    }
+
+    /**
+     * Total collected filtered by unit type (flat or shop).
+     * Joins payments -> leases -> flats to get the unit_type.
+     */
+    public function totalCollectedByUnitType($unitType, $year = null, $month = null) {
+        if (!in_array($unitType, ['flat', 'shop'], true)) {
+            return 0.0;
+        }
+        $scope = tenantScope('t');
+        $base = $scope !== ''
+            ? "SELECT COALESCE(SUM(p.total_amount), 0)
+               FROM payments p
+               JOIN tenants t ON t.id = p.tenant_id
+               JOIN leases l ON l.id = p.lease_id
+               JOIN flats f ON f.id = l.flat_id
+               WHERE f.unit_type = :ut AND 1=1" . $scope
+            : "SELECT COALESCE(SUM(p.total_amount), 0)
+               FROM payments p
+               JOIN leases l ON l.id = p.lease_id
+               JOIN flats f ON f.id = l.flat_id
+               WHERE f.unit_type = :ut";
+        $params = ['ut' => $unitType];
+        $conditions = [];
+        if ($year) {
+            $conditions[] = "p.year = :year";
+            $params['year'] = $year;
+        }
+        if ($month) {
+            $conditions[] = "p.month = :month";
+            $params['month'] = $month;
+        }
+        if ($conditions) {
+            $base .= " AND " . implode(' AND ', $conditions);
+        }
+        return (float)$this->db->fetchColumn($base, $params);
     }
 
     public function monthlySummary($year) {
@@ -336,12 +375,52 @@ class Payment extends BaseModel {
             ['l' => $leaseId, 'm' => $month, 'y' => $year]
         );
         if (!$inv) {
-            return null;
+            // No invoice for this month. Normally generateForMonth() creates
+            // one, but it skips months before a lease starts, so a receipt
+            // recorded for such a month has no invoice to carry the status.
+            // Build one from the payment already on record so marking it paid
+            // actually works instead of silently doing nothing.
+            $seed = $this->db->fetch(
+                "SELECT * FROM payments WHERE lease_id = :l AND month = :m AND year = :y
+                 ORDER BY total_amount DESC, id DESC LIMIT 1",
+                ['l' => $leaseId, 'm' => $month, 'y' => $year]
+            );
+            if (!$seed) {
+                return null;
+            }
+            $seed['amount'] = $this->sumForInvoice($leaseId, $month, $year);
+            $inv = (new Invoice())->ensureForPayment($seed);
+            if (!$inv) {
+                return null;
+            }
         }
 
         $paid = $this->sumForInvoice($leaseId, $month, $year);
         $remaining = max(0, round((float)$inv['total_due'] - $paid, 2));
         if ($remaining <= 0.009) {
+            // Already fully paid, so there is no new payment row to carry the
+            // date. Without this the entered date would only ever land on
+            // invoices.paid_at, and the receipt - which reads
+            // payments.payment_date - would keep printing the old date.
+            // Re-stamp the latest payment for this invoice instead.
+            // (MySQL rejects an UPDATE that selects from its own target table,
+            // hence the derived table around the subquery.)
+            $this->db->execute(
+                "UPDATE payments SET payment_date = :pd WHERE id = (
+                     SELECT id FROM (
+                         SELECT p.id FROM payments p
+                         WHERE p.lease_id = :l AND p.month = :m AND p.year = :y
+                         ORDER BY p.payment_date DESC, p.id DESC
+                         LIMIT 1
+                     ) AS latest_payment
+                 )",
+                [
+                    ':pd' => $date,
+                    ':l'  => (int)$leaseId,
+                    ':m'  => (int)$month,
+                    ':y'  => (int)$year,
+                ]
+            );
             $this->reconcileInvoice($leaseId, $month, $year);
             $this->db->execute(
                 "UPDATE invoices SET paid_at = :pt WHERE id = :id",

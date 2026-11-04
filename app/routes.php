@@ -35,6 +35,9 @@ $router->controller('reports', App\Controllers\ReportsController::class);
 // ---- Admin: user accounts & access levels ----
 $router->controller('users', App\Controllers\UsersController::class);
 
+// ---- Admin: site-wide settings ----
+$router->controller('settings', App\Controllers\SettingsController::class);
+
 // ---- Tenant portal (converted) ----
 $router->controller('tenant-login', App\Controllers\TenantLoginController::class);
 $router->controller('tenant-logout', App\Controllers\TenantLogoutController::class);

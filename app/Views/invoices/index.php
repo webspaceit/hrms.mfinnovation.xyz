@@ -1,5 +1,5 @@
 <?php
-// Invoices view - data: invoices, paidCount, totalDue, invoiceDataJson,
+// Invoices view - data: invoices, paidCount, showPaid, totalDue, invoiceDataJson,
 // sendsIcons (closure), year, month
 $pageTitle = t('invoices');
 require dirname(__DIR__) . '/partials/header.php';
@@ -11,6 +11,9 @@ require dirname(__DIR__) . '/partials/header.php';
         <button class="btn btn-primary" id="generateInvoicesBtn" onclick="generateInvoices()">
             <i class="bi bi-magic mr-1"></i> <?php echo t('generate_invoices'); ?>
         </button>
+        <button class="btn btn-outline-primary" id="backfillInvoicesBtn" onclick="openBackfillModal()">
+            <i class="bi bi-calendar-range mr-1"></i> <?php echo t('generate_previous_months'); ?>
+        </button>
         <button class="btn btn-danger" id="bulkDeleteBtn" onclick="bulkDeleteInvoices()" style="display: none;">
             <i class="bi bi-trash mr-1"></i> <?php echo t('delete_selected'); ?>
         </button>
@@ -20,19 +23,20 @@ require dirname(__DIR__) . '/partials/header.php';
 <!-- Filter -->
 <div class="filter-bar mb-3 fade-in flex flex-wrap items-center gap-2">
     <span class="filter-label"><i class="bi bi-funnel mr-1"></i> <?php echo t('filter'); ?></span>
-    <select class="form-select form-select-sm" style="max-width: 170px;" onchange="location='<?php echo url('invoices'); ?>?month='+this.value+'&year=<?php echo $year; ?>'">
+    <?php $showPaidQ = $showPaid ? '&show_paid=1' : ''; ?>
+    <select class="form-select form-select-sm" style="max-width: 170px;" onchange="location='<?php echo url('invoices'); ?>?month='+this.value+'&year=<?php echo $year; ?><?php echo $showPaidQ; ?>'">
         <?php for ($m = 1; $m <= 12; $m++): ?>
             <option value="<?php echo $m; ?>" <?php echo $month == $m ? 'selected' : ''; ?>><?php echo monthName($m); ?></option>
         <?php endfor; ?>
     </select>
-    <select class="form-select form-select-sm" style="max-width: 130px;" onchange="location='<?php echo url('invoices'); ?>?month=<?php echo $month; ?>&year='+this.value">
+    <select class="form-select form-select-sm" style="max-width: 130px;" onchange="location='<?php echo url('invoices'); ?>?month=<?php echo $month; ?>&year='+this.value+'<?php echo $showPaidQ; ?>'">
         <?php for ($y = date('Y') - 2; $y <= date('Y') + 1; $y++): ?>
             <option value="<?php echo $y; ?>" <?php echo $year == $y ? 'selected' : ''; ?>><?php echo bnNumeral($y); ?></option>
         <?php endfor; ?>
     </select>
     <div class="ml-auto flex items-center gap-2">
         <span class="text-muted"><?php echo t('total_due'); ?>: <strong><?php echo money($totalDue); ?></strong></span>
-        <?php if ($invoices): ?>
+        <?php if ($invoices && !$showPaid): ?>
             <button class="btn btn-sm btn-info text-white" onclick="sendAll('email', this)"><i class="bi bi-envelope mr-1"></i><?php echo t('send_all_email'); ?></button>
             <button class="btn btn-sm btn-warning" onclick="sendAll('sms', this)"><i class="bi bi-chat-dots mr-1"></i><?php echo t('send_all_sms'); ?></button>
             <button id="bulkDeleteBtn2" class="btn btn-sm btn-danger" style="display: none;" onclick="bulkDeleteInvoices()"><i class="bi bi-trash mr-1"></i> Delete Selected (0)</button>
@@ -41,8 +45,16 @@ require dirname(__DIR__) . '/partials/header.php';
 </div>
 
 <?php if ($paidCount > 0): ?>
-    <div class="alert alert-success py-2 small mb-2 fade-in">
-        <i class="bi bi-check2-circle mr-1"></i> <?php echo str_replace('{n}', bnNumeral($paidCount), t('paid_moved_rent')); ?>
+    <div class="alert alert-success py-2 small mb-2 fade-in d-flex flex-wrap align-items-center gap-2">
+        <span>
+            <i class="bi bi-check2-circle mr-1"></i>
+            <?php echo str_replace('{n}', bnNumeral($paidCount), t($showPaid ? 'paid_shown_count' : 'paid_moved_rent')); ?>
+        </span>
+        <a class="btn btn-sm btn-outline-success ms-auto"
+           href="<?php echo url('invoices') . '?month=' . (int)$month . '&year=' . (int)$year . ($showPaid ? '' : '&show_paid=1'); ?>">
+            <i class="bi bi-eye<?php echo $showPaid ? '-slash' : ''; ?> me-1"></i>
+            <?php echo t($showPaid ? 'hide_paid_invoices' : 'show_paid_invoices'); ?>
+        </a>
     </div>
 <?php endif; ?>
 
@@ -52,7 +64,7 @@ require dirname(__DIR__) . '/partials/header.php';
             <table class="table table-hover">
                 <thead>
                     <tr>
-                        <th><input type="checkbox" id="selectAll" class="form-check-input" onchange="toggleBulkSelect()"></th>
+                        <th><?php if (!$showPaid): ?><input type="checkbox" id="selectAll" class="form-check-input" onchange="toggleBulkSelect()"><?php endif; ?></th>
                         <th>#</th>
                         <th><?php echo t('tenant_name'); ?></th>
                         <th><?php echo t('building_name'); ?></th>
@@ -70,6 +82,14 @@ require dirname(__DIR__) . '/partials/header.php';
                         <tr><td colspan="11" class="text-muted py-4">
                             <?php if ($paidCount > 0): ?>
                                 <?php echo t('all_paid_invoices'); ?>
+                                <?php if (!$showPaid): ?>
+                                    <div class="small mt-2">
+                                        <?php echo t('paid_hidden_hint'); ?>
+                                        <a href="<?php echo url('invoices') . '?month=' . (int)$month . '&year=' . (int)$year . '&show_paid=1'; ?>">
+                                            <?php echo t('show_paid_invoices'); ?>
+                                        </a>
+                                    </div>
+                                <?php endif; ?>
                             <?php else: ?>
                                 <?php echo t('no_invoices'); ?>
                                 <button class="btn btn-sm btn-outline-primary ml-2" onclick="generateInvoices()"><?php echo t('generate_invoices'); ?></button>
@@ -78,7 +98,7 @@ require dirname(__DIR__) . '/partials/header.php';
                     <?php else: ?>
                         <?php foreach ($invoices as $i => $inv): ?>
                             <tr data-invoice-id="<?php echo (int)$inv['id']; ?>">
-                                <td><input type="checkbox" class="invoice-checkbox form-check-input" value="<?php echo (int)$inv['id']; ?>"></td>
+                                <td><?php if (!$showPaid): ?><input type="checkbox" class="invoice-checkbox form-check-input" value="<?php echo (int)$inv['id']; ?>"><?php endif; ?></td>
                                 <td><?php echo bnNumeral($i + 1); ?></td>
                                 <td class="fw-semibold"><?php echo e(localizeName($inv['tenant_name'])); ?>
                                     <div class="small text-muted"><?php echo e($inv['tenant_email'] ?: ''); ?></div>
@@ -149,7 +169,7 @@ require dirname(__DIR__) . '/partials/header.php';
 </div>
 
 <!-- Bulk Delete Confirmation Modal -->
-<div class="modal" id="bulkDeleteModal">
+<div class="modal" id="bulkDeleteModal" data-close-on-backdrop="false" data-close-on-escape="false">
     <div class="modal-dialog modal-dialog-centered modal-sm">
         <div class="modal-content">
             <div class="modal-header border-0 bg-danger text-white">
@@ -169,7 +189,7 @@ require dirname(__DIR__) . '/partials/header.php';
 </div>
 
 <!-- Mark Paid Modal (sets the actual paid date) -->
-<div class="modal" id="markPaidModal">
+<div class="modal" id="markPaidModal" data-close-on-backdrop="false" data-close-on-escape="false">
     <div class="modal-dialog modal-dialog-centered modal-sm">
         <div class="modal-content">
             <div class="modal-header border-0 bg-success text-white">
@@ -191,7 +211,7 @@ require dirname(__DIR__) . '/partials/header.php';
 </div>
 
 <!-- Edit Invoice Modal -->
-<div class="modal" id="editInvoiceModal">
+<div class="modal" id="editInvoiceModal" data-close-on-backdrop="false" data-close-on-escape="false">
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content">
             <div class="modal-header border-0 bg-primary text-white">
@@ -233,6 +253,10 @@ require dirname(__DIR__) . '/partials/header.php';
                         <label class="form-label fw-semibold"><i class="bi bi-calendar mr-1"></i><?php echo t('arrears_months'); ?></label>
                         <input type="number" class="form-control form-control-lg" id="editArrearsMonths" value="0" min="0">
                     </div>
+                    <div>
+                        <label class="form-label fw-semibold"><i class="bi bi-calendar-event mr-1"></i><?php echo t('due_date'); ?></label>
+                        <input type="text" class="form-control form-control-lg" id="editDueDate" placeholder="DD-MM-YYYY" inputmode="numeric" data-date>
+                    </div>
                     <div class="md:col-span-2">
                         <label class="form-label fw-semibold"><i class="bi bi-card-text mr-1"></i><?php echo t('note'); ?></label>
                         <textarea class="form-control" id="editNote" rows="2" placeholder="Optional note..."></textarea>
@@ -247,6 +271,67 @@ require dirname(__DIR__) . '/partials/header.php';
     </div>
 </div>
 
+<!-- Backfill Previous Months Modal -->
+<div class="modal" id="backfillModal" data-close-on-backdrop="false" data-close-on-escape="false">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-0 bg-primary text-white">
+                <h5 class="modal-title"><i class="bi bi-calendar-range mr-1"></i> <?php echo t('previous_months'); ?></h5>
+                <button type="button" class="btn-close btn-close-white" onclick="closeModal('backfillModal')" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                        <label class="form-label"><?php echo t('from_month'); ?></label>
+                        <select class="form-select" id="bf_from_month">
+                            <?php for ($m = 1; $m <= 12; $m++): ?>
+                                <option value="<?php echo $m; ?>"><?php echo monthName($m); ?></option>
+                            <?php endfor; ?>
+                        </select>
+                        <select class="form-select mt-2" id="bf_from_year">
+                            <?php for ($y = date('Y') - 3; $y <= date('Y') + 1; $y++): ?>
+                                <option value="<?php echo $y; ?>" <?php echo $y === (int)date('Y') - 1 ? 'selected' : ''; ?>><?php echo bnNumeral($y); ?></option>
+                            <?php endfor; ?>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="form-label"><?php echo t('to_month'); ?></label>
+                        <select class="form-select" id="bf_to_month">
+                            <?php for ($m = 1; $m <= 12; $m++): ?>
+                                <option value="<?php echo $m; ?>"><?php echo monthName($m); ?></option>
+                            <?php endfor; ?>
+                        </select>
+                        <select class="form-select mt-2" id="bf_to_year">
+                            <?php for ($y = date('Y') - 3; $y <= date('Y') + 1; $y++): ?>
+                                <option value="<?php echo $y; ?>" <?php echo $y === (int)date('Y') ? 'selected' : ''; ?>><?php echo bnNumeral($y); ?></option>
+                            <?php endfor; ?>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-text mt-3"><?php echo t('backfill_hint'); ?></div>
+                <?php if ($billableMonths): ?>
+                    <div class="alert alert-info py-2 small mt-2 mb-0 fade-in">
+                        <i class="bi bi-info-circle mr-1"></i>
+                        <?php echo t('billable_from'); ?>
+                        <strong><?php echo monthName($billableMonths[0][1]) . ' ' . bnNumeral($billableMonths[0][0]); ?></strong>
+                        &ndash;
+                        <strong><?php echo monthName($billableMonths[count($billableMonths) - 1][1]) . ' ' . bnNumeral($billableMonths[count($billableMonths) - 1][0]); ?></strong>
+                    </div>
+                <?php else: ?>
+                    <div class="alert alert-warning py-2 small mt-2 mb-0 fade-in">
+                        <i class="bi bi-exclamation-triangle mr-1"></i>
+                        <?php echo str_replace('{year}', bnNumeral($year), t('no_billable_month')); ?>
+                    </div>
+                <?php endif; ?>
+            </div>
+            <div class="modal-footer border-0 bg-light py-3">
+                <button type="button" class="btn btn-secondary px-4" onclick="closeModal('backfillModal')"><?php echo t('cancel'); ?></button>
+                <button type="button" class="btn btn-primary px-4" onclick="runBackfill()"><i class="bi bi-magic mr-1"></i> <?php echo t('generate'); ?></button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <?php
 $extraJs = '
 <script>
@@ -254,6 +339,10 @@ let invoiceData = ' . ($invoiceDataJson ?? '[]') . ';
 let selectedInvoices = [];
 let currentMonth = ' . (int)$month . ';
 let currentYear = ' . (int)$year . ';
+
+// Months that have at least one active lease, so the backfill dialog can
+// default to a range that actually bills somebody. Passede as [year, month].
+const BILLABLE_MONTHS = ' . json_encode($billableMonths) . ';
 
 function generateInvoices() {
     var btn = document.getElementById("generateInvoicesBtn");
@@ -279,6 +368,65 @@ function generateInvoices() {
     });
 }
 
+function openBackfillModal() {
+    // Default to the newest month that actually has an active lease, both ends.
+    // Defaulting to the current month (or the previous one) opened the dialog
+    // on a range that predates every lease in a fresh install, so the first
+    // click could only ever report "nothing to generate".
+    var y, m;
+    if (BILLABLE_MONTHS && BILLABLE_MONTHS.length) {
+        var last = BILLABLE_MONTHS[BILLABLE_MONTHS.length - 1];
+        y = String(last[0]);
+        m = String(last[1]);
+    } else {
+        var now = new Date();
+        y = String(now.getFullYear());
+        m = String(now.getMonth() + 1);
+    }
+    document.getElementById("bf_to_month").value = m;
+    document.getElementById("bf_to_year").value = y;
+    document.getElementById("bf_from_month").value = m;
+    document.getElementById("bf_from_year").value = y;
+    openModal("backfillModal");
+}
+
+function runBackfill() {
+    const btn = document.getElementById("backfillInvoicesBtn");
+    const data = new URLSearchParams();
+    data.append("from_month", document.getElementById("bf_from_month").value);
+    data.append("from_year", document.getElementById("bf_from_year").value);
+    data.append("to_month", document.getElementById("bf_to_month").value);
+    data.append("to_year", document.getElementById("bf_to_year").value);
+    data.append("csrf_token", CSRF_TOKEN);
+
+    const original = btn ? btn.innerHTML : null;
+    if (btn) { btn.disabled = true; btn.innerHTML = `<i class="bi bi-hourglass-split"></i> Generating...`; }
+
+    fetch(BASE_URL + "ajax/invoice_backfill.php", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: data.toString()
+    })
+    .then(res => res.json())
+    .then(function (result) {
+        closeModal("backfillModal");
+        if (btn) { btn.disabled = false; btn.innerHTML = original; }
+        if (result.success) {
+            // "Nothing to generate" is a valid outcome, not a failure, so it
+            // gets an informational toast instead of a red error one.
+            showToast(result.message || "Invoices generated successfully", result.nothing ? "info" : "success");
+            setTimeout(function () { location.reload(); }, 1200);
+        } else {
+            showToast(result.message || "Failed to generate invoices", "danger");
+        }
+    })
+    .catch(function () {
+        closeModal("backfillModal");
+        showToast("Request failed", "danger");
+        if (btn) { btn.disabled = false; btn.innerHTML = original; }
+    });
+}
+
 function editInvoice(id) {
     var inv = invoiceData[id];
     if (!inv) return;
@@ -291,6 +439,7 @@ function editInvoice(id) {
     document.getElementById("editWaste").value = inv.waste_fee ?? 0;
     document.getElementById("editArrears").value = inv.arrears ?? 0;
     document.getElementById("editArrearsMonths").value = inv.arrears_months ?? 0;
+    document.getElementById("editDueDate").value = inv.due_date || "";
     document.getElementById("editNote").value = inv.note || "";
     openModal("editInvoiceModal");
 }
@@ -307,6 +456,7 @@ function saveInvoiceEdit() {
     data.append("waste_fee", document.getElementById("editWaste").value);
     data.append("arrears", document.getElementById("editArrears").value);
     data.append("arrears_months", document.getElementById("editArrearsMonths").value);
+    data.append("due_date", document.getElementById("editDueDate").value);
     data.append("note", document.getElementById("editNote").value);
     data.append("csrf_token", CSRF_TOKEN);
     fetch(BASE_URL + "ajax/invoice_update.php", {
@@ -426,23 +576,7 @@ document.addEventListener("modal:closed", function(e) {
 });
 
 function deleteInvoice(id) {
-    if (confirm("Delete this invoice?")) {
-        fetch(BASE_URL + "ajax/invoice_delete.php", {
-            method: "POST",
-            headers: { "Content-Type": "application/x-www-form-urlencoded" },
-            body: "id=" + id
-        })
-        .then(res => res.json())
-        .then(result => {
-            if (result.success) {
-                showToast(result.message, "success");
-                setTimeout(function() { location.reload(); }, 600);
-            } else {
-                showToast(result.message || "Failed", "danger");
-            }
-        })
-        .catch(function() { showToast("Request failed", "danger"); });
-    }
+    confirmDelete(BASE_URL + "ajax/invoice_delete.php?id=" + id, ' . json_encode(t('delete_confirm')) . ');
 }
 
 function sendAll(channel, btn) {

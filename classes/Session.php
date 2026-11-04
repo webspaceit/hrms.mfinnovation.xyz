@@ -10,6 +10,30 @@ class Session {
     public static function start() {
         if (session_status() === PHP_SESSION_NONE) {
             session_name(SESSION_NAME);
+
+            // Harden session cookie for shared hosting:
+            // - httponly: JS cannot read the cookie
+            // - samesite=Lax: CSRF protection
+            // - secure: HTTPS only (auto-detected; skipped on plain HTTP dev)
+            $isSecure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+                     || (isset($_SERVER['SERVER_PORT']) && (int)$_SERVER['SERVER_PORT'] === 443)
+                     || (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https');
+
+            // PHP 7.3+ supports the options array form of session_set_cookie_params
+            if (PHP_VERSION_ID >= 70300) {
+                session_set_cookie_params([
+                    'lifetime' => 0,
+                    'path'     => '/',
+                    'domain'   => '',
+                    'secure'   => $isSecure,
+                    'httponly' => true,
+                    'samesite' => 'Lax',
+                ]);
+            } else {
+                // PHP < 7.3 fallback
+                session_set_cookie_params(0, '/', '', $isSecure, true);
+            }
+
             session_start();
         }
     }

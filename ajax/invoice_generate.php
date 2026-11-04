@@ -19,15 +19,23 @@ if ($month < 1 || $month > 12 || $year < 2000 || $year > 2100) {
 }
 
 $invoiceModel = new Invoice();
-[$created, $updated] = $invoiceModel->generateForMonth($month, $year);
+[$created, $updated, $skipped] = $invoiceModel->generateForMonth($month, $year);
 
-$message = $created + $updated > 0
+$message = ($created + $updated) > 0
     ? t('generated_success') . ' (' . $created . ' ' . t('created') . ', ' . $updated . ' ' . t('updated') . ')'
     : t('no_invoices');
 
+// Say why nothing changed rather than leaving the user guessing: an invoice
+// that was manually edited keeps its values while a payment still depends on
+// them, so generation legitimately skips it.
+if ($skipped > 0) {
+    $message .= ' ' . str_replace('{n}', (string)$skipped, t('manual_skipped'));
+}
+
 jsonResponse([
-    'success' => $created + $updated > 0,
+    'success' => $created + $updated > 0 || $skipped === 0,
     'created' => $created,
     'updated' => $updated,
+    'skipped' => $skipped,
     'message' => $message
 ]);

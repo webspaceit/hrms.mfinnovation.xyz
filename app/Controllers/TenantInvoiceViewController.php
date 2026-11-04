@@ -49,8 +49,18 @@ class TenantInvoiceViewController extends Controller {
         $propertyLabel = $propertyType === 'shop' ? t('shop') : t('flat_no');
         $propertyLabelEn = $propertyType === 'shop' ? 'Shop' : 'Flat';
         $propertyLabelBn = $propertyType === 'shop' ? 'দোকান' : 'অ্যাপার্টমেন্ট';
+
+        // Landowner name: the landlord account that manages this tenant.
+        $landownerName = trim((string)($inv['landowner_name'] ?? ''));
+
         $issuedDate = date('d-m-Y');
-        $dueDate = date('d-m-Y', strtotime(sprintf('%04d-%02d-01', $inv['year'], $inv['month']) . ' +1 month -1 day'));
+        // Per-invoice due date when set; otherwise keep the historical default
+        // (last day of the invoice month) so older invoices still render.
+        $dueTs = !empty($inv['due_date'])
+            ? strtotime($inv['due_date'])
+            : strtotime(sprintf('%04d-%02d-01', $inv['year'], $inv['month']) . ' +1 month -1 day');
+        $dueDate = date('d-m-Y', $dueTs);
+        $dueDateIso = date('Y-m-d', $dueTs);
 
         // Invoice type label (mirrors the receipt badge)
         $typeLabel = $propertyType === 'shop'
@@ -114,8 +124,10 @@ class TenantInvoiceViewController extends Controller {
             'propertyLabel'     => $propertyLabel,
             'propertyLabelEn'   => $propertyLabelEn,
             'propertyLabelBn'   => $propertyLabelBn,
+            'landownerName'     => $landownerName,
             'issuedDate'        => $issuedDate,
             'dueDate'           => $dueDate,
+            'dueDateIso'        => $dueDateIso,
             'typeLabel'         => $typeLabel,
             'phoneDigits'       => $phoneDigits,
             'waUrl'             => $waUrl,

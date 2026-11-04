@@ -14,6 +14,44 @@ class Invoice extends BaseModel {
      *
      * @return array [created, updated]
      */
+    /**
+     * The service charges a lease was last billed, used when creating a new
+     * month's invoice so recurring bills (parking, gas, water, waste) are not
+     * silently dropped to zero.
+     *
+     * Leases have no charge columns, so a prior invoice is the only source.
+     * The newest invoice that actually carried a charge is used rather than
+     * strictly the previous month: months billed before charges were carried
+     * forward hold zeros, and following those would propagate the zeros and
+     * leave every later month unbilled. Charges are copied as a set so a month
+     * inherits one consistent set.
+     */
+    private function lastChargesForLease($leaseId, $month, $year) {
+        $zero = ['parking_amount' => 0.0, 'gas_amount' => 0.0, 'water_fee' => 0.0, 'waste_fee' => 0.0];
+
+        $prev = $this->db->fetch(
+            "SELECT parking_amount, gas_amount, water_fee, waste_fee
+             FROM invoices
+             WHERE lease_id = :l
+               AND (year < :y1 OR (year = :y2 AND month < :m1))
+               AND (parking_amount <> 0 OR gas_amount <> 0
+                    OR water_fee <> 0 OR waste_fee <> 0)
+             ORDER BY year DESC, month DESC
+             LIMIT 1",
+            ['l' => (int)$leaseId, 'y1' => (int)$year, 'y2' => (int)$year, 'm1' => (int)$month]
+        );
+        if (!$prev) {
+            return $zero;
+        }
+
+        return [
+            'parking_amount' => (float)$prev['parking_amount'],
+            'gas_amount' => (float)$prev['gas_amount'],
+            'water_fee' => (float)$prev['water_fee'],
+            'waste_fee' => (float)$prev['waste_fee'],
+        ];
+    }
+
     public function generateForMonth($month, $year) {
         $firstDay = sprintf('%04d-%02d-01', (int)$year, (int)$month);
         $lastDay = date('Y-m-t', strtotime($firstDay));
@@ -30,36 +68,63 @@ class Invoice extends BaseModel {
 
         $created = 0;
         $updated = 0;
+        $skipped = 0;
         foreach ($leases as $lease) {
-            [$arrears, $arrearsMonths] = $this->computeArrears($lease, (int)$month, (int)$year);
+            // Arrears disabled by default - user can manually add them later if needed
+            $arrears = 0.0;
+            $arrearsMonths = 0;
             $rent = (float)$lease['rent_amount'];
             // Utility fee is a screen-only reference (shown on the invoice view,
             // never billed). It is stored but excluded from the invoice total.
             $util = (float)$lease['utility_fee'];
+
+            // Service charges this lease was last billed. Only used when
+            // creating a month that has no invoice yet, so a recurring
+            // parking/gas/water/waste bill is not silently dropped to zero.
+            $prevCharges = $this->lastChargesForLease((int)$lease['id'], (int)$month, (int)$year);
+            $chargeSum = $prevCharges['parking_amount'] + $prevCharges['gas_amount']
+                + $prevCharges['water_fee'] + $prevCharges['waste_fee'];
             $total = $rent + $arrears;
 
             $existing = $this->db->fetch(
-                "SELECT id, status, is_manual FROM invoices WHERE lease_id = :l AND month = :m AND year = :y",
+                "SELECT id, status, is_manual, parking_amount, gas_amount, water_fee, waste_fee, total_due
+                 FROM invoices WHERE lease_id = :l AND month = :m AND year = :y",
                 ['l' => (int)$lease['id'], 'm' => (int)$month, 'y' => (int)$year]
             );
 
             if ($existing) {
                 // Manually edited invoices keep their values until reset.
+                // Exception: when nothing has been collected for this
+                // lease/month/year there is no payment depending on those
+                // figures, so regenerating is safe. This is what makes
+                // "deleted the receipt, then regenerate the invoice" work -
+                // otherwise the delete left a manual invoice that generation
+                // silently skipped forever.
                 if ((int)$existing['is_manual'] === 1) {
-                    continue;
+                    $collected = (new Payment())->sumForInvoice((int)$lease['id'], (int)$month, (int)$year);
+                    if ($collected > 0.009) {
+                        $skipped++;
+                        continue;
+                    }
                 }
                 $this->update($existing['id'], [
                     'tenant_id' => (int)$lease['tenant_id'],
                     'flat_id' => (int)$lease['flat_id'],
                     'rent_amount' => $rent,
                     'utility_fee' => $util,
-                    'parking_amount' => 0,
-                    'gas_amount' => 0,
-                    'water_fee' => 0,
-                    'waste_fee' => 0,
+                    // Keep the charges this month was already issued with.
+                    // Recalculating a month must not import another month's
+                    // charges, which would rebill a tenant who has already
+                    // paid this one.
+                    'parking_amount' => (float)$existing['parking_amount'],
+                    'gas_amount' => (float)$existing['gas_amount'],
+                    'water_fee' => (float)$existing['water_fee'],
+                    'waste_fee' => (float)$existing['waste_fee'],
                     'arrears' => $arrears,
                     'arrears_months' => $arrearsMonths,
-                    'total_due' => $total,
+                    'total_due' => $rent + (float)$existing['parking_amount']
+                        + (float)$existing['gas_amount'] + (float)$existing['water_fee']
+                        + (float)$existing['waste_fee'] + $arrears,
                     'status' => $existing['status'] === 'sent' ? 'sent' : 'draft'
                 ]);
                 $updated++;
@@ -72,13 +137,19 @@ class Invoice extends BaseModel {
                     'year' => (int)$year,
                     'rent_amount' => $rent,
                     'utility_fee' => $util,
-                    'parking_amount' => 0,
-                    'gas_amount' => 0,
-                    'water_fee' => 0,
-                    'waste_fee' => 0,
+                    // Carry the service charges the lease was last billed
+                    // forward. Writing zeros here made a regenerated invoice
+                    // bill rent only, so a receipt that had been deleted could
+                    // not be re-entered at its original total - the Add Payment
+                    // cap rejected it. Only the newest invoice per lease is
+                    // consulted, so each month reflects the current charges.
+                    'parking_amount' => $prevCharges['parking_amount'],
+                    'gas_amount' => $prevCharges['gas_amount'],
+                    'water_fee' => $prevCharges['water_fee'],
+                    'waste_fee' => $prevCharges['waste_fee'],
                     'arrears' => $arrears,
                     'arrears_months' => $arrearsMonths,
-                    'total_due' => $total,
+                    'total_due' => $rent + $chargeSum + $arrears,
                     'status' => 'draft'
                 ]);
                 $created++;
@@ -86,7 +157,7 @@ class Invoice extends BaseModel {
         }
         // Keep stored payment status/paid amounts consistent after regeneration.
         (new Payment())->reconcileAllForMonth($month, $year);
-        return [$created, $updated];
+        return [$created, $updated, $skipped];
     }
 
     /**
@@ -129,7 +200,7 @@ class Invoice extends BaseModel {
     public function listForMonth($month, $year) {
         return $this->db->fetchAll("
             SELECT i.*, t.name AS tenant_name, t.phone AS tenant_phone, t.email AS tenant_email,
-                   f.flat_no, f.unit_type, b.name AS building_name, b.address AS building_address,
+                   f.flat_no, f.unit_type, f.building_id, b.name AS building_name, b.address AS building_address,
                    (SELECT GROUP_CONCAT(s.channel, ':', s.status ORDER BY s.sent_at SEPARATOR '|')
                     FROM invoice_sends s WHERE s.invoice_id = i.id) AS sends_log
             FROM invoices i
@@ -148,13 +219,23 @@ class Invoice extends BaseModel {
      */
     public function listUnpaid($month = null, $year = null) {
         $sql = "SELECT i.*, t.name AS tenant_name, t.phone AS tenant_phone,
-                       f.flat_no, f.unit_type, b.name AS building_name,
+                       f.flat_no, f.unit_type, f.building_id, b.name AS building_name,
                        COALESCE(NULLIF(i.payment_status_override, ''), i.payment_status, 'unpaid') AS status_effective
                 FROM invoices i
                 JOIN tenants t ON t.id = i.tenant_id
                 JOIN flats f ON f.id = i.flat_id
                 JOIN buildings b ON b.id = f.building_id
-                WHERE COALESCE(NULLIF(i.payment_status_override, ''), i.payment_status, 'unpaid') <> 'paid'";
+                WHERE (
+                    -- Financial truth: paid_amount < total_due means still owes money
+                    i.paid_amount < i.total_due
+                    -- OR override explicitly set to unpaid/partial (even if paid_amount looks full)
+                    OR NULLIF(i.payment_status_override, '') IN ('unpaid', 'partial')
+                )
+                -- Exclude only when override is 'paid' AND financial reality agrees (paid_amount >= total_due)
+                AND NOT (
+                    NULLIF(i.payment_status_override, '') = 'paid'
+                    AND i.paid_amount >= i.total_due
+                )";
         $params = [];
         if ($month) {
             $sql .= " AND i.month = :m";
@@ -165,7 +246,7 @@ class Invoice extends BaseModel {
             $params['y'] = (int)$year;
         }
         $sql .= tenantScope('t');
-        $sql .= " ORDER BY b.name, f.flat_no, i.year DESC, i.month DESC";
+        $sql .= " ORDER BY b.name ASC, f.unit_type ASC, f.flat_no ASC, i.year DESC, i.month DESC";
         return $this->db->fetchAll($sql, $params);
     }
 
@@ -200,9 +281,11 @@ class Invoice extends BaseModel {
     public function getWithDetails($id) {
         return $this->db->fetch("
             SELECT i.*, t.name AS tenant_name, t.phone AS tenant_phone, t.email AS tenant_email,
-                   f.flat_no, f.unit_type, f.shop_name, b.name AS building_name, b.address AS building_address, b.holding_no AS building_holding_no
+                   f.flat_no, f.unit_type, f.shop_name, b.name AS building_name, b.address AS building_address, b.holding_no AS building_holding_no,
+                   u.full_name AS landowner_name
             FROM invoices i
             JOIN tenants t ON t.id = i.tenant_id
+            LEFT JOIN users u ON u.id = t.created_by
             JOIN flats f ON f.id = i.flat_id
             JOIN buildings b ON b.id = f.building_id
             WHERE i.id = :id" . tenantScope('t'),
@@ -218,7 +301,7 @@ class Invoice extends BaseModel {
      * Monthly dues of one tenant, newest first (optionally one year).
      */
     public function listForTenant($tenantId, $year = null) {
-        $sql = "SELECT i.*, f.flat_no, f.unit_type, b.name AS building_name,
+        $sql = "SELECT i.*, f.flat_no, f.unit_type, f.building_id, b.name AS building_name,
                        COALESCE(NULLIF(i.payment_status_override, ''), i.payment_status) AS status_effective
                 FROM invoices i
                 LEFT JOIN flats f ON f.id = i.flat_id
@@ -264,6 +347,59 @@ class Invoice extends BaseModel {
      * The tenant's invoice for one month, with the effective status.
      * Returns null when no invoice exists for that month.
      */
+    /**
+     * Create the missing invoice for a payment's lease/month/year.
+     *
+     * A receipt can be recorded for a month that has no invoice, e.g. rent
+     * collected for a month before the lease start date (generateForMonth
+     * skips those). The payment status is stored on the invoice, so without
+     * one the status could not be set at all - the row just showed a dash
+     * with no control to change it. This back-fills the invoice from the
+     * payment's own amounts so the receipt and its invoice agree, and marks
+     * it manual so a later regeneration never silently overwrites the values.
+     *
+     * @return array the created invoice row
+     */
+    public function ensureForPayment($payment) {
+        $leaseId = (int)$payment['lease_id'];
+        $month = (int)$payment['month'];
+        $year = (int)$payment['year'];
+
+        $existing = $this->db->fetch(
+            "SELECT * FROM invoices WHERE lease_id = :l AND month = :m AND year = :y LIMIT 1",
+            ['l' => $leaseId, 'm' => $month, 'y' => $year]
+        );
+        if ($existing) {
+            return $existing;
+        }
+
+        $total = (float)$payment['total_amount'];
+        $this->create([
+            'lease_id'     => $leaseId,
+            'tenant_id'    => (int)$payment['tenant_id'],
+            'flat_id'      => (int)$payment['flat_id'],
+            'month'        => $month,
+            'year'         => $year,
+            'rent_amount'  => (float)$payment['amount'],
+            'utility_fee'  => 0,
+            'parking_amount' => (float)($payment['parking_amount'] ?? 0),
+            'gas_amount'   => (float)($payment['gas_amount'] ?? 0),
+            'water_fee'    => (float)($payment['water_fee'] ?? 0),
+            'waste_fee'    => (float)($payment['waste_fee'] ?? 0),
+            'arrears'      => (float)($payment['arrears'] ?? 0),
+            'arrears_months' => 0,
+            'total_due'    => $total,
+            'status'       => 'draft',
+            'is_manual'    => 1,
+            'note'         => 'Auto-created from payment #' . (int)$payment['id'],
+        ]);
+
+        return $this->db->fetch(
+            "SELECT * FROM invoices WHERE lease_id = :l AND month = :m AND year = :y LIMIT 1",
+            ['l' => $leaseId, 'm' => $month, 'y' => $year]
+        );
+    }
+
     public function forMonthForTenant($tenantId, $month, $year) {
         return $this->db->fetch(
             "SELECT i.*, COALESCE(NULLIF(i.payment_status_override, ''), i.payment_status) AS status_effective

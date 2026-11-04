@@ -41,4 +41,4 @@ $remaining = $paymentModel->markFullyPaid(
     $payment_date
 );
 
-jsonResponse(['success' => true, 'message' => t('marked_fully_paid')]);
+jsonResponse(['success' => true, 'message' => t('saved_success')]);

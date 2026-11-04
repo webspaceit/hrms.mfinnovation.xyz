@@ -61,11 +61,20 @@ class InvoiceViewController extends Controller {
         // Shop business name (only meaningful for shop units).
         $shopName = $propertyType === 'shop' ? trim((string)($inv['shop_name'] ?? '')) : '';
 
+        // Landowner name: the landlord account that manages this tenant.
+        $landownerName = trim((string)($inv['landowner_name'] ?? ''));
+
         // Building holding number (city corporation / pourashava) — shown on shop invoices.
         $holdingNo = $propertyType === 'shop' ? trim((string)($inv['building_holding_no'] ?? '')) : '';
 
         $issuedDate = date('d-m-Y');
-        $dueDate = date('d-m-Y', strtotime(sprintf('%04d-%02d-01', $inv['year'], $inv['month']) . ' +1 month -1 day'));
+        // Per-invoice due date when set; otherwise keep the historical default
+        // (last day of the invoice month) so older invoices still render.
+        $dueTs = !empty($inv['due_date'])
+            ? strtotime($inv['due_date'])
+            : strtotime(sprintf('%04d-%02d-01', $inv['year'], $inv['month']) . ' +1 month -1 day');
+        $dueDate = date('d-m-Y', $dueTs);
+        $dueDateIso = date('Y-m-d', $dueTs);
 
         // Invoice type label (mirrors the receipt badge)
         $typeLabel = $propertyType === 'shop'
@@ -130,9 +139,11 @@ class InvoiceViewController extends Controller {
             'propertyLabelEn'   => $propertyLabelEn,
             'propertyLabelBn'   => $propertyLabelBn,
             'shopName'          => $shopName,
+            'landownerName'     => $landownerName,
             'holdingNo'         => $holdingNo,
             'issuedDate'        => $issuedDate,
             'dueDate'           => $dueDate,
+            'dueDateIso'        => $dueDateIso,
             'typeLabel'         => $typeLabel,
             'waUrl'             => $waUrl,
             'fontFamily'        => $fontFamily,

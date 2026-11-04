@@ -1,13 +1,36 @@
 -- ============================================================
--- Rent Management System - Database Schema
--- English + Bengali Bilingual
+-- Rent Management System — full schema for a FRESH install
+-- ------------------------------------------------------------
+-- Import this in phpMyAdmin (select the database first), or let
+-- install.php do it for you.
+--
+-- Table prefix: every table below is created with the `wsit_`
+-- prefix. That prefix is applied automatically at runtime from
+-- DB_PREFIX in config/config.php, so the PHP code always writes
+-- plain names (users, invoices, ...). If you change DB_PREFIX you
+-- must rename the physical tables here to match (or set
+-- DB_PREFIX = '' and strip the prefixes from this file).
+--
+-- NOTE ON CREATE DATABASE: it is intentionally commented out.
+-- On shared hosting the database name is prefixed with your
+-- account name (e.g. myuser_rmsdb), so an active
+-- `CREATE DATABASE oop_rms` would fail or, worse, silently
+-- `USE` the wrong database. Create the database in your host's
+-- MySQL panel, then import this file into it.
+--
+-- No demo data is inserted. Only the settings rows the app
+-- reads on first boot are seeded; create your admin user with
+-- install.php (step 2) right after importing.
 -- ============================================================
 
-CREATE DATABASE IF NOT EXISTS `oop_rms` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE `oop_rms`;
+-- CREATE DATABASE IF NOT EXISTS `oop_rms` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+-- USE `oop_rms`;
+
+SET NAMES utf8mb4;
+SET FOREIGN_KEY_CHECKS = 0;
 
 -- ------------------------------------------------------------
--- Users (admins / owners)
+-- Users (admins / landlords)
 -- ------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `wsit_users` (
   `id` INT(11) NOT NULL AUTO_INCREMENT,
@@ -15,7 +38,7 @@ CREATE TABLE IF NOT EXISTS `wsit_users` (
   `email` VARCHAR(150) NOT NULL,
   `password` VARCHAR(255) NOT NULL,
   `full_name` VARCHAR(150) NOT NULL,
-  `role` ENUM('admin','landlord') NOT NULL DEFAULT 'landlord',
+  `role` ENUM('admin','landlord') NOT NULL DEFAULT 'admin',
   `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   UNIQUE KEY `username` (`username`)
@@ -118,13 +141,19 @@ CREATE TABLE IF NOT EXISTS `wsit_payments` (
   `gas_amount` DECIMAL(10,2) NOT NULL DEFAULT 0,
   `water_fee` DECIMAL(10,2) NOT NULL DEFAULT 0,
   `waste_fee` DECIMAL(10,2) NOT NULL DEFAULT 0,
+  `arrears` DECIMAL(12,2) NOT NULL DEFAULT 0,
   `total_amount` DECIMAL(10,2) NOT NULL DEFAULT 0,
   `payment_method` ENUM('cash','bank','bKash','nogod','rocket','other') NOT NULL DEFAULT 'cash',
+  `receipt_type` ENUM('rent','parking','gas','water','waste') NOT NULL DEFAULT 'rent',
   `received_by` INT(11) DEFAULT NULL,
   `payment_date` DATE NOT NULL,
   `note` VARCHAR(255) DEFAULT NULL,
+  `note_color` VARCHAR(20) DEFAULT NULL COMMENT 'Hex colour for the note block on the receipt',
+  `note_font` VARCHAR(60) DEFAULT NULL COMMENT 'Key from NOTE_FONT_CHOICES in config',
   `signature` VARCHAR(255) DEFAULT NULL,
-  `service_charge_file` VARCHAR(255) DEFAULT NULL COMMENT 'Previous month service charge receipt scan - flat rent payments only',
+  `service_charge_file` VARCHAR(255) DEFAULT NULL COMMENT 'Service charge receipt scan - flat rent payments only',
+  `service_charge_month` VARCHAR(20) DEFAULT NULL COMMENT 'Comma separated month list the scan covers, e.g. "7,8"',
+  `service_charge_year` SMALLINT UNSIGNED DEFAULT NULL,
   `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
   KEY `lease_id` (`lease_id`),
@@ -133,6 +162,59 @@ CREATE TABLE IF NOT EXISTS `wsit_payments` (
   CONSTRAINT `fk_payments_lease` FOREIGN KEY (`lease_id`) REFERENCES `wsit_leases` (`id`) ON DELETE CASCADE,
   CONSTRAINT `fk_payments_tenant` FOREIGN KEY (`tenant_id`) REFERENCES `wsit_tenants` (`id`) ON DELETE CASCADE,
   CONSTRAINT `fk_payments_flat` FOREIGN KEY (`flat_id`) REFERENCES `wsit_flats` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ------------------------------------------------------------
+-- Invoices (monthly due / demand notes)
+-- ------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `wsit_invoices` (
+  `id` INT(11) NOT NULL AUTO_INCREMENT,
+  `lease_id` INT(11) NOT NULL,
+  `tenant_id` INT(11) NOT NULL,
+  `flat_id` INT(11) NOT NULL,
+  `month` TINYINT(4) NOT NULL,
+  `year` INT(11) NOT NULL,
+  `rent_amount` DECIMAL(10,2) NOT NULL DEFAULT 0,
+  `utility_fee` DECIMAL(10,2) NOT NULL DEFAULT 0,
+  `parking_amount` DECIMAL(10,2) NOT NULL DEFAULT 0,
+  `gas_amount` DECIMAL(10,2) NOT NULL DEFAULT 0,
+  `water_fee` DECIMAL(10,2) NOT NULL DEFAULT 0,
+  `waste_fee` DECIMAL(10,2) NOT NULL DEFAULT 0,
+  `arrears` DECIMAL(10,2) NOT NULL DEFAULT 0,
+  `arrears_months` INT(11) NOT NULL DEFAULT 0,
+  `total_due` DECIMAL(10,2) NOT NULL DEFAULT 0,
+  `paid_amount` DECIMAL(10,2) NOT NULL DEFAULT 0,
+  `payment_status` ENUM('unpaid','partial','paid') NOT NULL DEFAULT 'unpaid',
+  `payment_status_override` ENUM('paid','partial','unpaid') DEFAULT NULL,
+  `paid_at` DATETIME DEFAULT NULL,
+  `due_date` DATE DEFAULT NULL,
+  `note` VARCHAR(255) DEFAULT NULL,
+  `is_manual` TINYINT(1) NOT NULL DEFAULT 0,
+  `status` ENUM('draft','sent') NOT NULL DEFAULT 'draft',
+  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_lease_month` (`lease_id`,`month`,`year`),
+  KEY `tenant_id` (`tenant_id`),
+  KEY `flat_id` (`flat_id`),
+  CONSTRAINT `fk_invoices_lease` FOREIGN KEY (`lease_id`) REFERENCES `wsit_leases` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_invoices_tenant` FOREIGN KEY (`tenant_id`) REFERENCES `wsit_tenants` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_invoices_flat` FOREIGN KEY (`flat_id`) REFERENCES `wsit_flats` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ------------------------------------------------------------
+-- Invoice delivery log (email / whatsapp / sms)
+-- ------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `wsit_invoice_sends` (
+  `id` INT(11) NOT NULL AUTO_INCREMENT,
+  `invoice_id` INT(11) NOT NULL,
+  `channel` ENUM('email','whatsapp','sms') NOT NULL,
+  `recipient` VARCHAR(191) DEFAULT NULL,
+  `status` ENUM('sent','failed') NOT NULL DEFAULT 'sent',
+  `error` VARCHAR(255) DEFAULT NULL,
+  `sent_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `invoice_id` (`invoice_id`),
+  CONSTRAINT `fk_inv_sends_invoice` FOREIGN KEY (`invoice_id`) REFERENCES `wsit_invoices` (`id`) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ------------------------------------------------------------
@@ -171,168 +253,18 @@ CREATE TABLE IF NOT EXISTS `wsit_translation_cache` (
   `hits` INT(11) NOT NULL DEFAULT 0,
   `updated_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `uq_src` (`src`, `lang_from`, `lang_to`)
+  UNIQUE KEY `uq_src` (`src`,`lang_from`,`lang_to`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ------------------------------------------------------------
--- Invoices (monthly due / demand notes)
+-- Default settings
+-- (An admin user is NOT seeded on purpose - create it with
+--  install.php so you choose your own password.)
 -- ------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS `wsit_invoices` (
-  `id` INT(11) NOT NULL AUTO_INCREMENT,
-  `lease_id` INT(11) NOT NULL,
-  `tenant_id` INT(11) NOT NULL,
-  `flat_id` INT(11) NOT NULL,
-  `month` TINYINT(4) NOT NULL,
-  `year` INT(11) NOT NULL,
-  `rent_amount` DECIMAL(10,2) NOT NULL DEFAULT 0,
-  `utility_fee` DECIMAL(10,2) NOT NULL DEFAULT 0,
-  `parking_amount` DECIMAL(10,2) NOT NULL DEFAULT 0,
-  `gas_amount` DECIMAL(10,2) NOT NULL DEFAULT 0,
-  `water_fee` DECIMAL(10,2) NOT NULL DEFAULT 0,
-  `waste_fee` DECIMAL(10,2) NOT NULL DEFAULT 0,
-  `arrears` DECIMAL(10,2) NOT NULL DEFAULT 0,
-  `arrears_months` INT(11) NOT NULL DEFAULT 0,
-  `total_due` DECIMAL(10,2) NOT NULL DEFAULT 0,
-  `paid_amount` DECIMAL(10,2) NOT NULL DEFAULT 0,
-  `payment_status` ENUM('unpaid','partial','paid') NOT NULL DEFAULT 'unpaid',
-  `payment_status_override` ENUM('paid','partial','unpaid') NULL DEFAULT NULL,
-  `paid_at` DATETIME DEFAULT NULL,
-  `note` VARCHAR(255) DEFAULT NULL,
-  `is_manual` TINYINT(1) NOT NULL DEFAULT 0,
-  `status` ENUM('draft','sent') NOT NULL DEFAULT 'draft',
-  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uq_lease_month` (`lease_id`,`month`,`year`),
-  KEY `tenant_id` (`tenant_id`),
-  KEY `flat_id` (`flat_id`),
-  CONSTRAINT `fk_invoices_lease` FOREIGN KEY (`lease_id`) REFERENCES `wsit_leases` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `fk_invoices_tenant` FOREIGN KEY (`tenant_id`) REFERENCES `wsit_tenants` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `fk_invoices_flat` FOREIGN KEY (`flat_id`) REFERENCES `wsit_flats` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- ------------------------------------------------------------
--- Invoice delivery log (email / whatsapp / sms)
--- ------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS `wsit_invoice_sends` (
-  `id` INT(11) NOT NULL AUTO_INCREMENT,
-  `invoice_id` INT(11) NOT NULL,
-  `channel` ENUM('email','whatsapp','sms') NOT NULL,
-  `recipient` VARCHAR(191) DEFAULT NULL,
-  `status` ENUM('sent','failed') NOT NULL DEFAULT 'sent',
-  `error` VARCHAR(255) DEFAULT NULL,
-  `sent_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`),
-  KEY `invoice_id` (`invoice_id`),
-  CONSTRAINT `fk_inv_sends_invoice` FOREIGN KEY (`invoice_id`) REFERENCES `wsit_invoices` (`id`) ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- ------------------------------------------------------------
--- Default Data
--- ------------------------------------------------------------
--- Default admin: username: admin / password: admin123
-INSERT INTO `wsit_users` (`username`, `email`, `password`, `full_name`, `role`) VALUES
-('admin', 'admin@rms.com', '$2y$12$dJt.B1F9r5LwGbXhleipQevSwPtJtCBkOnDliavhtwhh5Wimw0aN6', 'System Admin', 'admin')
-ON DUPLICATE KEY UPDATE `username` = `username`;
-
 INSERT INTO `wsit_settings` (`setting_key`, `setting_value`) VALUES
 ('site_name', 'Rent Management System'),
-('language', 'en'),
+('language', 'bn'),
 ('currency', '৳')
 ON DUPLICATE KEY UPDATE `setting_key` = `setting_key`;
 
--- ------------------------------------------------------------
--- Sample Buildings
--- ------------------------------------------------------------
-INSERT INTO `wsit_buildings` (`name`, `address`, `total_flats`, `description`) VALUES
-('Green View Tower', '45/A, Road 5, Banani, Dhaka 1213', 12, '12-storey residential building'),
-('Rahman Plaza', '78, Gulshan Avenue, Gulshan-1, Dhaka 1212', 8, '8-storey mixed-use building'),
-('Friendship Center', '12, Mirpur Road, Mirpur-10, Dhaka 1216', 16, '16-storey commercial complex')
-ON DUPLICATE KEY UPDATE `name` = `name`;
-
--- ------------------------------------------------------------
--- Sample Flats (Green View Tower - Building ID 1)
--- ------------------------------------------------------------
-INSERT INTO `wsit_flats` (`building_id`, `unit_type`, `flat_no`, `floor`, `bedrooms`, `bathrooms`, `size_sqft`, `rent_amount`, `advance_amount`, `status`) VALUES
-(1, 'flat', '1A', '1st', 2, 1, 950, 15000.00, 30000.00, 'occupied'),
-(1, 'flat', '1B', '1st', 1, 1, 650, 10000.00, 20000.00, 'available'),
-(1, 'flat', '2A', '2nd', 3, 2, 1250, 22000.00, 44000.00, 'occupied'),
-(1, 'flat', '2B', '2nd', 2, 1, 900, 14000.00, 28000.00, 'available'),
-(1, 'shop', 'GF-1', 'Ground', 1, 1, 350, 18000.00, 36000.00, 'occupied'),
-(1, 'shop', 'GF-2', 'Ground', 1, 1, 400, 20000.00, 40000.00, 'occupied'),
-(1, 'flat', '3A', '3rd', 3, 2, 1300, 24000.00, 48000.00, 'available'),
-(1, 'flat', '3B', '3rd', 2, 1, 950, 15000.00, 30000.00, 'occupied'),
-(1, 'flat', '4A', '4th', 2, 2, 1100, 18000.00, 36000.00, 'occupied'),
-(1, 'flat', '4B', '4th', 1, 1, 700, 11000.00, 22000.00, 'available'),
-(1, 'flat', '5A', '5th', 3, 2, 1350, 25000.00, 50000.00, 'occupied'),
-(1, 'flat', '5B', '5th', 2, 1, 950, 15000.00, 30000.00, 'maintenance')
-ON DUPLICATE KEY UPDATE `flat_no` = `flat_no`;
-
--- ------------------------------------------------------------
--- Sample Flats (Rahman Plaza - Building ID 2)
--- ------------------------------------------------------------
-INSERT INTO `wsit_flats` (`building_id`, `unit_type`, `flat_no`, `floor`, `bedrooms`, `bathrooms`, `size_sqft`, `rent_amount`, `advance_amount`, `status`) VALUES
-(2, 'flat', '1A', '1st', 2, 1, 900, 14000.00, 28000.00, 'occupied'),
-(2, 'flat', '1B', '1st', 1, 1, 600, 9000.00, 18000.00, 'available'),
-(2, 'flat', '2A', '2nd', 3, 2, 1200, 20000.00, 40000.00, 'occupied'),
-(2, 'flat', '2B', '2nd', 2, 1, 850, 13000.00, 26000.00, 'occupied'),
-(2, 'shop', 'GF-1', 'Ground', 1, 1, 500, 25000.00, 50000.00, 'occupied'),
-(2, 'shop', 'GF-2', 'Ground', 1, 1, 450, 22000.00, 44000.00, 'available'),
-(2, 'flat', '3A', '3rd', 3, 2, 1250, 21000.00, 42000.00, 'available'),
-(2, 'flat', '3B', '3rd', 2, 1, 900, 14000.00, 28000.00, 'occupied')
-ON DUPLICATE KEY UPDATE `flat_no` = `flat_no`;
-
--- ------------------------------------------------------------
--- Sample Flats (Friendship Center - Building ID 3)
--- ------------------------------------------------------------
-INSERT INTO `wsit_flats` (`building_id`, `unit_type`, `flat_no`, `floor`, `bedrooms`, `bathrooms`, `size_sqft`, `rent_amount`, `advance_amount`, `status`) VALUES
-(3, 'shop', 'GF-1', 'Ground', 1, 1, 600, 35000.00, 70000.00, 'occupied'),
-(3, 'shop', 'GF-2', 'Ground', 1, 1, 550, 30000.00, 60000.00, 'occupied'),
-(3, 'shop', '1F-1', '1st', 1, 1, 480, 28000.00, 56000.00, 'available'),
-(3, 'shop', '1F-2', '1st', 1, 1, 500, 30000.00, 60000.00, 'occupied'),
-(3, 'shop', '2F-1', '2nd', 1, 1, 520, 29000.00, 58000.00, 'occupied'),
-(3, 'shop', '2F-2', '2nd', 1, 1, 500, 28000.00, 56000.00, 'available'),
-(3, 'flat', '3A', '3rd', 2, 2, 1000, 16000.00, 32000.00, 'occupied'),
-(3, 'flat', '3B', '3rd', 2, 1, 850, 13000.00, 26000.00, 'available'),
-(3, 'flat', '4A', '4th', 3, 2, 1300, 22000.00, 44000.00, 'occupied'),
-(3, 'flat', '4B', '4th', 2, 2, 1100, 18000.00, 36000.00, 'available'),
-(3, 'flat', '5A', '5th', 2, 1, 900, 14000.00, 28000.00, 'occupied'),
-(3, 'flat', '5B', '5th', 3, 2, 1400, 24000.00, 48000.00, 'available'),
-(3, 'flat', '6A', '6th', 2, 2, 1150, 19000.00, 38000.00, 'occupied'),
-(3, 'flat', '6B', '6th', 1, 1, 700, 11000.00, 22000.00, 'maintenance'),
-(3, 'flat', '7A', '7th', 3, 2, 1350, 23000.00, 46000.00, 'available'),
-(3, 'flat', '7B', '7th', 2, 1, 950, 15000.00, 30000.00, 'occupied')
-ON DUPLICATE KEY UPDATE `flat_no` = `flat_no`;
-
--- ------------------------------------------------------------
--- Sample Tenants
--- ------------------------------------------------------------
-INSERT INTO `wsit_tenants` (`name`, `email`, `phone`, `nid`, `address`) VALUES
-('Kamal Hossain', 'kamal@gmail.com', '01712345678', '19901234567890123', 'Banani, Dhaka'),
-('Fatima Rahman', 'fatima@gmail.com', '01812345679', '19851234567890124', 'Gulshan, Dhaka'),
-('Abdul Karim', 'abdul@gmail.com', '01912345680', '19881234567890125', 'Mirpur, Dhaka'),
-('Nusrat Jahan', 'nusrat@gmail.com', '01612345681', '19921234567890126', 'Dhanmondi, Dhaka'),
-('Rahim Uddin', 'rahim@gmail.com', '01512345682', '19871234567890127', 'Uttara, Dhaka')
-ON DUPLICATE KEY UPDATE `name` = `name`;
-
--- ------------------------------------------------------------
--- Sample Leases
--- ------------------------------------------------------------
-INSERT INTO `wsit_leases` (`tenant_id`, `flat_id`, `start_date`, `end_date`, `rent_amount`, `advance_amount`, `utility_fee`, `status`) VALUES
-(1, 1, '2026-01-01', NULL, 15000.00, 30000.00, 500.00, 'active'),
-(2, 3, '2026-01-01', NULL, 22000.00, 44000.00, 800.00, 'active'),
-(3, 5, '2026-02-01', NULL, 18000.00, 36000.00, 600.00, 'active'),
-(4, 13, '2026-03-01', NULL, 20000.00, 40000.00, 700.00, 'active'),
-(5, 14, '2026-02-01', NULL, 13000.00, 26000.00, 400.00, 'active')
-ON DUPLICATE KEY UPDATE `tenant_id` = `tenant_id`;
-
--- ------------------------------------------------------------
--- Sample Payments
--- ------------------------------------------------------------
-INSERT INTO `wsit_payments` (`lease_id`, `tenant_id`, `flat_id`, `month`, `year`, `amount`, `utility_fee`, `total_amount`, `payment_method`, `received_by`, `payment_date`, `note`) VALUES
-(1, 1, 1, 1, 2026, 15000.00, 500.00, 15500.00, 'cash', 1, '2026-01-05', 'January rent'),
-(1, 1, 1, 2, 2026, 15000.00, 500.00, 15500.00, 'bKash', 1, '2026-02-03', 'February rent'),
-(2, 2, 3, 1, 2026, 22000.00, 800.00, 22800.00, 'cash', 1, '2026-01-06', 'January rent'),
-(2, 2, 3, 2, 2026, 22000.00, 800.00, 22800.00, 'bank', 1, '2026-02-05', 'February rent'),
-(3, 3, 5, 2, 2026, 18000.00, 600.00, 18600.00, 'cash', 1, '2026-02-07', 'February rent'),
-(4, 4, 13, 3, 2026, 20000.00, 700.00, 20700.00, 'bKash', 1, '2026-03-04', 'March rent')
-ON DUPLICATE KEY UPDATE `month` = `month`;
+SET FOREIGN_KEY_CHECKS = 1;

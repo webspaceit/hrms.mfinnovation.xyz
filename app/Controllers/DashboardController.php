@@ -43,8 +43,14 @@ class DashboardController extends Controller {
         // Expected monthly income from active leases
         $expectedMonthly = $leaseModel->expectedMonthlyIncome();
 
-        // Monthly chart data (last 12 months)
-        $chartData = [];
+        // Monthly chart data (last 12 months) - separate flat vs shop
+        $chartData = [
+            'labels'      => [],
+            'income'      => [],
+            'expense'     => [],
+            'flatIncome'  => [],
+            'shopIncome'  => [],
+        ];
         for ($i = 11; $i >= 0; $i--) {
             $ts = strtotime("-$i months");
             $y = date('Y', $ts);
@@ -52,6 +58,8 @@ class DashboardController extends Controller {
             $chartData['labels'][] = monthName($m);
             $chartData['income'][] = $paymentModel->totalCollected($y, $m);
             $chartData['expense'][] = $expenseModel->totalExpense($y, $m);
+            $chartData['flatIncome'][] = $paymentModel->totalCollectedByUnitType('flat', $y, $m);
+            $chartData['shopIncome'][] = $paymentModel->totalCollectedByUnitType('shop', $y, $m);
         }
 
         // Recent payments + available units. A landlord's units are all leased

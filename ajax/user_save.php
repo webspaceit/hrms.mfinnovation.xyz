@@ -14,15 +14,24 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 $id = (int)post('id', 0);
 $username = trim(post('username'));
+// Store the name exactly as typed — users are system accounts (admin/landlord),
+// not tenant records that need bilingual display. Storing as-is means Bengali
+// names stay Bengali and English names stay English without any API round-trip.
 $full_name = trim(post('full_name'));
 $email = trim(post('email'));
-$role = post('role', 'landlord');
 $password = (string)($_POST['password'] ?? '');
+
+// A disabled <select> is not posted by the browser, so "role" can be absent
+// when an admin edits their own account. Absent means "leave the role alone",
+// not "demote to landlord" - otherwise editing yourself always failed and no
+// other field (username, name, email) was saved either.
+$hasRole = array_key_exists('role', $_POST) && (string)post('role') !== '';
+$role = $hasRole ? post('role') : '';
 
 if (empty($username) || empty($full_name) || (string)$username === '') {
     jsonResponse(['success' => false, 'message' => t('error_occurred')]);
 }
-if ($role !== 'admin' && $role !== 'landlord') {
+if ($role !== '' && $role !== 'admin' && $role !== 'landlord') {
     $role = 'landlord';
 }
 if ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
@@ -37,7 +46,7 @@ if ($userModel->usernameTaken($username, $id)) {
 }
 
 // Changing your own role is blocked to avoid locking yourself out.
-if ($id > 0 && $id === (int)Auth::id()) {
+if ($id > 0 && $hasRole && $id === (int)Auth::id()) {
     $current = $userModel->find($id);
     if ($current && (string)($current['role'] ?? '') !== $role) {
         jsonResponse(['success' => false, 'message' => t('cannot_change_own_role')]);
@@ -48,7 +57,6 @@ $data = [
     'username'  => $username,
     'full_name' => $full_name,
     'email'     => $email, // '' is stored, not NULL (column is NOT NULL)
-    'role'      => $role,
 ];
 
 if ($id > 0) {
@@ -58,12 +66,14 @@ if ($id > 0) {
         }
         $data['password'] = password_hash($password, PASSWORD_DEFAULT);
     }
-    // Demotion of the last admin is blocked in the model.
-    $result = $userModel->updateRole($id, $role);
-    if (!$result['success']) {
-        jsonResponse(['success' => false, 'message' => $result['message']]);
+    // Demotion of the last admin is blocked in the model. Skip the role
+    // round-trip entirely when the field was not posted (own account).
+    if ($hasRole) {
+        $result = $userModel->updateRole($id, $role);
+        if (!$result['success']) {
+            jsonResponse(['success' => false, 'message' => $result['message']]);
+        }
     }
-    unset($data['role']);
     if ($data) {
         $userModel->update($id, $data);
     }
@@ -74,6 +84,10 @@ if ($id > 0) {
 if (mb_strlen($password) < 6) {
     jsonResponse(['success' => false, 'message' => t('password_min_length')]);
 }
+if (!$hasRole) {
+    $role = 'landlord';
+}
+$data['role'] = $role;
 $data['password'] = password_hash($password, PASSWORD_DEFAULT);
 $userModel->create($data);
 jsonResponse(['success' => true, 'message' => t('added_success')]);

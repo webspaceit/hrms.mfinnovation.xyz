@@ -36,13 +36,19 @@ class User extends BaseModel {
 
     /**
      * Is the username/email already used by another account?
+     *
+     * Checks username and email as two independent lookups. A single
+     * "username = :u OR email = :u" query with LIMIT 1 is wrong here: it can
+     * match some *other* row via the email branch even when the username is
+     * free, which blocks a legitimate username change.
      */
     public function usernameTaken($username, $exceptId = 0) {
-        $user = $this->db->fetch(
-            "SELECT id FROM users WHERE username = :u OR email = :e LIMIT 1",
-            ['u' => $username, 'e' => $username]
+        $exceptId = (int)$exceptId;
+        $found = $this->db->fetch(
+            "SELECT id FROM users WHERE (username = :u OR email = :e) AND id <> :id LIMIT 1",
+            ['u' => $username, 'e' => $username, 'id' => $exceptId]
         );
-        return $user && (int)$user['id'] !== (int)$exceptId;
+        return (bool)$found;
     }
 
     /**

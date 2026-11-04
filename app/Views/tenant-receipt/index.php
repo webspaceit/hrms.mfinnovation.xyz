@@ -106,7 +106,7 @@ $currentLang = Lang::current();
         }
         .label-cell {
             white-space: nowrap;
-            font-size: 17px;
+            font-size: <?php echo $currentLang === 'bn' ? '20px' : '17px'; ?>;
         }
         .details tr > td:first-child {
             width: 182px;
@@ -311,10 +311,11 @@ $currentLang = Lang::current();
             white-space: nowrap;
             pointer-events: none;
             z-index: 5;
-            letter-spacing: 4px;
+            letter-spacing: <?php echo $currentLang === 'bn' ? '0' : '4px'; ?>;
             opacity: 1;
             color: <?php echo $watermarkColor; ?>;
-            text-transform: uppercase;
+            font-family: <?php echo $fontFamily; ?>;
+            <?php if ($currentLang !== 'bn'): ?>text-transform: uppercase;<?php endif; ?>
             user-select: none;
         }
         .payment-status-bar {
@@ -389,9 +390,9 @@ $currentLang = Lang::current();
                 <table class="fourcol">
                     <colgroup>
                         <col style="width:16%;">
-                        <col style="width:34%;">
-                        <col style="width:16%;">
-                        <col style="width:34%;">
+                        <col style="width:40%;">
+                        <col style="width:15%;">
+                        <col style="width:20%;">
                     </colgroup>
                     <?php if ($currentLang === 'bn'): ?>
                     <tr>
@@ -411,13 +412,20 @@ $currentLang = Lang::current();
                         <td class="value-cell" colspan="3"><?php echo e(localizeText($receipt['building_address'])); ?></td>
                     </tr>
                     <tr>
-                        <td class="label-cell">ভাড়াটিয়ার নাম :</td>
-                        <td class="value-cell" colspan="3"><?php echo e(localizeName($receipt['tenant_name'])); ?></td>
+                        <td class="label-cell">মালিকের নাম :</td>
+                        <td class="value-cell" colspan="3"><?php echo e(localizeName($landownerName !== '' ? $landownerName : '—')); ?></td>
                     </tr>
                     <?php if ($receipt['tenant_phone']): ?>
                     <tr>
-                        <td class="label-cell">ফোন :</td>
-                        <td class="value-cell" colspan="3"><?php echo e(bnNumeral(enDigits($receipt['tenant_phone']))); ?></td>
+                        <td class="label-cell">ভাড়াটিয়ার নাম :</td>
+                        <td class="value-cell"><?php echo e(localizeName($receipt['tenant_name'])); ?></td>
+                        <td class="label-cell" style="padding-left:16px;">ফোন :</td>
+                        <td class="value-cell"><?php echo e(bnNumeral(enDigits($receipt['tenant_phone']))); ?></td>
+                    </tr>
+                    <?php else: ?>
+                    <tr>
+                        <td class="label-cell">ভাড়াটিয়ার নাম :</td>
+                        <td class="value-cell" colspan="3"><?php echo e(localizeName($receipt['tenant_name'])); ?></td>
                     </tr>
                     <?php endif; ?>
                     <?php else: ?>
@@ -438,13 +446,20 @@ $currentLang = Lang::current();
                         <td class="value-cell" colspan="3"><?php echo e(localizeText($receipt['building_address'])); ?></td>
                     </tr>
                     <tr>
-                        <td class="label-cell">Tenant Name :</td>
-                        <td class="value-cell" colspan="3"><?php echo e(localizeName($receipt['tenant_name'])); ?></td>
+                        <td class="label-cell">Landlord Name :</td>
+                        <td class="value-cell" colspan="3"><?php echo e(localizeName($landownerName !== '' ? $landownerName : '—')); ?></td>
                     </tr>
                     <?php if ($receipt['tenant_phone']): ?>
                     <tr>
-                        <td class="label-cell">Phone :</td>
-                        <td class="value-cell" colspan="3"><?php echo e(bnNumeral(enDigits($receipt['tenant_phone']))); ?></td>
+                        <td class="label-cell">Tenant Name :</td>
+                        <td class="value-cell"><?php echo e(localizeName($receipt['tenant_name'])); ?></td>
+                        <td class="label-cell" style="padding-left:16px;">Phone :</td>
+                        <td class="value-cell"><?php echo e(bnNumeral(enDigits($receipt['tenant_phone']))); ?></td>
+                    </tr>
+                    <?php else: ?>
+                    <tr>
+                        <td class="label-cell">Tenant Name :</td>
+                        <td class="value-cell" colspan="3"><?php echo e(localizeName($receipt['tenant_name'])); ?></td>
                     </tr>
                     <?php endif; ?>
                     <?php endif; ?>
@@ -453,9 +468,9 @@ $currentLang = Lang::current();
                 <table class="fourcol">
                     <colgroup>
                         <col style="width:16%;">
-                        <col style="width:34%;">
-                        <col style="width:16%;">
-                        <col style="width:34%;">
+                        <col style="width:40%;">
+                        <col style="width:15%;">
+                        <col style="width:20%;">
                     </colgroup>
                     <?php if ($currentLang === 'bn'): ?>
                     <tr>
@@ -469,13 +484,20 @@ $currentLang = Lang::current();
                         <td class="value-cell" colspan="3"><?php echo e(localizeText($receipt['building_address'])); ?></td>
                     </tr>
                     <tr>
-                        <td class="label-cell">ভাড়াটিয়ার নাম :</td>
-                        <td class="value-cell" colspan="3"><?php echo e(localizeName($receipt['tenant_name'])); ?></td>
+                        <td class="label-cell">মালিকের নাম :</td>
+                        <td class="value-cell" colspan="3"><?php echo e(localizeName($landownerName !== '' ? $landownerName : '—')); ?></td>
                     </tr>
                     <?php if ($receipt['tenant_phone']): ?>
                     <tr>
-                        <td class="label-cell">ফোন :</td>
-                        <td class="value-cell" colspan="3"><?php echo e(bnNumeral(enDigits($receipt['tenant_phone']))); ?></td>
+                        <td class="label-cell">ভাড়াটিয়ার নাম :</td>
+                        <td class="value-cell"><?php echo e(localizeName($receipt['tenant_name'])); ?></td>
+                        <td class="label-cell" style="padding-left:16px;">ফোন :</td>
+                        <td class="value-cell"><?php echo e(bnNumeral(enDigits($receipt['tenant_phone']))); ?></td>
+                    </tr>
+                    <?php else: ?>
+                    <tr>
+                        <td class="label-cell">ভাড়াটিয়ার নাম :</td>
+                        <td class="value-cell" colspan="3"><?php echo e(localizeName($receipt['tenant_name'])); ?></td>
                     </tr>
                     <?php endif; ?>
                     <?php else: ?>
@@ -490,25 +512,32 @@ $currentLang = Lang::current();
                         <td class="value-cell" colspan="3"><?php echo e(localizeText($receipt['building_address'])); ?></td>
                     </tr>
                     <tr>
-                        <td class="label-cell">Tenant Name :</td>
-                        <td class="value-cell" colspan="3"><?php echo e(localizeName($receipt['tenant_name'])); ?></td>
+                        <td class="label-cell">Landlord Name :</td>
+                        <td class="value-cell" colspan="3"><?php echo e(localizeName($landownerName !== '' ? $landownerName : '—')); ?></td>
                     </tr>
                     <?php if ($receipt['tenant_phone']): ?>
                     <tr>
-                        <td class="label-cell">Phone :</td>
-                        <td class="value-cell" colspan="3"><?php echo e(bnNumeral(enDigits($receipt['tenant_phone']))); ?></td>
+                        <td class="label-cell">Tenant Name :</td>
+                        <td class="value-cell"><?php echo e(localizeName($receipt['tenant_name'])); ?></td>
+                        <td class="label-cell" style="padding-left:16px;">Phone :</td>
+                        <td class="value-cell"><?php echo e(bnNumeral(enDigits($receipt['tenant_phone']))); ?></td>
+                    </tr>
+                    <?php else: ?>
+                    <tr>
+                        <td class="label-cell">Tenant Name :</td>
+                        <td class="value-cell" colspan="3"><?php echo e(localizeName($receipt['tenant_name'])); ?></td>
                     </tr>
                     <?php endif; ?>
                     <?php endif; ?>
                 </table>
                 <?php endif; ?>
 
-                <table>
+                <table class="fourcol">
                     <colgroup>
-                        <col style="width:1%;">
-                        <col style="width:23%;">
-                        <col style="width:1%;">
-                        <col style="width:23%;">
+                        <col style="width:16%;">
+                        <col style="width:40%;">
+                        <col style="width:15%;">
+                        <col style="width:20%;">
                     </colgroup>
                     <?php if ($currentLang === 'bn'): ?>
                     <tr>
@@ -598,9 +627,6 @@ $currentLang = Lang::current();
                         <td style="font-weight:600; color:#dc2626;">বকেয়া পরিমাণ :</td>
                         <td style="font-weight:600; color:#dc2626; font-size:17px;"><?php echo $cur . ' ' . $balanceDisplay; ?> টাকা</td>
                     </tr>
-                    <tr>
-                        <td style="font-weight:600; color:#dc2626;" colspan="2">সার্ভিস চার্জ : অপরিশোধিত (<?php echo e(monthName((int)$receipt['month'], 'bn') . ' ' . bnNumeral($receipt['year'])); ?>)</td>
-                    </tr>
                     <?php endif; ?>
                     <?php else: ?>
                     <tr class="total-row">
@@ -616,25 +642,24 @@ $currentLang = Lang::current();
                         <td style="font-weight:600; color:#dc2626;">Balance Due :</td>
                         <td style="font-weight:600; color:#dc2626; font-size:17px;"><?php echo $cur . ' ' . $balanceDisplay; ?></td>
                     </tr>
-                    <tr>
-                        <td style="font-weight:600; color:#dc2626;" colspan="2">Service Charge: Unpaid (<?php echo e(monthName((int)$receipt['month']) . ' ' . $receipt['year']); ?>)</td>
-                    </tr>
                     <?php endif; ?>
                     <?php endif; ?>
                 </table>
             </div>
 
-            <?php if ($receipt['note']): ?>
+            <?php $scNoteLine = $currentLang === 'bn' ? $scNoteBn : $scNoteEn; ?>
+            <?php if ($receipt['note'] || $scNoteLine !== ''): ?>
             <div class="amount-box" style="background:transparent; border:none; padding:8px 0;">
+                <?php if ($receipt['note']): ?>
                 <strong><?php echo t('note'); ?>:</strong>
-                <span><?php echo e(localizeText($receipt['note'])); ?></span>
-            </div>
-            <?php endif; ?>
-
-            <?php if (!empty($receipt['service_charge_file']) && ($receipt['unit_type'] ?? 'flat') === 'flat'): ?>
-            <div class="amount-box no-print" style="background:transparent; border:none; padding:8px 0;">
-                <strong><i class="bi bi-paperclip mr-1"></i><?php if ($currentLang === 'bn'): ?>সার্ভিস চার্জ রসিদ (গত মাস):<?php else: ?>Service Charge Receipt (Prev. Month):<?php endif; ?></strong>
-                <button type="button" class="btn btn-link btn-sm p-0" style="vertical-align:baseline; border:0; background:none; color:#007c47;" onclick="viewScDoc('<?php echo e(BASE_URL . $receipt['service_charge_file']); ?>')"><?php if ($currentLang === 'bn'): ?>দেখুন<?php else: ?>View<?php endif; ?></button>
+                <span style="<?php echo $noteStyle; ?>"><?php echo e(localizeText($receipt['note'])); ?></span>
+                <?php endif; ?>
+                <?php if ($scNoteLine !== ''): ?>
+                <div<?php echo $receipt['note'] ? ' class="mt-1"' : ''; ?>>
+                    <strong><?php echo t('service_charge_month'); ?>:</strong>
+                    <span style="<?php echo $noteStyle; ?>"><?php echo e($scNoteLine); ?></span>
+                </div>
+                <?php endif; ?>
             </div>
             <?php endif; ?>
 
@@ -670,7 +695,7 @@ $currentLang = Lang::current();
     <div class="sc-viewer-overlay no-print" id="scViewerOverlay" onclick="if(event.target===this)closeScDoc()">
         <div class="sc-viewer-box">
             <div class="sc-viewer-head">
-                <span class="sc-viewer-title"><i class="bi bi-paperclip mr-1"></i><?php if ($currentLang === 'bn'): ?>সার্ভিস চার্জ রসিদ (গত মাস)<?php else: ?>Service Charge Receipt (Prev. Month)<?php endif; ?></span>
+                <span class="sc-viewer-title"><i class="bi bi-paperclip mr-1"></i><?php echo $currentLang === 'bn' ? $scLabelBn : $scLabelEn; ?></span>
                 <button type="button" class="sc-viewer-close" onclick="closeScDoc()" aria-label="Close">&times;</button>
             </div>
             <iframe id="scViewerFrame" class="sc-viewer-frame" src="" title="Service Charge Receipt"></iframe>
@@ -684,7 +709,12 @@ $currentLang = Lang::current();
         // Hide toolbar (no-print elements)
         const toolbar = document.querySelector('.toolbar');
         if (toolbar) toolbar.style.display = 'none';
-        
+
+        // html2canvas ignores @media print, so .no-print inside the receipt
+        // (service charge line, upload form) has to be hidden explicitly.
+        const noPrintInside = element ? element.querySelectorAll('.no-print') : [];
+        noPrintInside.forEach(function (el) { el.style.display = 'none'; });
+
         // Hide upload signature form for PDF
         const uploadSig = document.querySelector('.signature form');
         if (uploadSig) uploadSig.style.display = 'none';
@@ -701,7 +731,7 @@ $currentLang = Lang::current();
         
         const opt = {
             margin:       [10, 10, 10, 10],
-            filename:     'Receipt-<?php echo e($receiptNo); ?>.pdf',
+            filename:     <?php echo json_encode(receiptPdfFilename($receipt, $currentLang)); ?>,
             image:        { type: 'jpeg', quality: 0.98 },
             html2canvas:  { 
                 scale: 2, 
@@ -714,9 +744,11 @@ $currentLang = Lang::current();
             pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
         };
         
-        // Hide watermark for PDF
+        // The watermark (status overlay) lives inside the captured receipt, so
+        // it stays visible on the downloaded PDF. It was hidden here previously,
+        // which is why "Unpaid / Paid" did not appear on the PDF even though it
+        // showed on screen.
         const watermark = document.querySelector('.watermark');
-        if (watermark) watermark.style.display = 'none';
         
         // Check if html2pdf is available
         if (typeof html2pdf === 'undefined') {
@@ -725,6 +757,7 @@ $currentLang = Lang::current();
             if (watermark) watermark.style.display = '';
             if (uploadSig) uploadSig.style.display = '';
             if (toolbar) toolbar.style.display = '';
+            noPrintInside.forEach(function (el) { el.style.display = ''; });
             return;
         }
         
@@ -732,12 +765,14 @@ $currentLang = Lang::current();
             if (watermark) watermark.style.display = '';
             if (uploadSig) uploadSig.style.display = '';
             if (toolbar) toolbar.style.display = '';
+            noPrintInside.forEach(function (el) { el.style.display = ''; });
         }).catch(function(err) {
             console.error('PDF generation failed:', err);
             alert('PDF generation failed. Please try again.');
             if (watermark) watermark.style.display = '';
             if (uploadSig) uploadSig.style.display = '';
             if (toolbar) toolbar.style.display = '';
+            noPrintInside.forEach(function (el) { el.style.display = ''; });
         });
     }
     // Expose globally

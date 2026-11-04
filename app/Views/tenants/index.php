@@ -116,7 +116,7 @@ require dirname(__DIR__) . '/partials/header.php';
 </div>
 
 <!-- Tenant Modal -->
-<div class="modal" id="tenantModal">
+<div class="modal" id="tenantModal" data-close-on-backdrop="false" data-close-on-escape="false">
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content">
             <div class="modal-header border-0 bg-primary text-white">
@@ -215,7 +215,7 @@ require dirname(__DIR__) . '/partials/header.php';
 </div>
 
 <!-- Document Viewer Modal -->
-<div class="modal" id="docViewerModal">
+<div class="modal" id="docViewerModal" data-close-on-backdrop="false" data-close-on-escape="false">
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header border-0 bg-primary text-white">
@@ -230,7 +230,7 @@ require dirname(__DIR__) . '/partials/header.php';
 </div>
 
 <!-- Confirm Delete Modal -->
-<div class="modal" id="confirmModal">
+<div class="modal" id="confirmModal" data-close-on-backdrop="false" data-close-on-escape="false">
     <div class="modal-dialog modal-dialog-centered modal-sm">
         <div class="modal-content">
             <div class="modal-header border-0 bg-danger text-white">
@@ -268,7 +268,7 @@ function resetTenantForm() {
 }
 
 function viewDocument(url, title) {
-    document.getElementById("docViewerFrame").src = BASE_URL + url;
+    document.getElementById("docViewerFrame").src = BASE_URL + \'file.php?f=\' + encodeURIComponent(url);
     document.getElementById("docViewerTitle").textContent = title || "' . t('documents') . '";
     openModal("docViewerModal");
 }

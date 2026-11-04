@@ -17,6 +17,10 @@ function post($key, $default = '') {
 $step = isset($_GET['step']) ? $_GET['step'] : 'welcome';
 $errors = [];
 $success = [];
+// Set by the action handlers below. The state re-check further down must not
+// override a step an action already chose - without this, creating the admin
+// immediately re-locks the installer and the success page is never shown.
+$stepChosenByAction = false;
 
 // Handle POST actions
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -36,7 +40,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $pdo->exec("USE `" . DB_NAME . "`");
 
             // Read SQL file and execute after removing CREATE DATABASE lines
-            $sql = file_get_contents(__DIR__ . '/database.sql');
+            $schemaFile = __DIR__ . '/database.sql';
+            if (!is_file($schemaFile)) {
+                throw new Exception('database.sql is missing from the server. '
+                    . 'Upload it next to install.php (it ships with the package).');
+            }
+            $sql = file_get_contents($schemaFile);
             $sql = preg_replace('/^\s*CREATE\s+DATABASE.*$/im', '', $sql);
             // Drop the hardcoded USE `oop_rms` line too - the connection is
             // already pointed at DB_NAME, and a leftover USE of a different
@@ -47,6 +56,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             $success[] = 'Database `' . DB_NAME . '` created and all tables installed successfully.';
             $step = 'admin';
+            $stepChosenByAction = true;
         } catch (Exception $e) {
             $errors[] = 'Installation failed: ' . $e->getMessage();
         }
@@ -88,6 +98,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 ]);
                 $success[] = 'Admin user "' . $username . '" created successfully. You can now login.';
                 $step = 'done';
+                $stepChosenByAction = true;
             } catch (Exception $e) {
                 $errors[] = 'Error creating admin: ' . $e->getMessage();
             }
@@ -95,8 +106,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-// Check if DB exists
+// Check if DB exists and whether the schema is already installed
 $dbExists = false;
+$schemaExists = false;
 $adminExists = false;
 try {
     $pdo = new PDO("mysql:host=" . DB_HOST, DB_USER, DB_PASS, [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
@@ -104,16 +116,33 @@ try {
     $dbExists = (bool)$stmt->fetch();
     if ($dbExists) {
         $pdo->exec("USE `" . DB_NAME . "`");
-        $stmt = $pdo->query(Database::prefix("SELECT COUNT(*) FROM users"));
-        $adminExists = (bool)$stmt->fetchColumn();
+        // The schema counts as installed once the users table is there, so an
+        // admin can be created without re-importing (e.g. when database.sql was
+        // imported by hand through phpMyAdmin).
+        $schemaExists = (bool)$pdo->query(
+            "SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES
+             WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = '" . Database::prefix('users') . "'"
+        )->fetchColumn();
+        if ($schemaExists) {
+            $adminExists = (bool)$pdo->query(Database::prefix("SELECT COUNT(*) FROM users"))->fetchColumn();
+        }
     }
 } catch (Exception $e) {
     // not connected
 }
 
-// If already installed, require a secret key to re-run (prevents accidental re-install)
-if ($dbExists && $adminExists && (!isset($_GET['force']) || $_GET['force'] !== 'yes')) {
-    $step = 'locked';
+// Work out which step to show from the current database state. Skipped when
+// an action in this same request already picked a step, otherwise the admin
+// we just created would immediately lock the installer.
+if (!$stepChosenByAction) {
+    if ($dbExists && $adminExists && (!isset($_GET['force']) || $_GET['force'] !== 'yes')) {
+        // Already installed: require an explicit force=yes to re-run, so a
+        // stray visit cannot wipe the data.
+        $step = 'locked';
+    } elseif ($schemaExists) {
+        // Tables are in place, only the admin user is left to create.
+        $step = 'admin';
+    }
 }
 ?>
 <!DOCTYPE html>
@@ -168,48 +197,32 @@ if ($dbExists && $adminExists && (!isset($_GET['force']) || $_GET['force'] !== '
             <?php endforeach; ?>
 
             <?php if ($step === 'welcome'): ?>
-                <?php if ($dbExists && $adminExists): ?>
-                    <div class="alert alert-warning">
-                        <i class="bi bi-lock mr-1"></i>
-                        System already installed. To re-run installer, access <code>install.php?force=yes</code>
-                    </div>
-                <?php elseif ($dbExists): ?>
-                    <div class="alert alert-info">Database already exists. You can still reinstall to reset tables/model data.</div>
-                    <form method="POST">
-                        <input type="hidden" name="action" value="install">
-                        <div class="mb-3">
-                            <label class="form-label">Database Host</label>
-                            <input type="text" class="form-control" value="<?php echo DB_HOST; ?>" readonly>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Database Name</label>
-                            <input type="text" class="form-control" value="<?php echo DB_NAME; ?>" readonly>
-                        </div>
-                        <div class="alert alert-warning py-2">
-                            <i class="bi bi-info-circle mr-1"></i>
-                            This will create the database <code><?php echo DB_NAME; ?></code> and all required tables.
-                        </div>
-                        <button type="submit" class="btn btn-primary w-full">Install Database <i class="bi bi-arrow-right ml-1"></i></button>
-                    </form>
-                <?php else: ?>
-                    <form method="POST">
-                        <input type="hidden" name="action" value="install">
-                        <div class="mb-3">
-                            <label class="form-label">Database Host</label>
-                            <input type="text" class="form-control" value="<?php echo DB_HOST; ?>" readonly>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Database Name</label>
-                            <input type="text" class="form-control" value="<?php echo DB_NAME; ?>" readonly>
-                        </div>
-                        <div class="alert alert-warning py-2">
-                            <i class="bi bi-info-circle mr-1"></i>
-                            This will create the database <code><?php echo DB_NAME; ?></code> and all required tables.
-                        </div>
-                        <button type="submit" class="btn btn-primary w-full">Install Database <i class="bi bi-arrow-right ml-1"></i></button>
-                    </form>
+                <?php if ($dbExists): ?>
+                    <div class="alert alert-info">Database <code><?php echo e(DB_NAME); ?></code> already exists but has no tables yet. Installing creates every table in <code>database.sql</code>.</div>
                 <?php endif; ?>
+                <form method="POST">
+                    <input type="hidden" name="action" value="install">
+                    <div class="mb-3">
+                        <label class="form-label">Database Host</label>
+                        <input type="text" class="form-control" value="<?php echo e(DB_HOST); ?>" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Database Name</label>
+                        <input type="text" class="form-control" value="<?php echo e(DB_NAME); ?>" readonly>
+                    </div>
+                    <div class="alert alert-warning py-2">
+                        <i class="bi bi-info-circle mr-1"></i>
+                        This will create the database <code><?php echo e(DB_NAME); ?></code> and all required tables.
+                    </div>
+                    <button type="submit" class="btn btn-primary w-full">Install Database <i class="bi bi-arrow-right ml-1"></i></button>
+                </form>
             <?php elseif ($step === 'admin'): ?>
+                <?php if ($schemaExists): ?>
+                    <div class="alert alert-success py-2">
+                        <i class="bi bi-check-circle mr-1"></i>
+                        All tables are already in place. Only the admin user is left to create.
+                    </div>
+                <?php endif; ?>
                 <form method="POST">
                     <input type="hidden" name="action" value="create_admin">
                     <div class="mb-3">
@@ -239,7 +252,10 @@ if ($dbExists && $adminExists && (!isset($_GET['force']) || $_GET['force'] !== '
                     <i class="bi bi-check-circle text-success" style="font-size:3rem;"></i>
                     <h5 class="mt-2">Installation Complete!</h5>
                     <p class="text-muted">You can now login to the system.</p>
-                    <a href="login.php" class="btn btn-primary"><i class="bi bi-box-arrow-in-right mr-1"></i> Go to Login</a>
+                    <a href="login" class="btn btn-primary"><i class="bi bi-box-arrow-in-right mr-1"></i> Go to Login</a>
+                    <p class="text-muted small mt-3 mb-0">
+                        <strong>Do not forget:</strong> delete <code>install.php</code> from the server now.
+                    </p>
                 </div>
             <?php elseif ($step === 'locked'): ?>
                 <div class="alert alert-danger">
@@ -250,7 +266,7 @@ if ($dbExists && $adminExists && (!isset($_GET['force']) || $_GET['force'] !== '
                 <p class="text-muted small">
                     To force re-installation (DESTROYS DATA), visit: <code>install.php?force=yes</code>
                 </p>
-                <a href="login.php" class="btn btn-primary mt-3"><i class="bi bi-box-arrow-in-right mr-1"></i> Go to Login</a>
+                <a href="login" class="btn btn-primary mt-3"><i class="bi bi-box-arrow-in-right mr-1"></i> Go to Login</a>
             <?php endif; ?>
         </div>
     </div>

@@ -255,11 +255,13 @@ require dirname(__DIR__) . '/partials/header.php';
 $extraJs = '
 <script>
 document.addEventListener("DOMContentLoaded", function() {
-    // Monthly Chart
+    // Monthly Chart - separate flat vs shop income
     const labels = ' . json_encode($chartData['labels']) . ';
-    const income = ' . json_encode($chartData['income']) . ';
+    const flatIncome = ' . json_encode($chartData['flatIncome']) . ';
+    const shopIncome = ' . json_encode($chartData['shopIncome']) . ';
     const expense = ' . json_encode($chartData['expense']) . ';
-    const incomeLabel = ' . json_encode(t('income')) . ';
+    const flatLabel = ' . json_encode(t('flat_income', 'Flat Income')) . ';
+    const shopLabel = ' . json_encode(t('shop_income', 'Shop Income')) . ';
     const expenseLabel = ' . json_encode(t('expense')) . ';
     const statusLabels = ' . json_encode([t('occupied_flats'), t('available_flats'), t('maintenance')]) . ';
 
@@ -271,10 +273,18 @@ document.addEventListener("DOMContentLoaded", function() {
                 labels: labels,
                 datasets: [
                     {
-                        label: incomeLabel,
-                        data: income,
+                        label: flatLabel,
+                        data: flatIncome,
                         backgroundColor: "rgba(1, 124, 71, 0.7)",
                         borderColor: "#005a33",
+                        borderWidth: 1,
+                        borderRadius: 4
+                    },
+                    {
+                        label: shopLabel,
+                        data: shopIncome,
+                        backgroundColor: "rgba(59, 130, 246, 0.7)",
+                        borderColor: "#2563eb",
                         borderWidth: 1,
                         borderRadius: 4
                     },

@@ -32,8 +32,9 @@ A lightweight, bilingual (English / Bengali) rent management system built with o
 5. Enter your admin username/password and click **Create Admin User**
 6. Login and start using the system
 
-Alternatively run `database.sql` manually via phpMyAdmin, then add a user with:
-`INSERT INTO wsit_users (username, email, password, full_name) VALUES ('admin','admin@rms.com', PASSWORD_HASH_HERE, 'System Admin');`
+Alternatively run `database.sql` manually via phpMyAdmin, then open
+`install.php` again — it will skip the database step (the tables are
+already there) and go straight to **Create Admin User**.
 
 > **Table prefix:** all tables use the `wsit_` prefix (e.g. `wsit_invoices`).
 > It is applied automatically at runtime from `DB_PREFIX` in `config/config.php`
@@ -42,9 +43,15 @@ Alternatively run `database.sql` manually via phpMyAdmin, then add a user with:
 
 ## Deployment (shared hosting)
 
-See **`DEPLOY.md`** — full step-by-step guide covering upload, database,
-production config, folder permissions, Apache/nginx rewrite rules,
-scheduled invoice cron and a go-live checklist. Production config
+```
+php tools/build_deploy.php
+```
+
+produces `oop-rms-deploy.zip` — the app with a production
+`config/config.php`, no dev credentials, no logs and no uploaded documents.
+See **`DEPLOY.md`** for the full step-by-step guide: upload, database,
+config, permissions, Apache/nginx rewrite rules, scheduled invoice cron,
+upgrading an existing install and a go-live checklist. Production config
 template: `config/config.production.example.php`.
 
 ## Structure (MVC)
@@ -54,11 +61,14 @@ oop-rms/
 ├── index.php              # Front controller / router (entry point)
 ├── .htaccess              # Rewrites /payments -> index.php?r=payments (Options -MultiViews!)
 ├── install.php            # Standalone installer (DB + admin) — delete on production
-├── database.sql           # Schema + seed data
-├── portal_upgrade.sql     # Upgrade for pre-tenant-portal databases
+├── file.php               # Authenticated download proxy for uploads/
+├── database.sql           # Full schema + default settings (fresh install)
+├── db_alter_upgrade.sql   # ALTER-only schema upgrade for existing databases
 ├── config/
 │   ├── config.php                     # Local config (DB, BASE_URL, session, uploads)
 │   └── config.production.example.php  # Template for live servers
+├── tools/
+│   └── build_deploy.php    # Builds oop-rms-deploy.zip (dev only, never shipped)
 ├── app/
 │   ├── Core/              # Router, Controller base, bootstrap (autoload, view())
 │   ├── routes.php         # Route table: every page -> Controller method

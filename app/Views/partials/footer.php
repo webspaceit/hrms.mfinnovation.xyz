@@ -12,7 +12,7 @@
 </div>
 
 <!-- Bulk Delete Confirmation Modal -->
-<div class="modal" id="bulkDeleteConfirmModal">
+<div class="modal" id="bulkDeleteConfirmModal" data-close-on-backdrop="false" data-close-on-escape="false">
     <div class="modal-dialog modal-dialog-centered modal-sm">
         <div class="modal-content">
             <div class="modal-header border-0 bg-danger text-white">
@@ -31,6 +31,25 @@
     </div>
 </div>
 
+<!-- Single-item Delete Confirmation Modal -->
+<div class="modal" id="confirmModal" data-close-on-backdrop="false" data-close-on-escape="false">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content">
+            <div class="modal-header border-0 bg-danger text-white">
+                <h5 class="modal-title"><i class="bi bi-exclamation-triangle mr-1"></i><?php echo t('delete_confirm'); ?></h5>
+                <button type="button" class="btn-close btn-close-white" onclick="closeModal('confirmModal')" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center py-4">
+                <p class="mb-0" id="confirmModalText"><?php echo t('delete_confirm'); ?></p>
+            </div>
+            <div class="modal-footer border-0 bg-light py-3">
+                <button type="button" class="btn btn-secondary px-4" onclick="closeModal('confirmModal')"><?php echo t('cancel'); ?></button>
+                <button type="button" class="btn btn-danger px-4" id="confirmDeleteBtn"><i class="bi bi-trash mr-1"></i><?php echo t('delete'); ?></button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- JS -->
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/bn.js"></script>
@@ -44,7 +63,6 @@ const BULK_LANGS = {
     delete_selected: '<?php echo t("delete_selected"); ?>'
 };
 </script>
-<script src="<?php echo url('assets/js/app.js'); ?>"></script>
 <script src="<?php echo url('assets/js/bulk_select.js'); ?>"></script>
 <?php if (isset($extraJs)) echo $extraJs; ?>
 </body>

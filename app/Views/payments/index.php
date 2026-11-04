@@ -1,6 +1,7 @@
 <?php
 // Payments view - data: payments, activeLeases, paymentsJson, unpaidRows,
-// unpaidTotal, unpaidJson, invoiceMapJson, paymentModel, year, month
+// unpaidTotal, unpaidJson, invoiceMapJson, paymentModel, year, month,
+// filterBuilding, filterType, buildingOptions
 $pageTitle = t('payments');
 require dirname(__DIR__) . '/partials/header.php';
 ?>
@@ -20,22 +21,84 @@ require dirname(__DIR__) . '/partials/header.php';
 <!-- Filter -->
 <div class="filter-bar mb-3 fade-in flex flex-wrap items-center gap-2">
     <span class="filter-label"><i class="bi bi-funnel mr-1"></i> <?php echo t('filter'); ?></span>
-    <select class="form-select form-select-sm" style="max-width: 180px;" onchange="location='<?php echo url('payments'); ?>?month='+this.value+'&year=<?php echo $year; ?>'">
+    <?php
+    $baseParams = 'month=' . (int)$month . '&year=' . (int)$year;
+    if ($filterBuilding) {
+        $baseParams .= '&building=' . (int)$filterBuilding;
+    }
+    // build type params - handle multiple
+    $typeParamStr = '';
+    if (isset($filterTypes) && !empty($filterTypes)) {
+        foreach ($filterTypes as $t) {
+            $typeParamStr .= '&type=' . urlencode($t);
+        }
+    } elseif ($filterType) {
+        $typeParamStr .= '&type=' . urlencode($filterType);
+    }
+    ?>
+    <?php $isAllTypes = !isset($filterTypes) || empty($filterTypes) || count($filterTypes) > 1 || (isset($filterType) && $filterType === ''); 
+if (!isset($filterTypes)) $filterTypes = [];
+if (!isset($filterType)) $filterType = '';
+if (!isset($collectedFilteredTotal)) $collectedFilteredTotal = 0;
+if (!isset($unpaidFilteredTotal)) $unpaidFilteredTotal = 0;
+if (!isset($collectedFlatTotal)) $collectedFlatTotal = 0;
+if (!isset($collectedShopTotal)) $collectedShopTotal = 0;
+if (!isset($unpaidFlatTotal)) $unpaidFlatTotal = 0;
+if (!isset($unpaidShopTotal)) $unpaidShopTotal = 0;
+?>
+    <ul class="filter-pills mr-2">
+        <li>
+            <a class="nav-link <?php echo $isAllTypes ? 'active' : ''; ?>" href="<?php echo url('payments') . '?' . $baseParams; ?>"><?php echo t('all_units'); ?></a>
+        </li>
+        <li>
+            <a class="nav-link <?php echo isset($filterTypes) && in_array('flat', $filterTypes, true) && count($filterTypes) === 1 ? 'active' : ''; ?>" href="<?php echo url('payments') . '?' . $baseParams . '&type=flat'; ?>"><i class="bi bi-door-open mr-1"></i><?php echo t('all_flats'); ?></a>
+        </li>
+        <li>
+            <a class="nav-link <?php echo isset($filterTypes) && in_array('shop', $filterTypes, true) && count($filterTypes) === 1 ? 'active' : ''; ?>" href="<?php echo url('payments') . '?' . $baseParams . '&type=shop'; ?>"><i class="bi bi-shop mr-1"></i><?php echo t('all_shops'); ?></a>
+        </li>
+    </ul>
+    <select class="form-select form-select-sm" style="max-width: 180px;" onchange="location='<?php echo url('payments'); ?>?month='+this.value+'&year=<?php echo $year; ?><?php echo $filterBuilding ? '&building=' . (int)$filterBuilding : ''; ?><?php echo $typeParamStr; ?>'">
         <option value="0"><?php echo t('all'); ?></option>
         <?php for ($m = 1; $m <= 12; $m++): ?>
             <option value="<?php echo $m; ?>" <?php echo $month == $m ? 'selected' : ''; ?>><?php echo monthName($m); ?></option>
         <?php endfor; ?>
     </select>
-    <select class="form-select form-select-sm" style="max-width: 130px;" onchange="location='<?php echo url('payments'); ?>?month=<?php echo $month; ?>&year='+this.value">
+    <select class="form-select form-select-sm" style="max-width: 130px;" onchange="location='<?php echo url('payments'); ?>?month=<?php echo $month; ?>&year='+this.value+'<?php echo $filterBuilding ? '&building=' . (int)$filterBuilding : ''; ?><?php echo $typeParamStr; ?>'">
         <?php for ($y = date('Y') - 3; $y <= date('Y'); $y++): ?>
             <option value="<?php echo $y; ?>" <?php echo $year == $y ? 'selected' : ''; ?>><?php echo bnNumeral($y); ?></option>
         <?php endfor; ?>
     </select>
-    <div class="ml-auto flex items-center gap-3">
-        <?php if ($unpaidTotal > 0): ?>
-            <span class="text-muted"><?php echo t('due_rent'); ?>: <strong class="text-danger"><?php echo money($unpaidTotal); ?></strong></span>
+    <select class="form-select form-select-sm" style="max-width: 240px;" onchange="if(this.value) location='<?php echo url('payments'); ?>?month=<?php echo $month; ?>&year=<?php echo $year; ?>&building='+this.value+'<?php echo $typeParamStr; ?>'; else location='<?php echo url('payments') . '?month=' . (int)$month . '&year=' . (int)$year . ltrim($typeParamStr, '&'); ?>';">
+        <option value=""><?php echo t('all'); ?> <?php echo t('buildings'); ?></option>
+        <?php foreach ($buildingOptions as $bid => $bname): ?>
+            <option value="<?php echo $bid; ?>" <?php echo $filterBuilding == $bid ? 'selected' : ''; ?>><?php echo e($bname); ?></option>
+        <?php endforeach; ?>
+    </select>
+    <div class="ml-auto flex flex-column items-end gap-2">
+        <div class="flex items-center gap-3">
+            <?php $dueDisplay = isset($unpaidFilteredTotal) ? $unpaidFilteredTotal : $unpaidTotal; ?>
+            <?php if ($dueDisplay > 0): ?>
+                <span class="text-muted"><?php echo t('due_rent'); ?>: <strong class="text-danger"><?php echo money($dueDisplay); ?></strong></span>
+            <?php endif; ?>
+            <?php $collectedTotalFinal = $collectedFilteredTotal ?? 0; ?>
+            <span class="text-muted"><?php echo t('collected'); ?>: <strong><?php echo money($collectedTotalFinal); ?></strong></span>
+        </div>
+        <?php if (($collectedFilteredTotal > 0 || $unpaidFilteredTotal > 0)): ?>
+            <div class="flex flex-wrap justify-end gap-2 small">
+                <?php if ($collectedFlatTotal > 0 || (!empty($filterTypes) && in_array('flat', $filterTypes, true) && count($filterTypes) <= 2) || (empty($filterTypes) && $collectedFlatTotal >= 0)): ?>
+                    <span class="badge bg-info-subtle text-info-emphasis"><i class="bi bi-buildings mr-1"></i><?php echo t('flat_unit'); ?> (<?php echo t('collected'); ?>): <?php echo money($collectedFlatTotal); ?></span>
+                <?php endif; ?>
+                <?php if ($collectedShopTotal > 0 || (!empty($filterTypes) && in_array('shop', $filterTypes, true) && count($filterTypes) <= 2) || (empty($filterTypes) && $collectedShopTotal >= 0)): ?>
+                    <span class="badge bg-warning-subtle text-warning-emphasis"><i class="bi bi-shop mr-1"></i><?php echo t('shop_unit'); ?> (<?php echo t('collected'); ?>): <?php echo money($collectedShopTotal); ?></span>
+                <?php endif; ?>
+                <?php if ($unpaidFlatTotal > 0): ?>
+                    <span class="badge bg-danger-subtle text-danger-emphasis"><i class="bi bi-buildings mr-1"></i><?php echo t('flat_unit'); ?> (<?php echo t('due_rent'); ?>): <?php echo money($unpaidFlatTotal); ?></span>
+                <?php endif; ?>
+                <?php if ($unpaidShopTotal > 0): ?>
+                    <span class="badge bg-danger-subtle text-danger-emphasis"><i class="bi bi-shop mr-1"></i><?php echo t('shop_unit'); ?> (<?php echo t('due_rent'); ?>): <?php echo money($unpaidShopTotal); ?></span>
+                <?php endif; ?>
+            </div>
         <?php endif; ?>
-        <span class="text-muted"><?php echo t('total'); ?>: <strong><?php echo money($paymentModel->totalCollected($year, $month ?: null)); ?></strong></span>
     </div>
 </div>
 
@@ -52,6 +115,7 @@ require dirname(__DIR__) . '/partials/header.php';
                         <th><?php echo t('building_name'); ?></th>
                         <th><?php echo t('flat_shop_no'); ?></th>
                         <th><?php echo t('unit_type'); ?></th>
+                        <th><?php echo t('service_charge_receipt'); ?></th>
                         <th><?php echo t('payment_month'); ?></th>
                         <th><?php echo t('payment_method'); ?></th>
                         <th><?php echo t('amount'); ?></th>
@@ -66,11 +130,15 @@ require dirname(__DIR__) . '/partials/header.php';
                         if ($year && $p['year'] != $year) return false;
                         return true;
                     });
+                    foreach ($filtered as &$fp) {
+                        $fp['is_due'] = false;
+                    }
+                    unset($fp);
                     // Due rows (unpaid invoices) first, then payment history.
                     $rows = array_merge($unpaidRows, $filtered);
                     ?>
                     <?php if (empty($rows)): ?>
-                        <tr><td colspan="12" class="text-muted py-4"><?php echo t('no_data'); ?></td></tr>
+                        <tr><td colspan="13" class="text-muted py-4"><?php echo t('no_data'); ?></td></tr>
                     <?php else: ?>
                         <?php foreach ($rows as $i => $p): ?>
                             <?php $isDue = !empty($p['is_due']); ?>
@@ -86,21 +154,39 @@ require dirname(__DIR__) . '/partials/header.php';
                                 <td><?php echo $isDue ? '<span class="text-muted">&mdash;</span>' : e(bnNumeral(date('d-m-Y', strtotime($p['payment_date'])))); ?></td>
                                 <td class="fw-semibold"><?php echo e(localizeName($p['tenant_name'])); ?></td>
                                 <td><?php echo e(localizeText($p['building_name'])); ?></td>
-                                <td><span class="badge bg-primary-subtle text-primary-emphasis"><?php echo e(bnFlatCode($p['flat_no'])); ?></span>
-                                <?php if (!empty($p['service_charge_file']) && ($p['unit_type'] ?? 'flat') === 'flat'): ?>
-                                    <button type="button" class="btn btn-sm btn-light border ml-1" title="<?php echo t('service_charge_receipt'); ?>" onclick="viewDocument('<?php echo e($p['service_charge_file']); ?>', '<?php echo e(t('service_charge_receipt')); ?>')">
-                                        <i class="bi bi-paperclip"></i>
-                                    </button>
+<td><span class="badge bg-primary-subtle text-primary-emphasis"><?php echo e(bnFlatCode($p['flat_no'])); ?></span>
+                            </td>
+                            <td>
+                                <?php if (strtolower($p['unit_type'] ?? 'flat') === 'shop'): ?>
+                                    <span class="badge bg-warning-subtle text-warning-emphasis"><i class="bi bi-shop mr-1"></i><?php echo t('shop_unit'); ?></span>
+                                <?php else: ?>
+                                    <span class="badge bg-info-subtle text-info-emphasis"><i class="bi bi-buildings mr-1"></i><?php echo t('flat_unit'); ?></span>
                                 <?php endif; ?>
                             </td>
-                                <td>
-                                    <?php if (($p['unit_type'] ?? 'flat') === 'shop'): ?>
-                                        <span class="badge bg-warning-subtle text-warning-emphasis"><i class="bi bi-shop mr-1"></i><?php echo t('shop_unit'); ?></span>
-                                    <?php else: ?>
-                                        <span class="badge bg-info-subtle text-info-emphasis"><i class="bi bi-buildings mr-1"></i><?php echo t('flat_unit'); ?></span>
-                                    <?php endif; ?>
-                                </td>
-                                <td><?php echo monthName($p['month']) . ' ' . bnNumeral($p['year']); ?></td>
+                            <td>
+                                <?php
+                                $scMonths = monthList($p['service_charge_month'] ?? '');
+                                $scYear = (int)($p['service_charge_year'] ?? 0);
+                                $hasSc = !empty($scMonths) && $scYear >= 2000;
+                                $scFile = $p['service_charge_file'] ?? '';
+                                $isFlat = (strtolower($p['unit_type'] ?? 'flat') === 'flat');
+                                if ($hasSc && $isFlat): ?>
+                                    <div class="d-flex flex-column gap-1">
+                                        <span class="small text-muted">
+                                            <?php echo monthListLabel($scMonths, $scYear, Lang::current()); ?>
+                                        </span>
+                                        <?php if (!empty($scFile)): ?>
+                                        <button type="button" class="btn btn-sm btn-outline-primary btn-tool" 
+                                                onclick="viewDocument('<?php echo e($scFile); ?>', '<?php echo e(t('service_charge_receipt')); ?>')">
+                                            <i class="bi bi-eye mr-1"></i><?php echo t('view'); ?>
+                                        </button>
+                                        <?php endif; ?>
+                                    </div>
+                                <?php else: ?>
+                                    <span class="text-muted">—</span>
+                                <?php endif; ?>
+                            </td>
+                            <td><?php echo monthName($p['month']) . ' ' . bnNumeral($p['year']); ?></td>
                                 <td><?php echo $isDue ? '<span class="text-muted">&mdash;</span>' : '<span class="badge bg-light text-dark border">' . t($p['payment_method'], $p['payment_method']) . '</span>'; ?></td>
                                 <td class="fw-semibold <?php echo $isDue ? 'text-danger' : 'text-success'; ?>"><?php echo money($p['total_amount']); ?></td>
                                 <td class="whitespace-nowrap">
@@ -119,27 +205,39 @@ require dirname(__DIR__) . '/partials/header.php';
                                     <?php endif; ?>
                                 </td>
                                 <td>
-                                    <?php
-                                    if ($isDue) {
-                                        echo actionButtons([
-                                            ['label' => t('collect_payment'), 'icon' => 'bi bi-cash-coin', 'variant' => 'success',
-                                             'onclick' => 'openCollectPayment(' . (int)$p['invoice_id'] . ')'],
-                                            ['label' => t('view_invoice'), 'icon' => 'bi bi-eye', 'variant' => 'view',
-                                             'href' => url('invoice-view') . '?id=' . (int)$p['invoice_id'] . '&lang=' . Lang::current()],
-                                        ]);
-                                    } else {
-                                        $payItems = [
-                                            ['label' => t('edit'), 'icon' => 'bi bi-pencil', 'variant' => 'edit', 'onclick' => 'editPayment(' . (int)$p['id'] . ')'],
-                                        ];
-                                        if ($invStatus && $invStatus !== 'paid') {
-                                            $payItems[] = ['label' => t('mark_fully_paid'), 'icon' => 'bi bi-check2-circle', 'variant' => 'success', 'onclick' => 'markFullyPaid(' . (int)$p['id'] . ')'];
-                                        }
-                                        $payItems[] = ['label' => t('money_receipt'), 'icon' => 'bi bi-receipt', 'variant' => 'view', 'href' => url('receipt') . '?id=' . (int)$p['id']];
-                                        $payItems[] = ['label' => t('delete'), 'icon' => 'bi bi-trash', 'variant' => 'delete',
-                                                       'onclick' => 'confirmDelete(' . jsQuote(BASE_URL . 'ajax/payment_delete.php?id=' . (int)$p['id']) . ', ' . jsQuote(t('delete_confirm')) . ')'];
-                                        echo actionButtons($payItems);
-                                    }
-                                    ?>
+                                    <?php if ($isDue): ?>
+                                        <div class="dropdown">
+                                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" onclick="toggleDropdown(this)">
+                                                <i class="bi bi-three-dots-vertical"></i>
+                                            </button>
+                                            <ul class="dropdown-menu dropdown-menu-end">
+                                                <li><button type="button" class="dropdown-item" data-action="collect" data-invoice="<?php echo (int)$p['invoice_id']; ?>"><i class="bi bi-cash-coin me-2"></i><?php echo t('collect_payment'); ?></button></li>
+                                                <li><a class="dropdown-item" href="<?php echo url('invoice-view') . '?id=' . (int)$p['invoice_id'] . '&lang=' . Lang::current(); ?>"><i class="bi bi-eye me-2"></i><?php echo t('view_invoice'); ?></a></li>
+                                                <li><button type="button" class="dropdown-item" data-action="status" data-invoice="<?php echo (int)$p['invoice_id']; ?>" data-status="<?php echo e($p['inv_status_effective'] ?: 'unpaid'); ?>"><i class="bi bi-arrow-repeat me-2"></i><?php echo t('payment_status'); ?></button></li>
+                                            </ul>
+                                        </div>
+                                    <?php else: ?>
+                                        <div class="dropdown">
+                                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" onclick="toggleDropdown(this)">
+                                                <i class="bi bi-three-dots-vertical"></i>
+                                            </button>
+                                            <ul class="dropdown-menu dropdown-menu-end">
+                                                <li><button type="button" class="dropdown-item" data-action="edit" data-id="<?php echo (int)$p['id']; ?>"><i class="bi bi-pencil me-2"></i><?php echo t('edit'); ?></button></li>
+                                                <?php if (!$invStatus || $invStatus !== 'paid'): ?>
+                                                <li><button type="button" class="dropdown-item" data-action="mark-paid" data-id="<?php echo (int)$p['id']; ?>"><i class="bi bi-check2-circle me-2"></i><?php echo t('mark_fully_paid'); ?></button></li>
+                                                <?php endif; ?>
+                                                <?php if (!empty($p['invoice_id'])): ?>
+                                                <li><button type="button" class="dropdown-item" data-action="status" data-invoice="<?php echo (int)$p['invoice_id']; ?>" data-status="<?php echo e($invStatus ?: 'unpaid'); ?>"><i class="bi bi-arrow-repeat me-2"></i><?php echo t('payment_status'); ?></button></li>
+                                                <?php else: ?>
+                                                <li><button type="button" class="dropdown-item" data-action="status" data-invoice="0" data-status="<?php echo e($invStatus ?: 'unpaid'); ?>" data-payment="<?php echo (int)$p['id']; ?>"><i class="bi bi-arrow-repeat me-2"></i><?php echo t('payment_status'); ?></button></li>
+                                                <?php endif; ?>
+                                                <li><a class="dropdown-item" href="<?php echo url('receipt') . '?id=' . (int)$p['id']; ?>"><i class="bi bi-receipt me-2"></i><?php echo t('money_receipt'); ?></a></li>
+                                                <li><button type="button" class="dropdown-item" data-action="sc" data-id="<?php echo (int)$p['id']; ?>" data-month="<?php echo (int)$p['month']; ?>" data-year="<?php echo (int)$p['year']; ?>"><i class="bi bi-paperclip me-2"></i><?php echo t('service_charge_receipt'); ?></button></li>
+                                                <li><hr class="dropdown-divider"></li>
+                                                <li><button type="button" class="dropdown-item text-danger" data-action="delete" data-url="<?php echo e(BASE_URL . 'ajax/payment_delete.php?id=' . (int)$p['id']); ?>" data-msg="<?php echo e(t('delete_confirm')); ?>"><i class="bi bi-trash me-2"></i><?php echo t('delete'); ?></button></li>
+                                            </ul>
+                                        </div>
+                                    <?php endif; ?>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
@@ -151,7 +249,7 @@ require dirname(__DIR__) . '/partials/header.php';
 </div>
 
 <!-- Payment Modal -->
-<div class="modal" id="paymentModal">
+<div class="modal" id="paymentModal" data-close-on-backdrop="false" data-close-on-escape="false">
     <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content">
             <div class="modal-header border-0 bg-primary text-white">
@@ -278,11 +376,52 @@ require dirname(__DIR__) . '/partials/header.php';
                     <div class="mb-3">
                         <label class="form-label"><?php echo t('note'); ?></label>
                         <input type="text" name="note" id="p_note" class="form-control">
+                        <div class="form-text">
+                            <?php echo t('note_codes'); ?>
+                            <button type="button" class="btn btn-link btn-sm p-0" style="vertical-align:baseline; font-size:12px;" onclick="insertNoteCode('{sc}')">{sc}</button>,
+                            <button type="button" class="btn btn-link btn-sm p-0" style="vertical-align:baseline; font-size:12px;" onclick="insertNoteCode('{m}')">{m}</button>,
+                            <button type="button" class="btn btn-link btn-sm p-0" style="vertical-align:baseline; font-size:12px;" onclick="insertNoteCode('{y}')">{y}</button>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3 mt-2" style="max-width:520px;">
+                            <div>
+                                <label class="form-label small mb-1"><?php echo t('note_color'); ?></label>
+                                <input type="color" name="note_color" id="p_note_color" class="form-control" style="width:64px;height:34px;padding:2px;" value="#007c47">
+                            </div>
+                            <div>
+                                <label class="form-label small mb-1"><?php echo t('note_font'); ?></label>
+                                <select name="note_font" id="p_note_font" class="form-select form-select-sm">
+                                    <option value=""><?php echo t('note_font_default'); ?></option>
+                                    <?php foreach (NOTE_FONT_CHOICES as $fontValue => $fontLabel): ?>
+                                        <option value="<?php echo e($fontValue); ?>"><?php echo e($fontLabel); ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-text mt-1" id="p_note_preview" style="color:#007c47;"><?php echo t('note_preview'); ?> — Aa ১২৩</div>
                     </div>
                     <div class="mb-3" id="p_sc_wrap" style="display:none;">
                         <label class="form-label"><i class="bi bi-paperclip mr-1"></i><?php echo t('service_charge_receipt'); ?>
                             <span class="text-muted small fw-normal">(<?php echo t('service_charge_hint'); ?>)</span></label>
                         <input type="file" name="service_charge_file" id="p_sc_file" class="form-control" accept=".pdf,image/*">
+                        <div class="mt-2">
+                            <label class="form-label small mb-1"><?php echo t('service_charge_month'); ?>
+                                <span class="text-muted fw-normal">(<?php echo t('select_multiple'); ?>)</span></label>
+                            <div class="flex flex-wrap gap-1">
+                                <?php for ($m = 1; $m <= 12; $m++): ?>
+                                <input type="checkbox" class="btn-check sc-month" name="service_charge_month[]" value="<?php echo $m; ?>" id="p_sc_month_<?php echo $m; ?>">
+                                <label class="btn btn-outline-secondary btn-sm mb-0" for="p_sc_month_<?php echo $m; ?>"><?php echo monthName($m); ?></label>
+                                <?php endfor; ?>
+                            </div>
+                        </div>
+                        <div class="mt-2" style="max-width:220px;">
+                            <label class="form-label small mb-1"><?php echo t('service_charge_year'); ?></label>
+                            <select name="service_charge_year" id="p_sc_year" class="form-select form-select-sm">
+                                <option value=""><?php echo t('select_year'); ?></option>
+                                <?php for ($y = date('Y') - 5; $y <= date('Y') + 1; $y++): ?>
+                                    <option value="<?php echo $y; ?>"><?php echo bnNumeral($y); ?></option>
+                                <?php endfor; ?>
+                            </select>
+                        </div>
                         <div class="form-text mt-1" id="p_sc_link"></div>
                         <input type="hidden" name="remove_sc" id="p_sc_remove" value="">
                     </div>
@@ -301,7 +440,7 @@ require dirname(__DIR__) . '/partials/header.php';
 </div>
 
 <!-- Mark Paid Modal (sets the actual paid date) -->
-<div class="modal" id="markPaidModal">
+<div class="modal" id="markPaidModal" data-close-on-backdrop="false" data-close-on-escape="false">
     <div class="modal-dialog modal-dialog-centered modal-sm">
         <div class="modal-content">
             <div class="modal-header border-0 bg-success text-white">
@@ -322,8 +461,40 @@ require dirname(__DIR__) . '/partials/header.php';
     </div>
 </div>
 
+<!-- Payment Status Modal (manual override of the invoice status) -->
+<div class="modal" id="statusModal" data-close-on-backdrop="false" data-close-on-escape="false">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content">
+            <div class="modal-header border-0 bg-secondary text-white">
+                <h5 class="modal-title"><i class="bi bi-arrow-repeat mr-1"></i><?php echo t('payment_status'); ?></h5>
+                <button type="button" class="btn-close btn-close-white" onclick="closeModal('statusModal')" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="st_invoice_id" value="">
+                <input type="hidden" id="st_payment_id" value="">
+                <label class="form-label"><?php echo t('payment_status'); ?></label>
+                <select id="st_status" class="form-select" onchange="toggleStatusDate()">
+                    <option value="auto"><?php echo t('auto'); ?></option>
+                    <option value="paid"><?php echo t('status_paid'); ?></option>
+                    <option value="partial"><?php echo t('status_partial'); ?></option>
+                    <option value="unpaid"><?php echo t('status_unpaid'); ?></option>
+                </select>
+                <div class="form-text"><?php echo t('manual_status_override'); ?></div>
+                <div id="st_date_row" class="mt-3">
+                    <label class="form-label"><?php echo t('payment_date'); ?></label>
+                    <input type="text" id="st_date" class="form-control" data-date placeholder="DD-MM-YYYY" inputmode="numeric">
+                </div>
+            </div>
+            <div class="modal-footer border-0 bg-light py-3">
+                <button type="button" class="btn btn-secondary px-4" onclick="closeModal('statusModal')"><?php echo t('cancel'); ?></button>
+                <button type="button" class="btn btn-primary px-4" onclick="confirmChangeStatus()"><i class="bi bi-check2-circle mr-1"></i><?php echo t('save'); ?></button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Document Viewer Modal -->
-<div class="modal" id="docViewerModal">
+<div class="modal" id="docViewerModal" data-close-on-backdrop="false" data-close-on-escape="false">
     <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header border-0 bg-primary text-white">
@@ -338,7 +509,7 @@ require dirname(__DIR__) . '/partials/header.php';
 </div>
 
 <!-- Confirm Delete Modal -->
-<div class="modal" id="confirmModal">
+<div class="modal" id="confirmModal" data-close-on-backdrop="false" data-close-on-escape="false">
     <div class="modal-dialog modal-dialog-centered modal-sm">
         <div class="modal-content">
             <div class="modal-header border-0 bg-danger text-white">
@@ -356,6 +527,52 @@ require dirname(__DIR__) . '/partials/header.php';
     </div>
 </div>
 
+<!-- Service Charge Upload Modal -->
+<div class="modal" id="scUploadModal" data-close-on-backdrop="false" data-close-on-escape="false">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content">
+            <div class="modal-header border-0 bg-primary text-white">
+                <h5 class="modal-title"><i class="bi bi-paperclip mr-1"></i><?php echo t('service_charge_receipt'); ?></h5>
+                <button type="button" class="btn-close btn-close-white" onclick="closeModal('scUploadModal')" aria-label="Close"></button>
+            </div>
+            <form id="scUploadForm" enctype="multipart/form-data">
+                <div class="modal-body">
+                    <?php echo csrf_field(); ?>
+                    <input type="hidden" name="action" value="upload_service_charge">
+                    <input type="hidden" name="payment_id" id="scu_payment_id" value="">
+                    <div class="mb-3">
+                        <label class="form-label"><?php echo t('service_charge_receipt'); ?> <span class="text-danger">*</span></label>
+                        <input type="file" name="service_charge_file" id="scu_file" class="form-control" accept=".pdf,image/*" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small mb-1"><?php echo t('service_charge_month'); ?>
+                            <span class="text-muted fw-normal">(<?php echo t('select_multiple'); ?>)</span></label>
+                        <div class="flex flex-wrap gap-1">
+                            <?php for ($m = 1; $m <= 12; $m++): ?>
+                            <input type="checkbox" class="btn-check sc-month" name="service_charge_month[]" value="<?php echo $m; ?>" id="scu_month_<?php echo $m; ?>">
+                            <label class="btn btn-outline-secondary btn-sm mb-0" for="scu_month_<?php echo $m; ?>"><?php echo monthName($m); ?></label>
+                            <?php endfor; ?>
+                        </div>
+                    </div>
+                    <div class="mb-3" style="max-width:220px;">
+                        <label class="form-label small mb-1"><?php echo t('service_charge_year'); ?></label>
+                        <select name="service_charge_year" id="scu_year" class="form-select form-select-sm">
+                            <option value=""><?php echo t('select_year'); ?></option>
+                            <?php for ($y = date('Y') - 5; $y <= date('Y') + 1; $y++): ?>
+                                <option value="<?php echo $y; ?>"><?php echo bnNumeral($y); ?></option>
+                            <?php endfor; ?>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 bg-light py-3">
+                    <button type="button" class="btn btn-secondary px-4" onclick="closeModal('scUploadModal')"><?php echo t('cancel'); ?></button>
+                    <button type="submit" class="btn btn-primary px-4"><?php echo t('save'); ?></button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <?php
 $extraJs = '
 <script>
@@ -363,8 +580,50 @@ window.PAYMENTS = ' . $paymentsJson . ';
 window.UNPAID_INVOICES = ' . $unpaidJson . ';
 window.INVOICE_MAP = ' . $invoiceMapJson . ';
 
+function openScUpload(paymentId, month, year) {
+    document.getElementById("scu_payment_id").value = paymentId;
+    document.getElementById("scu_file").value = "";
+    document.querySelectorAll("#scUploadModal .sc-month").forEach(cb => cb.checked = false);
+    if (month) {
+        document.getElementById("scu_month_" + month).checked = true;
+    }
+    document.getElementById("scu_year").value = year || "";
+    openModal("scUploadModal");
+}
+
+document.getElementById("scUploadForm").addEventListener("submit", function(e) {
+    e.preventDefault();
+    const form = this;
+    const formData = new FormData(form);
+    // Ensure CSRF token is included
+    const csrfToken = document.querySelector("input[name=\'csrf_token\']");
+    if (csrfToken && !formData.has("csrf_token")) {
+        formData.append("csrf_token", csrfToken.value);
+    }
+    const btn = form.querySelector("button[type=submit]");
+    const origText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = "<span class=\"spinner-border spinner-border-sm mr-1\"></span>' . t('saving') . '";
+    fetch(BASE_URL + "ajax/payment_update.php", { method: "POST", body: formData })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                closeModal("scUploadModal");
+                showToast(data.message, "success");
+                setTimeout(function() { location.reload(); }, 600);
+            } else {
+                showToast(data.message || "Error", "danger");
+            }
+        })
+        .catch(() => showToast("Request failed", "danger"))
+        .finally(() => {
+            btn.disabled = false;
+            btn.innerHTML = origText;
+        });
+});
+
 function viewDocument(url, title) {
-    document.getElementById("docViewerFrame").src = BASE_URL + url;
+    document.getElementById("docViewerFrame").src = BASE_URL + \'file.php?f=\' + encodeURIComponent(url);
     document.getElementById("docViewerTitle").textContent = title || "";
     openModal("docViewerModal");
 }
@@ -390,6 +649,11 @@ function openCollectPayment(invId) {
     const bn = document.documentElement.lang === "bn";
     document.getElementById("p_month").value = inv.month;
     document.getElementById("p_year").value = inv.year;
+    // Default the service charge scan months to the previous invoice month.
+    let scm = inv.month, scy = inv.year;
+    if (scm === 1) { scm = 12; scy--; } else { scm--; }
+    setScMonths([scm]);
+    document.getElementById("p_sc_year").value = scy;
     // Pre-fill the payment with the exact breakdown stored on the invoice so
     // the money receipt reproduces it (rent + parking + gas + water + waste +
     // arrears). Utility is billed separately and never appears on the receipt.
@@ -523,7 +787,10 @@ function updateRemainingHint() {
 
 function markFullyPaid(paymentId) {
     const p = (window.PAYMENTS || []).find(x => x.id == paymentId);
-    if (!p) return;
+    if (!p) {
+        showToast("Payment " + paymentId + " not found. Please reload the page.", "danger");
+        return;
+    }
     document.getElementById("mp_id").value = p.id;
     document.getElementById("mp_date").value = getToday();
     openModal("markPaidModal");
@@ -561,6 +828,65 @@ function cancelMarkPaid() {
     closeModal("markPaidModal");
 }
 
+// Change the payment status from here. Status lives on the invoice
+// (lease + month + year), not on the payment row, so this posts the
+// invoice id to the same endpoint the invoices page uses. Choosing
+// "Auto" clears the override and returns to the computed status.
+function changePaymentStatus(invoiceId, current, paymentId) {
+    if (!invoiceId && !paymentId) {
+        showToast("No invoice for this row. Please reload the page.", "danger");
+        return;
+    }
+    document.getElementById("st_invoice_id").value = invoiceId || "";
+    document.getElementById("st_payment_id").value = paymentId || "";
+    document.getElementById("st_status").value = current || "unpaid";
+    document.getElementById("st_date").value = getToday();
+    toggleStatusDate();
+    openModal("statusModal");
+}
+
+// The paid date only matters when marking the bill paid - invoice_status.php
+// creates the balancing payment in that case.
+function toggleStatusDate() {
+    var isPaid = document.getElementById("st_status").value === "paid";
+    document.getElementById("st_date_row").style.display = isPaid ? "" : "none";
+}
+
+function confirmChangeStatus() {
+    const id = document.getElementById("st_invoice_id").value;
+    const paymentId = document.getElementById("st_payment_id").value;
+    const status = document.getElementById("st_status").value;
+    const data = new URLSearchParams();
+    data.append("id", id);
+    if (paymentId) {
+        data.append("payment_id", paymentId);
+    }
+    data.append("status", status);
+    if (status === "paid") {
+        data.append("payment_date", toAsciiDigits(document.getElementById("st_date").value || ""));
+    }
+    data.append("csrf_token", CSRF_TOKEN);
+    fetch(BASE_URL + "ajax/invoice_status.php", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: data.toString()
+    })
+    .then(res => res.json())
+    .then(function(result) {
+        closeModal("statusModal");
+        if (result.success) {
+            showToast(result.message, "success");
+            setTimeout(function() { location.reload(); }, 500);
+        } else {
+            showToast(result.message || "Failed", "danger");
+        }
+    })
+    .catch(function() {
+        closeModal("statusModal");
+        showToast("Request failed", "danger");
+    });
+}
+
 document.getElementById("p_lease").addEventListener("change", updateRemainingHint);
 document.getElementById("p_month").addEventListener("change", updateRemainingHint);
 document.getElementById("p_year").addEventListener("change", updateRemainingHint);
@@ -590,6 +916,15 @@ function resetPaymentForm() {
     document.getElementById("p_sc_link").innerHTML = "";
     document.getElementById("p_sc_remove").value = "";
     document.getElementById("p_sc_wrap").style.display = "none";
+    // Default the service charge scan months to the previous month of today.
+    const d = new Date();
+    let scm = d.getMonth(), scy = d.getFullYear();
+    if (scm === 0) { scm = 12; scy--; }
+    setScMonths([scm]);
+    document.getElementById("p_sc_year").value = scy;
+    document.getElementById("p_note_color").value = "#007c47";
+    document.getElementById("p_note_font").value = "";
+    updateNotePreview();
     updateScWrap();
     updateTotal();
 }
@@ -640,6 +975,11 @@ function editPayment(id) {
     document.getElementById("p_receipt_type").value = p.receipt_type;
     document.getElementById("p_receipt_type").disabled = p.unit_type === "shop";
     document.getElementById("p_note").value = p.note || "";
+    if (p.service_charge_month) setScMonths(p.service_charge_month);
+    if (p.service_charge_year) document.getElementById("p_sc_year").value = p.service_charge_year;
+    document.getElementById("p_note_color").value = p.note_color || "#007c47";
+    document.getElementById("p_note_font").value = p.note_font || "";
+    updateNotePreview();
     setPaymentScLink(p.service_charge_file || "", p.id);
     updateTotal();
     updateScWrap();
@@ -652,11 +992,81 @@ function getToday() {
     return String(d.getDate()).padStart(2,"0") + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + d.getFullYear();
 }
 
+function updateNotePreview() {
+    const el = document.getElementById("p_note_preview");
+    if (!el) return;
+    el.style.color = document.getElementById("p_note_color").value || "";
+    el.style.fontFamily = document.getElementById("p_note_font").value || "";
+}
+
+// Ticks the service charge month chips. Accepts an array of months or a
+// comma separated string.
+function setScMonths(months) {
+    if (typeof months === "string") months = months.split(",");
+    const picked = (months || []).map(function (v) { return String(v).trim(); });
+    document.querySelectorAll(".sc-month").forEach(function (cb) {
+        cb.checked = picked.indexOf(cb.value) !== -1;
+    });
+}
+
+// Appends a note short code at the caret, e.g. {sc} for the service charge
+// month and year picked in this form. A space is added only when the caret
+// is not already at a space or at the start of an empty note.
+function insertNoteCode(code) {
+    const el = document.getElementById("p_note");
+    if (!el) return;
+    const start = el.selectionStart == null ? el.value.length : el.selectionStart;
+    const end = el.selectionEnd == null ? el.value.length : el.selectionEnd;
+    const lead = (start > 0 && el.value.slice(start - 1, start) !== " ") ? " " : "";
+    const add = lead + code;
+    el.value = el.value.slice(0, start) + add + el.value.slice(end);
+    el.focus();
+    el.setSelectionRange(start + add.length, start + add.length);
+}
+document.getElementById("p_note_color").addEventListener("input", updateNotePreview);
+document.getElementById("p_note_font").addEventListener("change", updateNotePreview);
+
 document.getElementById("paymentForm").addEventListener("submit", function(e) {
     e.preventDefault();
     const id = document.getElementById("p_id").value;
     const url = BASE_URL + (id ? "ajax/payment_update.php" : "ajax/payment_save.php");
     submitModalForm("paymentForm", url);
+});
+
+// Handle dropdown actions for payments table
+document.querySelectorAll(".dropdown-menu button[data-action]").forEach(function(btn) {
+    btn.addEventListener("click", function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        const action = this.getAttribute("data-action");
+        if (action === "edit") {
+            editPayment(parseInt(this.getAttribute("data-id")));
+        } else if (action === "mark-paid") {
+            markFullyPaid(parseInt(this.getAttribute("data-id")));
+        } else if (action === "collect") {
+            openCollectPayment(parseInt(this.getAttribute("data-invoice")));
+        } else if (action === "status") {
+            changePaymentStatus(
+                parseInt(this.getAttribute("data-invoice") || 0),
+                this.getAttribute("data-status") || "unpaid",
+                parseInt(this.getAttribute("data-payment") || 0)
+            );
+        } else if (action === "sc") {
+            openScUpload(
+                parseInt(this.getAttribute("data-id")),
+                parseInt(this.getAttribute("data-month")),
+                parseInt(this.getAttribute("data-year"))
+            );
+        } else if (action === "delete") {
+            confirmDelete(this.getAttribute("data-url"), this.getAttribute("data-msg") || "");
+        }
+        const dropdown = this.closest(".dropdown");
+        if (dropdown) {
+            dropdown.classList.remove("show");
+            const menu = dropdown.querySelector(".dropdown-menu");
+            if (menu) menu.classList.remove("show");
+        }
+    });
 });
 </script>';
 require dirname(__DIR__) . '/partials/footer.php';
