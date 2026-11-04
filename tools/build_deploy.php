@@ -97,6 +97,8 @@ mkdir($stage, 0755, true);
 // ------------------------------------------------------------
 $skipDirs = [
     '.git', '.kilo', '.commandcode', '.github', 'node_modules', 'tools', '_deploy-stage',
+    // Stray extracted copies of the package.
+    'oop-rms-deploy',
     // Uploaded documents are per-tenant data, not application code.
     'uploads',
     // Dev logs.
