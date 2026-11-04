@@ -17,7 +17,9 @@ $currentLang = Lang::current();
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
     <link href="<?php echo BASE_URL; ?>assets/css/style.css" rel="stylesheet">
     <style>
-        @page { margin: 15.32mm; }
+        /* Match the on-screen card: the content padding is the margin,
+           so no extra page margin is added when printing. */
+        @page { margin: 0; }
         body {
             background: #eef2f7;
             font-family: <?php echo $fontFamily; ?>;
@@ -164,6 +166,7 @@ $currentLang = Lang::current();
             body { background: #fff; }
             .toolbar, .no-print { display: none !important; }
             .receipt-container {
+                max-width: 100%;
                 box-shadow: none;
                 border: none;
                 margin: 0;
@@ -525,7 +528,7 @@ $currentLang = Lang::current();
                 <table style="margin-top:8px; width:100%;">
                     <?php if ($currentLang === 'bn'): ?>
                     <tr class="total-row">
-                        <td style="font-weight:bold; width:24%; white-space:nowrap;">মোট পরিমাণ :</td>
+                        <td style="font-weight:bold; width:18%; white-space:nowrap;">মোট পরিমাণ :</td>
                         <td class="value-cell" style="font-size:22px; font-weight:bold; text-align:left;"><?php echo $cur . ' ' . bnNumeral(number_format($totalDue, 2)); ?> /- টাকা মাত্র</td>
                     </tr>
                     <?php if ($paymentStatus === 'partial'): ?>
@@ -544,7 +547,7 @@ $currentLang = Lang::current();
                     <?php endif; ?>
                     <?php else: ?>
                     <tr class="total-row">
-                        <td style="font-weight:bold; width:24%; white-space:nowrap;">Total Amount :</td>
+                        <td style="font-weight:bold; width:18%; white-space:nowrap;">Total Amount :</td>
                         <td class="value-cell" style="font-size:22px; font-weight:bold; text-align:left;"><?php echo $cur . ' ' . number_format($totalDue, 2); ?> /- Taka Only</td>
                     </tr>
                     <?php if ($paymentStatus === 'partial'): ?>
