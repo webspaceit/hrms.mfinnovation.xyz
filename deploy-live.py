@@ -21,17 +21,45 @@ def run(args, cwd):
 
 
 def find_checkout():
-    sites = Path("/home/sites")
+    home = Path.home()
+    search_roots = [
+        Path.cwd(), home, Path("/home/sites"), Path("/home"),
+        Path("/var/www"), Path("/var/www/html"), Path("/srv"),
+        Path("/var/www/vhosts"),
+    ]
+    roots = []
+    for root in search_roots:
+        try:
+            resolved = root.resolve()
+            if resolved.is_dir() and resolved not in roots:
+                roots.append(resolved)
+        except OSError:
+            pass
+
     git_candidates = []
     app_candidates = []
-    for account_root in sites.glob("*/*/*"):
-        if not account_root.is_dir():
-            continue
-        for current, dirs, _files in os.walk(account_root):
+    visited = set()
+    for search_root in roots:
+        for current, dirs, _files in os.walk(search_root):
             candidate = Path(current)
-            depth = len(candidate.relative_to(account_root).parts)
-            dirs[:] = [d for d in dirs if d not in {".git", "vendor", "node_modules", "uploads", "logs"}]
-            if depth > 5:
+            try:
+                resolved = candidate.resolve()
+            except OSError:
+                dirs[:] = []
+                continue
+            if resolved in visited:
+                dirs[:] = []
+                continue
+            visited.add(resolved)
+            try:
+                depth = len(candidate.relative_to(search_root).parts)
+            except ValueError:
+                depth = 99
+            dirs[:] = [
+                d for d in dirs
+                if d not in {".git", "vendor", "node_modules", "uploads", "logs", ".cache", ".local", ".npm", "tmp"}
+            ]
+            if depth > 7:
                 dirs[:] = []
             if (candidate / "app" / "routes.php").is_file() or (candidate / "classes" / "Payment.php").is_file():
                 app_candidates.append(candidate)
@@ -57,7 +85,9 @@ def find_checkout():
 
 ROOT, GIT_CANDIDATES, APP_CANDIDATES = find_checkout()
 if ROOT is None:
-    print("Git checkout candidates under /home/sites:", flush=True)
+    print(f"SSH working directory: {Path.cwd()}", flush=True)
+    print(f"SSH home directory: {Path.home()}", flush=True)
+    print("Git checkout candidates:", flush=True)
     for candidate in GIT_CANDIDATES:
         remote = subprocess.run(
             ["git", "-C", str(candidate), "remote", "get-url", "origin"],
@@ -71,7 +101,8 @@ if ROOT is None:
     for candidate in APP_CANDIDATES[:40]:
         print(f"  {candidate}", flush=True)
     sys.exit(
-        "Could not identify the HRMS deployment checkout. No files were changed."
+        "Could not identify the HRMS deployment checkout in the SSH home or common web roots. "
+        "No files were changed."
     )
 print("HRMS checkout:", ROOT, flush=True)
 
