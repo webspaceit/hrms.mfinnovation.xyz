@@ -3,13 +3,20 @@ setlocal
 cd /d "%~dp0"
 if errorlevel 1 goto failed
 
-echo Current Git changes:
-git status --short
-if errorlevel 1 goto failed
-echo.
-set /p "CONFIRM=Stage and push ALL listed changes? Type YES to continue: "
-if /I not "%CONFIRM%"=="YES" goto cancelled
+set "KEY=%USERPROFILE%\.ssh\id_ed25519_mf"
+set "SERVER=mfinnovation.xyz@ssh.gb.stackcp.com"
 
+if not exist "%KEY%" (
+    echo SSH key not found: %KEY%
+    goto failed
+)
+if not exist "%~dp0deploy-live.py" (
+    echo Deploy script not found: deploy-live.py
+    goto failed
+)
+
+echo === HRMS: push and deploy ===
+git status --short
 git add -A
 if errorlevel 1 goto failed
 
@@ -22,19 +29,23 @@ git commit -m "Update project"
 if errorlevel 1 goto failed
 
 :push
-git push
+git push origin main
 if errorlevel 1 goto failed
-echo.
-echo Push completed successfully.
-goto end
 
-:cancelled
-echo Push cancelled. No files were staged.
+ssh -i "%KEY%" -o BatchMode=yes %SERVER% "python3" < "%~dp0deploy-live.py"
+if errorlevel 1 (
+    echo.
+    echo Server deploy failed. The GitHub push has already completed.
+    goto failed
+)
+
+echo.
+echo Git push and server deploy completed successfully.
 goto end
 
 :failed
 echo.
-echo Push stopped because a Git command failed. Review the message above.
+echo Push or deploy failed. Review the message above.
 
 :end
 echo.
