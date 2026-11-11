@@ -19,9 +19,10 @@ if (!in_array($method, ['cash', 'bank', 'bKash', 'nogod', 'rocket', 'other'])) {
     $method = 'cash';
 }
 
-$payment_date_raw = trim((string)bnToEnDigits(post('payment_date')));
-$payment_date_ts = $payment_date_raw !== '' ? strtotime($payment_date_raw) : false;
-$payment_date = $payment_date_ts !== false ? date('Y-m-d', $payment_date_ts) : null;
+$payment_date = parseAppDate(post('payment_date'));
+if ($payment_date === null) {
+    jsonResponse(['success' => false, 'message' => t('error_occurred')]);
+}
 
 $paymentModel = new Payment();
 $payment = $paymentModel->find($id);

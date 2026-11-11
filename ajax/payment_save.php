@@ -24,8 +24,7 @@ $receipt_type = post('receipt_type', 'rent');
 if (!in_array($receipt_type, ['rent', 'parking', 'gas', 'water', 'waste'])) {
     $receipt_type = 'rent';
 }
-$payment_date = bnToEnDigits(post('payment_date'));
-$payment_date = date('Y-m-d', strtotime($payment_date));
+$payment_date = parseAppDate(post('payment_date'));
 $note = post('note');
 // Note block styling: only a plain hex colour and a known font family are
 // stored, because both end up in a style attribute on the receipt.
@@ -44,6 +43,9 @@ $service_charge_year = (int)post('service_charge_year', 0);
 $arrears = (float)bnToEnDigits(post('arrears', 0));
 
 if (empty($lease_id) || $month < 1 || $month > 12 || $year < 2000) {
+    jsonResponse(['success' => false, 'message' => t('error_occurred')]);
+}
+if ($payment_date === null) {
     jsonResponse(['success' => false, 'message' => t('error_occurred')]);
 }
 

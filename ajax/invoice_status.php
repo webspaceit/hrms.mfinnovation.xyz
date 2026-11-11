@@ -50,9 +50,11 @@ if (!tenantAccessible((int)$inv['tenant_id'])) {
     jsonResponse(['success' => false, 'message' => t('access_denied')], 403);
 }
 
-$payment_date_raw = trim((string)bnToEnDigits(post('payment_date')));
-$payment_date_ts = $payment_date_raw !== '' ? strtotime($payment_date_raw) : false;
-$payment_date = $payment_date_ts !== false ? date('Y-m-d', $payment_date_ts) : null;
+$payment_date_raw = trim((string)post('payment_date'));
+$payment_date = $payment_date_raw === '' ? null : parseAppDate($payment_date_raw);
+if ($payment_date_raw !== '' && $payment_date === null) {
+    jsonResponse(['success' => false, 'message' => t('error_occurred')]);
+}
 
 $invoiceModel->update($id, [
     'payment_status_override' => $status === 'auto' ? null : $status,

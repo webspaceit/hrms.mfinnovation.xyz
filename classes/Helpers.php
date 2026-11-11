@@ -293,6 +293,19 @@ function bnToEnDigits($str) {
     ]);
 }
 
+/** Parse the application's displayed date formats without strtotime ambiguity. */
+function parseAppDate($value) {
+    $value = trim((string)bnToEnDigits($value));
+    foreach (['!d-m-Y', '!Y-m-d'] as $format) {
+        $date = DateTime::createFromFormat($format, $value);
+        $errors = DateTime::getLastErrors();
+        if ($date && ($errors === false || ($errors['warning_count'] === 0 && $errors['error_count'] === 0))) {
+            return $date->format('Y-m-d');
+        }
+    }
+    return null;
+}
+
 /**
  * Detect if a string contains Bengali (Bangla) characters.
  */

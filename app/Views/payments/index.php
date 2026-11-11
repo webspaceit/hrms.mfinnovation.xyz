@@ -903,7 +903,7 @@ function resetPaymentForm() {
     document.getElementById("paymentForm").reset();
     document.getElementById("p_id").value = "";
     document.getElementById("p_year").value = ' . date('Y') . ';
-    document.getElementById("p_date").value = getToday();
+    setPaymentDate(getToday());
     document.getElementById("p_month").value = new Date().getMonth() + 1;
     const rType = document.getElementById("p_receipt_type");
     rType.value = "rent";
@@ -971,7 +971,7 @@ function editPayment(id) {
     setFieldValue("p_amount", p.amount, bn);
     applyChargeStates({ parking: p.parking_amount, gas: p.gas_amount, water: p.water_fee, waste: p.waste_fee, arrears: p.arrears || 0 }, bn);
     document.getElementById("p_method").value = p.payment_method;
-    document.getElementById("p_date").value = p.payment_date;
+    setPaymentDate(p.payment_date);
     document.getElementById("p_receipt_type").value = p.receipt_type;
     document.getElementById("p_receipt_type").disabled = p.unit_type === "shop";
     document.getElementById("p_note").value = p.note || "";
@@ -990,6 +990,12 @@ function editPayment(id) {
 function getToday() {
     const d = new Date();
     return String(d.getDate()).padStart(2,"0") + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + d.getFullYear();
+}
+
+function setPaymentDate(value) {
+    const input = document.getElementById("p_date");
+    if (input._flatpickr) input._flatpickr.setDate(toAsciiDigits(value || ""), false, "d-m-Y");
+    else input.value = value || "";
 }
 
 function updateNotePreview() {
