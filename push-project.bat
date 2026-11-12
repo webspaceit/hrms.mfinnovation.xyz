@@ -7,15 +7,20 @@ set "PROJECT_DIR=%~dp0"
 set "SSH_KEY=%USERPROFILE%\.ssh\id_ed25519_mf"
 set "SSH_USER=mfinnovation.xyz@ssh.gb.stackcp.com"
 set "REMOTE_BASE=/home/sites/27b/0/0b72e9e422/hrms.mfinnovation.xyz"
-set "REMOTE_ARCHIVE=/tmp/hrms-deploy-%RANDOM%.zip"
-set "DEPLOY_ZIP=%TEMP%\hrms-deploy-%RANDOM%.zip"
+set "REMOTE_STATE=/home/sites/27b/0/0b72e9e422/.hrms-rms-last-deploy"
+set "INITIAL_DEPLOYED_COMMIT=182289e95885bf2d13ff03ad5922782378944331"
+set "DEPLOY_SCRIPT=%~dp0tools\deploy_changed_files.ps1"
 
 if not exist "%SSH_KEY%" (
     echo SSH key not found: %SSH_KEY%
     goto failed
 )
+if not exist "%DEPLOY_SCRIPT%" (
+    echo Incremental deploy helper not found: %DEPLOY_SCRIPT%
+    goto failed
+)
 
-echo === HRMS: GitHub push and SSH deploy ===
+echo === HRMS: GitHub push and changed-file SSH deploy ===
 echo Project: %PROJECT_DIR%
 echo Server:  %REMOTE_BASE%
 echo.
@@ -46,35 +51,17 @@ git push origin main
 if errorlevel 1 goto failed
 
 echo.
-echo Building production archive...
-php tools\build_scp_package.php "%DEPLOY_ZIP%"
-if errorlevel 1 goto failed
-
-echo.
-echo Uploading archive with legacy SCP over SSH...
-scp -O -i "%SSH_KEY%" -o BatchMode=yes "%DEPLOY_ZIP%" %SSH_USER%:%REMOTE_ARCHIVE%
-if errorlevel 1 goto scp_failed
-
-echo.
-echo Extracting files into the verified hosting root...
-ssh -i "%SSH_KEY%" -o BatchMode=yes %SSH_USER% "python3 - %REMOTE_ARCHIVE%" < "%~dp0deploy-remote.py"
+echo Uploading only files changed since the last successful deployment...
+powershell -NoProfile -ExecutionPolicy Bypass -File "%DEPLOY_SCRIPT%" -ProjectDir "%PROJECT_DIR%" -Server "%SSH_USER%" -Key "%SSH_KEY%" -RemoteBase "%REMOTE_BASE%" -RemoteState "%REMOTE_STATE%" -InitialCommit "%INITIAL_DEPLOYED_COMMIT%"
 if errorlevel 1 goto deploy_failed
 
-del "%DEPLOY_ZIP%" 2>nul
 echo.
-echo GitHub push and hosting deployment completed successfully.
+echo GitHub push and changed-file hosting deployment completed successfully.
 goto end
 
-:scp_failed
-del "%DEPLOY_ZIP%" 2>nul
-echo.
-echo SCP upload failed. GitHub push completed, but hosting was not updated.
-goto failed
-
 :deploy_failed
-del "%DEPLOY_ZIP%" 2>nul
 echo.
-echo Remote extraction failed. GitHub push completed; check server output.
+echo GitHub push completed, but hosting deployment failed. The deploy marker was not advanced; rerunning will retry pending files.
 goto failed
 
 :failed
