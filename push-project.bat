@@ -4,6 +4,7 @@ cd /d "%~dp0"
 if errorlevel 1 goto failed
 
 set "PROJECT_DIR=%~dp0"
+if "%PROJECT_DIR:~-1%"=="\" set "PROJECT_DIR=%PROJECT_DIR:~0,-1%"
 set "SSH_KEY=%USERPROFILE%\.ssh\id_ed25519_mf"
 set "SSH_USER=mfinnovation.xyz@ssh.gb.stackcp.com"
 set "REMOTE_BASE=/home/sites/27b/0/0b72e9e422/hrms.mfinnovation.xyz"
