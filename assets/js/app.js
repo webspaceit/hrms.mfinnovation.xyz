@@ -355,20 +355,25 @@ function initDatepickers(scope) {
             allowInput: true,
             disableMobile: 'true',
             locale: isBn ? window.flatpickr.l10ns.bn : undefined,
-            onChange: function (selectedDates, dateStr) {
-                input.value = isBn ? toBengaliDigits(dateStr) : dateStr;
+            parseDate: function (dateStr, format) {
+                // Bengali digit input must be normalized before Flatpickr parses it.
+                return flatpickr.parseDate(toAsciiDigits(dateStr), format);
             },
-            onOpen: function () {
-                // Flatpickr needs ASCII YYYY-MM-DD to restore selection
-                if (isBn && input.value) {
-                    input.value = toAsciiDigits(input.value);
-                }
+            onChange: function (selectedDates, dateStr) {
+                if (!selectedDates.length) return;
+                const normalized = fp.formatDate(selectedDates[0], 'd-m-Y');
+                input.value = isBn ? toBengaliDigits(normalized) : normalized;
             },
             onClose: function (selectedDates, dateStr) {
-                if (isBn && dateStr) {
-                    input.value = toBengaliDigits(dateStr);
-                } else if (isBn && input.value) {
-                    input.value = toBengaliDigits(toAsciiDigits(input.value));
+                if (selectedDates.length) {
+                    const normalized = fp.formatDate(selectedDates[0], 'd-m-Y');
+                    input.value = isBn ? toBengaliDigits(normalized) : normalized;
+                } else if (!input.value.trim() && input.required) {
+                    // Keep required payment dates usable even if a picker is dismissed
+                    // without selecting a day.
+                    const today = fp.formatDate(new Date(), 'd-m-Y');
+                    fp.setDate(today, false, 'd-m-Y');
+                    input.value = isBn ? toBengaliDigits(today) : today;
                 }
             }
         });
