@@ -5,16 +5,17 @@ if errorlevel 1 goto failed
 
 set "PROJECT_DIR=%~dp0"
 set "SSH_KEY=%USERPROFILE%\.ssh\id_ed25519_mf"
-set "REMOTE_BASE=/home/sites/27b/0/0b72e9e422/hrms.mfinnovation.xyz"
 set "SSH_USER=mfinnovation.xyz@ssh.gb.stackcp.com"
-set "SFTPCMD=%TEMP%\hrms_sftp_%RANDOM%.txt"
+set "REMOTE_BASE=/home/sites/27b/0/0b72e9e422/hrms.mfinnovation.xyz"
+set "REMOTE_ARCHIVE=/tmp/hrms-deploy-%RANDOM%.zip"
+set "DEPLOY_ZIP=%TEMP%\hrms-deploy-%RANDOM%.zip"
 
 if not exist "%SSH_KEY%" (
     echo SSH key not found: %SSH_KEY%
     goto failed
 )
 
-echo === HRMS: GitHub push and SFTP deploy ===
+echo === HRMS: GitHub push and SSH deploy ===
 echo Project: %PROJECT_DIR%
 echo Server:  %REMOTE_BASE%
 echo.
@@ -27,7 +28,7 @@ if not defined MSG set "MSG=Update project"
 
 git add -A
 if errorlevel 1 goto failed
-REM Keep the machine-specific database config out of GitHub.
+REM Keep local database credentials out of GitHub.
 git restore --staged -- config/config.php
 if errorlevel 1 goto failed
 
@@ -45,23 +46,35 @@ git push origin main
 if errorlevel 1 goto failed
 
 echo.
-echo Preparing complete SFTP upload from tracked project files...
-powershell -NoProfile -Command "$root = '%PROJECT_DIR%'; $base = '%REMOTE_BASE%'; $out = '%SFTPCMD%'; $skip = '^(config/config\.php|logs/|uploads/|tools/|\.env|\.gitignore$|push-project\.bat$|deploy-live\.py$|install\.php$|README\.md$|DEPLOY\.md$|.*\.sql$|.*\.zip$)'; $files = @(git -C $root ls-files | Where-Object { $_ -notmatch $skip -and (Test-Path -LiteralPath (Join-Path $root ($_ -replace '/','\')) -PathType Leaf) }); if ($LASTEXITCODE -ne 0) { exit 2 }; $dirs = @{}; $cmds = New-Object 'System.Collections.Generic.List[string]'; $q = [char]34; foreach ($f in $files) { $parts = $f -split '/'; $p = ''; for ($i = 0; $i -lt $parts.Length - 1; $i++) { $p = if ($p) { $p + '/' + $parts[$i] } else { $parts[$i] }; $dirs[$p] = $true } }; foreach ($d in ($dirs.Keys | Sort-Object { ($_ -split '/').Length })) { [void]$cmds.Add('-mkdir ' + $q + $base + '/' + $d + $q) }; foreach ($f in $files) { $local = Join-Path $root ($f -replace '/','\'); [void]$cmds.Add('put ' + $q + $local + $q + ' ' + $q + $base + '/' + $f + $q) }; [void]$cmds.Add('bye'); [IO.File]::WriteAllLines($out, $cmds, [Text.Encoding]::ASCII)"
+echo Building production archive...
+php tools\build_scp_package.php "%DEPLOY_ZIP%"
 if errorlevel 1 goto failed
 
-echo Uploading app files to hosting...
-sftp -b "%SFTPCMD%" -i "%SSH_KEY%" -o BatchMode=yes %SSH_USER%
-if errorlevel 1 goto sftp_failed
-
-del "%SFTPCMD%" 2>nul
 echo.
-echo GitHub push and hosting upload completed successfully.
+echo Uploading archive with legacy SCP over SSH...
+scp -O -i "%SSH_KEY%" -o BatchMode=yes "%DEPLOY_ZIP%" %SSH_USER%:%REMOTE_ARCHIVE%
+if errorlevel 1 goto scp_failed
+
+echo.
+echo Extracting files into the verified hosting root...
+ssh -i "%SSH_KEY%" -o BatchMode=yes %SSH_USER% "python3 - %REMOTE_ARCHIVE%" < "%~dp0deploy-remote.py"
+if errorlevel 1 goto deploy_failed
+
+del "%DEPLOY_ZIP%" 2>nul
+echo.
+echo GitHub push and hosting deployment completed successfully.
 goto end
 
-:sftp_failed
-del "%SFTPCMD%" 2>nul
+:scp_failed
+del "%DEPLOY_ZIP%" 2>nul
 echo.
-echo SFTP upload failed. GitHub push completed, but hosting may be partially updated.
+echo SCP upload failed. GitHub push completed, but hosting was not updated.
+goto failed
+
+:deploy_failed
+del "%DEPLOY_ZIP%" 2>nul
+echo.
+echo Remote extraction failed. GitHub push completed; check server output.
 goto failed
 
 :failed
