@@ -56,18 +56,36 @@ if ($payment_date_raw !== '' && $payment_date === null) {
     jsonResponse(['success' => false, 'message' => t('error_occurred')]);
 }
 
+$payment = null;
+if ($status === 'paid' && $inv['lease_id'] && $paymentId) {
+    $payment = $paymentModel->find($paymentId);
+    if (!$payment || !tenantAccessible((int)$payment['tenant_id'])) {
+        jsonResponse(['success' => false, 'message' => t('access_denied')], 403);
+    }
+    if ((int)$payment['lease_id'] !== (int)$inv['lease_id']
+        || (int)$payment['month'] !== (int)$inv['month']
+        || (int)$payment['year'] !== (int)$inv['year']) {
+        jsonResponse(['success' => false, 'message' => t('error_occurred')]);
+    }
+}
+
 $invoiceModel->update($id, [
     'payment_status_override' => $status === 'auto' ? null : $status,
 ]);
 
 if ($status === 'paid' && $inv['lease_id']) {
-    $paymentModel->markFullyPaid(
-        (int)$inv['lease_id'],
-        (int)$inv['month'],
-        (int)$inv['year'],
-        'cash',
-        $payment_date
-    );
+    $leaseId = (int)$inv['lease_id'];
+    $month = (int)$inv['month'];
+    $year = (int)$inv['year'];
+    $remaining = max(0, (float)$inv['total_due'] - $paymentModel->sumForInvoice($leaseId, $month, $year));
+    if ($payment && $payment_date !== null && $remaining <= 0.009) {
+        // When the invoice is already fully paid, edit the specific payment
+        // row that the user selected instead of guessing which installment is latest.
+        $paymentModel->update((int)$payment['id'], ['payment_date' => $payment_date]);
+        $invoiceModel->update($id, ['paid_at' => $payment_date . ' 12:00:00']);
+    } else {
+        $paymentModel->markFullyPaid($leaseId, $month, $year, 'cash', $payment_date);
+    }
 }
 
 jsonResponse(['success' => true, 'message' => t('saved_success')]);

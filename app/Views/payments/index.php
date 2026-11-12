@@ -227,7 +227,7 @@ if (!isset($unpaidShopTotal)) $unpaidShopTotal = 0;
                                                 <li><button type="button" class="dropdown-item" data-action="mark-paid" data-id="<?php echo (int)$p['id']; ?>"><i class="bi bi-check2-circle me-2"></i><?php echo t('mark_fully_paid'); ?></button></li>
                                                 <?php endif; ?>
                                                 <?php if (!empty($p['invoice_id'])): ?>
-                                                <li><button type="button" class="dropdown-item" data-action="status" data-invoice="<?php echo (int)$p['invoice_id']; ?>" data-status="<?php echo e($invStatus ?: 'unpaid'); ?>"><i class="bi bi-arrow-repeat me-2"></i><?php echo t('payment_status'); ?></button></li>
+                                                <li><button type="button" class="dropdown-item" data-action="status" data-invoice="<?php echo (int)$p['invoice_id']; ?>" data-payment="<?php echo (int)$p['id']; ?>" data-status="<?php echo e($invStatus ?: 'unpaid'); ?>"><i class="bi bi-arrow-repeat me-2"></i><?php echo t('payment_status'); ?></button></li>
                                                 <?php else: ?>
                                                 <li><button type="button" class="dropdown-item" data-action="status" data-invoice="0" data-status="<?php echo e($invStatus ?: 'unpaid'); ?>" data-payment="<?php echo (int)$p['id']; ?>"><i class="bi bi-arrow-repeat me-2"></i><?php echo t('payment_status'); ?></button></li>
                                                 <?php endif; ?>
