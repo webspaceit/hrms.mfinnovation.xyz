@@ -28,7 +28,7 @@ powershell -NoProfile -Command ^
   "$cmds = @(); " ^
   "foreach ($f in $files) { " ^
   "  if ([string]::IsNullOrWhiteSpace($f)) { continue }; " ^
-  "  if ($f -match '^(config/config\.php|logs/|uploads/|\.git|oop-rms-deploy|_deploy-stage)') { continue }; " ^
+  "  if ($f -match '^(config/config\.php|logs/|uploads/|\.git|oop-rms-deploy|_deploy-stage|push-project\.bat|deploy-live\.py|.*\.bat$)') { continue }; " ^
   "  $local = '%PROJECT_DIR%\' + ($f -replace '/','\'); " ^
   "  $remote = '%REMOTE_BASE%/' + $f; " ^
   "  $parent = $f -replace '/[^/]*$',''; " ^
