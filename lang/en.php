@@ -187,6 +187,7 @@ return [
     'settlement_loading' => 'Calculating settlement…',
     'settlement_completed' => 'This lease has already been settled.',
     'settlement_end_date_not_reached' => 'Settlement can be confirmed on or after the lease end date.',
+    'settlement_future_preview_unavailable' => 'Final rent and advance totals will be calculated on or after the lease end date.',
     'settlement_shop_commercial_only' => 'Settlement is available for shops and commercial floors only.',
     'settlement_end_date_required' => 'Set a lease end date before calculating settlement.',
     'settlement_invalid_dates' => 'The lease end date must be on or after its start date.',

@@ -35,6 +35,17 @@ class LeaseSettlement extends BaseModel {
             throw new DomainException(t('settlement_invalid_dates'));
         }
 
+        $dhakaToday = new DateTimeImmutable('today', new DateTimeZone('Asia/Dhaka'));
+        if ($end->format('Y-m-d') > $dhakaToday->format('Y-m-d')) {
+            return [
+                'lease' => $lease,
+                'settled' => false,
+                'end_date' => $end->format('Y-m-d'),
+                'can_settle' => false,
+                'future_end_date' => true,
+            ];
+        }
+
         $monthStart = $end->modify('first day of this month')->setTime(0, 0);
         $monthEnd = $end->modify('last day of this month')->setTime(0, 0);
         $occupiedStart = $start > $monthStart ? $start : $monthStart;
@@ -49,13 +60,13 @@ class LeaseSettlement extends BaseModel {
         $endKey = $endYear * 100 + $endMonth;
 
         $rows = $this->db->fetchAll(
-            "SELECT i.id, i.month, i.year, i.rent_amount, i.total_due,
-                    COALESCE(p.paid_rent, 0) AS paid_rent,
+            "SELECT i.id, i.month, i.year, i.rent_amount, i.total_due, i.paid_amount AS invoice_paid,
+                    COALESCE(p.paid_total, 0) AS paid_total,
                     COALESCE(a.allocated_rent, 0) AS allocated_rent
              FROM invoices i
              LEFT JOIN (
-                 SELECT lease_id, month, year, SUM(amount) AS paid_rent
-                 FROM payments WHERE receipt_type = 'rent' GROUP BY lease_id, month, year
+                 SELECT lease_id, month, year, SUM(total_amount) AS paid_total
+                 FROM payments GROUP BY lease_id, month, year
              ) p ON p.lease_id = i.lease_id AND p.month = i.month AND p.year = i.year
              LEFT JOIN (
                  SELECT invoice_id, SUM(amount) AS allocated_rent
@@ -71,9 +82,9 @@ class LeaseSettlement extends BaseModel {
             ['l' => (int)$leaseId, 'm' => $endMonth, 'y' => $endYear]
         );
         $paymentsByMonth = $this->db->fetchAll(
-            "SELECT month, year, SUM(amount) AS paid_rent
+            "SELECT month, year, SUM(total_amount) AS paid_total
              FROM payments
-             WHERE lease_id = :l AND receipt_type = 'rent'
+             WHERE lease_id = :l
                AND (year * 100 + month) BETWEEN :start_key AND :end_key
              GROUP BY year, month",
             ['l' => (int)$leaseId, 'start_key' => $startKey, 'end_key' => $endKey]
@@ -81,7 +92,7 @@ class LeaseSettlement extends BaseModel {
         $paidByMonth = [];
         foreach ($paymentsByMonth as $paymentRow) {
             $key = ((int)$paymentRow['year'] * 100) + (int)$paymentRow['month'];
-            $paidByMonth[$key] = (float)$paymentRow['paid_rent'];
+            $paidByMonth[$key] = (float)$paymentRow['paid_total'];
         }
 
         $rowsByMonth = [];
@@ -89,6 +100,7 @@ class LeaseSettlement extends BaseModel {
             $key = ((int)$row['year'] * 100) + (int)$row['month'];
             $row['invoice_id'] = (int)$row['id'];
             $row['rent_due'] = $key === $endKey ? $proratedRent : (float)$row['rent_amount'];
+            $row['paid_rent'] = max((float)$row['invoice_paid'], (float)$row['paid_total']);
             $row['is_final_month'] = $key === $endKey;
             $row['needs_invoice'] = false;
             $rowsByMonth[$key] = $row;
@@ -138,8 +150,6 @@ class LeaseSettlement extends BaseModel {
         $advanceApplied = min($advance, max(0, $unpaidRent - $paymentCreditApplied));
         $refund = round(max(0, $advance - $advanceApplied) + max(0, $paymentCredit - $paymentCreditApplied), 2);
         $balanceDue = round(max(0, $unpaidRent - $paymentCreditApplied - $advanceApplied), 2);
-        $dhakaToday = new DateTimeImmutable('today', new DateTimeZone('Asia/Dhaka'));
-
         return [
             'lease' => $lease,
             'settled' => false,
@@ -156,7 +166,7 @@ class LeaseSettlement extends BaseModel {
             'advance_applied' => round($advanceApplied, 2),
             'refund_amount' => $refund,
             'balance_due' => $balanceDue,
-            'can_settle' => $end->format('Y-m-d') <= $dhakaToday->format('Y-m-d'),
+            'can_settle' => true,
             'rows' => $rows,
             'final_invoice' => $finalInvoice,
             'payment_credit_applied' => round($paymentCreditApplied, 2),

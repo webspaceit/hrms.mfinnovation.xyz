@@ -299,10 +299,15 @@ function openLeaseSettlement(id) {
             return;
         }
         const data = result.data;
-        const settlement = data.settled ? data.settlement : data;
         const lease = data.lease;
         document.getElementById("settlementLeaseLabel").textContent =
             (lease.tenant_name || "") + " · " + (lease.building_name || "") + " · " + (lease.flat_no || "");
+        if (data.future_end_date) {
+            message.className = "alert alert-warning py-2";
+            message.textContent = ' . json_encode(t('settlement_future_preview_unavailable')) . ';
+            return;
+        }
+        const settlement = data.settled ? data.settlement : data;
         document.getElementById("settlementEndDate").textContent = settlement.end_date || "—";
         document.getElementById("settlementProratedRent").textContent = formatMoney(settlement.prorated_rent || 0);
         document.getElementById("settlementDays").textContent =

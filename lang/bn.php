@@ -187,6 +187,7 @@ return [
     'settlement_loading' => 'হিসাব করা হচ্ছে…',
     'settlement_completed' => 'এই লিজের হিসাব ইতিমধ্যে সম্পন্ন হয়েছে।',
     'settlement_end_date_not_reached' => 'লিজ শেষের তারিখে বা তার পরে হিসাব নিশ্চিত করা যাবে।',
+    'settlement_future_preview_unavailable' => 'লিজ শেষের তারিখে বা তার পরে শেষ ভাড়া ও অগ্রিমের হিসাব করা যাবে।',
     'settlement_shop_commercial_only' => 'শুধু দোকান ও বাণিজ্যিক তলার জন্য এই হিসাব প্রযোজ্য।',
     'settlement_end_date_required' => 'হিসাবের আগে লিজের শেষের তারিখ দিন।',
     'settlement_invalid_dates' => 'লিজের শেষের তারিখ শুরুর তারিখের আগে হতে পারে না।',

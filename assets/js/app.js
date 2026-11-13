@@ -239,7 +239,7 @@ function toBengaliFlat(str) {
 
 // Convert Bengali numerals back to ASCII digits
 function toAsciiDigits(str) {
-    return String(str || '').replace(/[০-৯]/g, function (d) {
+    return String(str ?? '').replace(/[০-৯]/g, function (d) {
         return '0123456789'['০১২৩৪৫৬৭৮৯'.indexOf(d)];
     });
 }
@@ -512,7 +512,8 @@ function submitModalForm(formId, url, onSuccess) {
 
 // ---- Number / currency formatting ----
 function formatMoney(amount) {
-    const ascii = parseFloat(toAsciiDigits(amount)).toFixed(2);
+    const parsed = parseFloat(toAsciiDigits(amount));
+    const ascii = (Number.isFinite(parsed) ? parsed : 0).toFixed(2);
     const digits = document.documentElement.lang === 'bn' ? toBengaliDigits(ascii) : ascii;
     return '৳' + digits;
 }
