@@ -21,6 +21,12 @@ return [
     'logout'         => 'Logout',
     'login'          => 'Login',
     'front_page'     => 'Front Page',
+    'admin_panel'    => 'Admin Panel',
+
+    // Sidebar section headings
+    'nav_overview'       => 'Overview',
+    'nav_finance'        => 'Finance',
+    'nav_administration' => 'Administration',
 
     // Landing page
     'landing_tagline'        => 'Manage Your Rental Properties in One Place',

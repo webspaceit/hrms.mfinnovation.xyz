@@ -46,7 +46,15 @@ $langLabels = [
 <script>
 document.getElementById('settingsForm').addEventListener('submit', function (e) {
     e.preventDefault();
-    submitModalForm('settingsForm', BASE_URL + 'ajax/settings_save.php');
+    var lang = document.getElementById('default_language').value;
+    submitModalForm('settingsForm', BASE_URL + 'ajax/settings_save.php', function () {
+        // The default only applies to browsers that have not picked a language
+        // themselves, so the admin who just saved it would otherwise still see
+        // their own older choice (session/cookie rms_lang) and think the save
+        // did nothing. Switch this browser too, like the topbar's
+        // "set as site default" action already does (setDefaultLanguage()).
+        setTimeout(function () { setLanguage(lang); }, 700);
+    });
 });
 </script>
 

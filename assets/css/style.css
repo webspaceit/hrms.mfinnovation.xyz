@@ -17,12 +17,7 @@
     --primary-800: #004929;
     --primary-900: #003820;
 
-    --sidebar-from: #007c47;
-    --sidebar-via: #00673c;
-    --sidebar-to: #003d23;
-    --sidebar-bg: #007c47;
-    --sidebar-active: rgba(255, 255, 255, 0.14);
-    --sidebar-text: #eaf7f0;
+    /* Sidebar surface tokens live on .sidebar itself (see below). */
     --topbar-bg: #ffffff;
     --main-bg: #f4f7f5;
     --primary: #007c47;
@@ -56,10 +51,21 @@ html[lang="bn"] .form-select {
     font-family: 'Noto Serif Bengali', 'Noto Sans Bengali', serif;
 }
 
-/* Prevent horizontal overflow on all pages */
+/* Prevent horizontal overflow on all pages.
+   overflow-x: hidden turns <body> into its own scroll container, and that
+   silently disables position: sticky for everything inside it - the sidebar
+   and the topbar both scrolled away instead of pinning. overflow-x: clip
+   clips identically without creating a scroll container. */
 html,
 body {
     overflow-x: hidden;
+}
+
+@supports (overflow-x: clip) {
+    html,
+    body {
+        overflow-x: clip;
+    }
 }
 
 /* ---------- Reset anchors ---------- */
@@ -79,62 +85,326 @@ a:hover {
 }
 
 .sidebar {
-    width: 260px;
-    min-width: 260px;
-    background: linear-gradient(180deg, var(--sidebar-from) 0%, var(--sidebar-via) 50%, var(--sidebar-to) 100%);
-    min-height: 100vh;
-    position: relative;
+    /* Width is a variable so the responsive breakpoints can retune it without
+       repeating the calc() used by the mobile off-canvas offset. */
+    --sidebar-w: 264px;
+
+    /* Sidebar surface tokens. Local to the sidebar so the rest of the theme
+       (cards, tables, buttons) keeps its own emerald scale. */
+    --sidebar-ink: #d3e7dd;
+    --sidebar-ink-dim: rgba(211, 231, 221, 0.62);
+    --sidebar-line: rgba(255, 255, 255, 0.08);
+    --sidebar-accent: #34d399;
+
+    width: var(--sidebar-w);
+    min-width: var(--sidebar-w);
+    /* Deep forest gradient plus a soft top-left glow: reads as a distinct
+       panel instead of one flat green rectangle. */
+    background:
+        radial-gradient(120% 55% at 0% 0%, rgba(52, 211, 153, 0.16) 0%, rgba(52, 211, 153, 0) 62%),
+        linear-gradient(180deg, #0b3b2a 0%, #07281d 58%, #052018 100%);
+    color: var(--sidebar-ink);
+    height: 100vh;
+    position: sticky;
     top: 0;
-    overflow-y: auto;
-    transition: margin-left 0.3s;
+    display: flex;
+    flex-direction: column;
+    /* The nav scrolls, the panel does not: that keeps the account card pinned
+       to the bottom on short viewports instead of scrolling out of reach. */
+    overflow: hidden;
+    border-right: 1px solid var(--sidebar-line);
+    transition: margin-left 0.3s ease;
     z-index: 1030;
 }
 
 .sidebar-header {
-    padding: 1.25rem;
-    background: rgba(255, 255, 255, 0.05);
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    gap: 0.7rem;
+    padding: 1.05rem 1rem 1.05rem 1.1rem;
+    border-bottom: 1px solid var(--sidebar-line);
+    background: rgba(0, 0, 0, 0.12);
+}
+
+.sidebar-brand-link {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    min-width: 0;
+    text-decoration: none;
+}
+
+.sidebar-brand-link:hover {
+    text-decoration: none;
+}
+
+.sidebar-logo {
+    flex: 0 0 38px;
+    width: 38px;
+    height: 38px;
+    display: grid;
+    place-items: center;
+    border-radius: 11px;
+    font-size: 1.05rem;
+    color: #fff;
+    background: linear-gradient(145deg, #18a86c 0%, #036c46 100%);
+    box-shadow: 0 6px 14px -6px rgba(3, 108, 70, 0.9), inset 0 1px 0 rgba(255, 255, 255, 0.28);
+}
+
+.sidebar-brand-wrap {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    line-height: 1.2;
 }
 
 .sidebar-brand {
+    font-weight: 600;
+    font-size: 0.88rem;
+    color: #fff;
+    letter-spacing: -0.005em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.sidebar-brand-sub {
+    margin-top: 0.22rem;
+    font-size: 0.63rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: rgba(206, 232, 220, 0.5);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Letter-spacing breaks Bengali shaping, so the small caps tracking is
+   dropped for the Bengali UI. */
+html[lang="bn"] .sidebar-brand-sub {
+    letter-spacing: 0.02em;
+}
+
+.sidebar-nav {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 0.85rem 0.65rem 1rem;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.16) transparent;
+}
+
+.sidebar-nav::-webkit-scrollbar {
+    width: 6px;
+}
+
+.sidebar-nav::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.16);
+    border-radius: 99px;
+}
+
+.sidebar-nav::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+/* The tenant portal still puts a plain <nav> directly in the panel; keep that
+   markup scrollable too now that the panel itself no longer scrolls. */
+.sidebar > nav {
+    min-height: 0;
+    overflow-y: auto;
+}
+
+.sidebar-section {
+    padding: 0.95rem 0.6rem 0.4rem;
+    font-size: 0.63rem;
     font-weight: 700;
-    font-size: 1.05rem;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    /* Solid muted green rather than a low-alpha white: the translucent version
+       measured ~2.7:1 on the panel, which is below comfortable reading. */
+    color: #93b3a5;
+}
+
+.sidebar-section:first-child {
+    padding-top: 0.25rem;
+}
+
+html[lang="bn"] .sidebar-section {
+    letter-spacing: 0.02em;
+    font-size: 0.68rem;
 }
 
 .sidebar .nav-link {
-    color: var(--sidebar-text);
-    padding: 0.75rem 1.5rem;
-    font-size: 0.95rem;
-    border-left: 3px solid transparent;
+    position: relative;
     display: flex;
     align-items: center;
-    gap: 0.75rem;
-    transition: all 0.2s;
+    gap: 0.7rem;
+    padding: 0.56rem 0.6rem;
+    border-radius: 9px;
+    color: var(--sidebar-ink);
+    font-size: 0.89rem;
+    line-height: 1.3;
+    transition: background-color 0.18s ease, color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.sidebar .nav-link span {
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
 }
 
 .sidebar .nav-link i {
-    font-size: 1.1rem;
-    width: 1.25rem;
+    flex: 0 0 auto;
+    width: 1.15rem;
+    font-size: 1rem;
+    text-align: center;
+    color: var(--sidebar-ink-dim);
+    transition: color 0.18s ease;
 }
 
 .sidebar .nav-link:hover {
     color: #fff;
-    background: rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.06);
     text-decoration: none;
+}
+
+.sidebar .nav-link:hover i {
+    color: #fff;
 }
 
 .sidebar .nav-link.active {
     color: #fff;
-    background: var(--sidebar-active);
-    border-left-color: #fff;
+    font-weight: 600;
+    background: linear-gradient(90deg, rgba(52, 211, 153, 0.22) 0%, rgba(52, 211, 153, 0.05) 100%);
+    box-shadow: inset 0 0 0 1px rgba(52, 211, 153, 0.24);
+}
+
+.sidebar .nav-link.active i {
+    color: var(--sidebar-accent);
+}
+
+/* Accent bar sits inside the rounded pill, so the active row no longer nudges
+   its label the way the old 3px border-left did. */
+.sidebar .nav-link.active::before {
+    content: "";
+    position: absolute;
+    left: 0.15rem;
+    top: 50%;
+    width: 3px;
+    height: 1.15rem;
+    transform: translateY(-50%);
+    border-radius: 99px;
+    background: var(--sidebar-accent);
+    box-shadow: 0 0 10px rgba(52, 211, 153, 0.75);
+}
+
+.sidebar .nav-link:focus-visible {
+    outline: 2px solid var(--sidebar-accent);
+    outline-offset: 2px;
+}
+
+.sidebar .nav-link.active:focus-visible {
+    outline-offset: 0;
+}
+
+/* Destructive action (logout) stays legible on the dark surface */
+.sidebar .nav-link.text-danger {
+    color: #fca5a5;
+}
+
+.sidebar .nav-link.text-danger i {
+    color: #fca5a5;
+}
+
+.sidebar .nav-link.text-danger:hover {
+    color: #fff;
+    background: rgba(239, 68, 68, 0.16);
 }
 
 .sidebar-divider {
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-    margin: 0.5rem 1rem;
+    border-top: 1px solid var(--sidebar-line);
+    margin: 0.45rem 0.55rem;
+}
+
+/* ---------- Sidebar footer (signed-in user) ---------- */
+.sidebar-footer {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.7rem 0.75rem;
+    border-top: 1px solid var(--sidebar-line);
+    background: rgba(0, 0, 0, 0.16);
+}
+
+.sidebar-user {
+    flex: 1 1 auto;
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+    min-width: 0;
+}
+
+.sidebar-avatar {
+    flex: 0 0 32px;
+    width: 32px;
+    height: 32px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    color: #fff;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+}
+
+.sidebar-user-meta {
+    min-width: 0;
+    line-height: 1.25;
+}
+
+.sidebar-user-name {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    font-size: 0.79rem;
+    font-weight: 600;
+    color: #fff;
+    overflow: hidden;
+}
+
+.sidebar-user-role {
+    display: block;
+    font-size: 0.68rem;
+    color: #9dbdb0;
+}
+
+.sidebar-logout {
+    flex: 0 0 32px;
+    width: 32px;
+    height: 32px;
+    display: grid;
+    place-items: center;
+    border-radius: 8px;
+    color: #fca5a5;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    transition: background-color 0.18s ease, color 0.18s ease, border-color 0.18s ease;
+}
+
+.sidebar-logout:hover {
+    color: #fff;
+    background: rgba(239, 68, 68, 0.22);
+    border-color: rgba(239, 68, 68, 0.4);
+    text-decoration: none;
 }
 
 .sidebar-backdrop {
@@ -149,16 +419,14 @@ a:hover {
     display: block;
 }
 
-/* Mobile sidebar */
+/* Mobile sidebar (off-canvas) */
 @media (max-width: 767.98px) {
     .sidebar {
-        margin-left: -260px;
         position: fixed;
         left: 0;
         top: 0;
-        box-shadow: 0 0 24px rgba(0, 0, 0, 0.25);
-        width: 260px;
-        min-width: 260px;
+        margin-left: calc(-1 * var(--sidebar-w));
+        box-shadow: 0 0 40px rgba(0, 0, 0, 0.4);
     }
 
     .sidebar.show {
@@ -166,71 +434,54 @@ a:hover {
     }
 
     .sidebar-header {
-        padding: 1rem 1.25rem;
+        padding: 0.95rem 1rem;
     }
 
-    .sidebar-brand {
-        font-size: 0.95rem;
+    .sidebar-nav {
+        padding: 0.7rem 0.6rem 0.9rem;
     }
 
     .sidebar .nav-link {
-        padding: 0.85rem 1.25rem;
-        font-size: 1rem;
+        padding: 0.66rem 0.7rem;
+        font-size: 0.95rem;
         gap: 0.75rem;
-        min-height: 48px;
-        border-left: 3px solid transparent;
+        min-height: 46px;
     }
 
     .sidebar .nav-link i {
-        font-size: 1.15rem;
-        width: 1.35rem;
+        font-size: 1.1rem;
+        width: 1.3rem;
     }
 
     .sidebar .nav-link:hover {
-        background: rgba(255, 255, 255, 0.12);
+        background: rgba(255, 255, 255, 0.09);
     }
 
     .sidebar .nav-link.active {
-        background: rgba(255, 255, 255, 0.2);
-        font-weight: 600;
+        background: linear-gradient(90deg, rgba(52, 211, 153, 0.26) 0%, rgba(52, 211, 153, 0.06) 100%);
     }
 }
 
-/* Small/medium screens: keep links comfortable, never cramped */
+/* Small/medium screens: narrower panel, same rhythm */
 @media (min-width: 768px) and (max-width: 1199.98px) {
     .sidebar {
-        width: 240px;
-        min-width: 240px;
+        --sidebar-w: 244px;
     }
 
     .sidebar .nav-link {
-        padding: 0.75rem 1.25rem;
-        font-size: 0.93rem;
-        gap: 0.65rem;
-    }
-
-    .sidebar .nav-link i {
-        font-size: 1.05rem;
-        width: 1.2rem;
+        font-size: 0.86rem;
+        gap: 0.6rem;
     }
 }
 
-/* Extra small phones: smaller sidebar */
+/* Extra small phones */
 @media (max-width: 400px) {
     .sidebar {
-        width: 240px;
-        min-width: 240px;
+        --sidebar-w: 238px;
     }
 
     .sidebar .nav-link {
-        padding: 0.8rem 1rem;
-        font-size: 0.95rem;
-        gap: 0.6rem;
-    }
-
-    .sidebar .nav-link i {
-        font-size: 1.05rem;
-        width: 1.2rem;
+        font-size: 0.9rem;
     }
 }
 

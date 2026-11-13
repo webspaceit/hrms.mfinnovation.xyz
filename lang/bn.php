@@ -21,6 +21,12 @@ return [
     'logout'         => 'লগ আউট',
     'login'          => 'লগইন',
     'front_page'     => 'সামনের পৃষ্ঠা',
+    'admin_panel'    => 'অ্যাডমিন প্যানেল',
+
+    // Sidebar section headings
+    'nav_overview'       => 'সারসংক্ষেপ',
+    'nav_finance'        => 'হিসাব-নিকাশ',
+    'nav_administration' => 'প্রশাসন',
 
     // Landing page
     'landing_tagline'        => 'এক জায়গায় পরিচালনা করুন আপনার ভাড়ার সম্পত্তি',
