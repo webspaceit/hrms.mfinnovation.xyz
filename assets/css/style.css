@@ -1207,6 +1207,10 @@ a:hover {
     left: auto;
 }
 
+.settings-language-select {
+    max-width: 260px;
+}
+
 .dropdown-item {
     position: relative;
     display: flex;

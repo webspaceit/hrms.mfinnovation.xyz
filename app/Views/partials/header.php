@@ -4,6 +4,7 @@
 // through inc/header.php). Nav links use routes (url()).
 // ============================================================
 $currentLang = Lang::current();
+$defaultLang = Lang::defaultLang();
 $langSuffix = '?lang=' . $currentLang;
 $pageTitle = isset($pageTitle) ? $pageTitle . ' - ' . t('app_name') : t('app_name');
 $user = Auth::user();
@@ -29,6 +30,17 @@ $user = Auth::user();
     <script src="<?php echo url('assets/js/app.js'); ?>" defer></script>
 </head>
 <body class="bg-[#f4f7f5]">
+<script>
+function setDefaultLanguage(lang) {
+    ajax(BASE_URL + "ajax/settings_save.php", { language: lang }, function (result) {
+        if (result.success) {
+            setLanguage(lang);
+        } else {
+            showToast(result.message || "Could not save the default language", "danger");
+        }
+    });
+}
+</script>
 <div class="flex" id="wrapper">
     <!-- Mobile sidebar backdrop -->
     <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="toggleSidebar()"></div>
@@ -111,6 +123,16 @@ $user = Auth::user();
                         <li><a class="dropdown-item <?php echo $currentLang === 'bn' ? 'active' : ''; ?>" href="javascript:void(0)" onclick="setLanguage('bn')">
                             <i class="bi bi-check-circle mr-1"></i> <?php echo t('bengali'); ?>
                         </a></li>
+                        <?php if (($user['role'] ?? '') === 'admin'): ?>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><span class="dropdown-item-text small text-muted"><?php echo t('default_language'); ?>: <?php echo $defaultLang === 'bn' ? t('bengali') : t('english'); ?></span></li>
+                        <li><a class="dropdown-item" href="javascript:void(0)" onclick="setDefaultLanguage('bn')">
+                            <i class="bi bi-globe mr-1"></i> <?php echo t('set_bengali_default'); ?>
+                        </a></li>
+                        <li><a class="dropdown-item" href="javascript:void(0)" onclick="setDefaultLanguage('en')">
+                            <i class="bi bi-globe mr-1"></i> <?php echo t('set_english_default'); ?>
+                        </a></li>
+                        <?php endif; ?>
                     </ul>
                 </div>
 

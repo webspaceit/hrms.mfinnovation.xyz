@@ -281,6 +281,8 @@ return [
     'language'       => 'Language',
     'default_language' => 'Default language',
     'default_language_hint' => 'The language visitors see when they have not chosen one themselves. A language picked from the top bar stays on that browser only.',
+    'set_bengali_default' => 'Set Bengali as site default',
+    'set_english_default' => 'Set English as site default',
 
     // Misc
     'welcome'        => 'Welcome',

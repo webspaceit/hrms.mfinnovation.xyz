@@ -13,7 +13,7 @@ $langLabels = [
 </div>
 
 <div class="row fade-in">
-    <div class="col-lg-8">
+    <div class="col-lg-6 col-xl-5">
         <div class="card">
             <div class="card-header bg-white">
                 <i class="bi bi-translate mr-1"></i> <?php echo t('language'); ?>
@@ -25,7 +25,7 @@ $langLabels = [
                         <label for="default_language" class="form-label fw-semibold">
                             <?php echo t('default_language'); ?>
                         </label>
-                        <select class="form-select" id="default_language" name="language">
+                        <select class="form-select settings-language-select" id="default_language" name="language">
                             <?php foreach ($langLabels as $val => $label): ?>
                                 <option value="<?php echo e($val); ?>" <?php echo $defaultLanguage === $val ? 'selected' : ''; ?>>
                                     <?php echo e($label); ?>
