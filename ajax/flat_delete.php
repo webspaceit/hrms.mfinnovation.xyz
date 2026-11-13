@@ -11,7 +11,12 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST' || empty(post('id'))) {
     jsonResponse(['success' => false, 'message' => 'Invalid request'], 400);
 }
 
+$flatId = (int)post('id');
+if (!flatAccessible($flatId)) {
+    jsonResponse(['success' => false, 'message' => t('access_denied')]);
+}
+
 $flatModel = new Flat();
-$flatModel->delete((int)post('id'));
+$flatModel->delete($flatId);
 
 jsonResponse(['success' => true, 'message' => t('deleted_success')]);

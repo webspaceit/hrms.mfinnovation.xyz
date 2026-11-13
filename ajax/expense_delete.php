@@ -11,7 +11,12 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST' || empty(post('id'))) {
     jsonResponse(['success' => false, 'message' => 'Invalid request'], 400);
 }
 
+$expenseId = (int)post('id');
+if (!expenseAccessible($expenseId)) {
+    jsonResponse(['success' => false, 'message' => t('access_denied')]);
+}
+
 $expenseModel = new Expense();
-$expenseModel->delete((int)post('id'));
+$expenseModel->delete($expenseId);
 
 jsonResponse(['success' => true, 'message' => t('deleted_success')]);

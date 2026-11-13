@@ -289,7 +289,7 @@ class Payment extends BaseModel {
      */
     public function reconcileAllForMonth($month, $year) {
         $rows = $this->db->fetchAll(
-            "SELECT id, lease_id FROM invoices WHERE month = :m AND year = :y",
+            "SELECT i.id, i.lease_id FROM invoices i JOIN tenants t ON t.id = i.tenant_id WHERE i.month = :m AND i.year = :y" . tenantScope('t'),
             ['m' => $month, 'y' => $year]
         );
         $count = 0;

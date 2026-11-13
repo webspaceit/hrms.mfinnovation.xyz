@@ -176,6 +176,11 @@ CREATE TABLE IF NOT EXISTS `wsit_invoice_sends` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ------------------------------------------------------------
+-- Expenses (landlord ownership)
+-- ------------------------------------------------------------
+CALL rms_add_col('wsit_expenses', 'created_by', 'INT(11) DEFAULT NULL COMMENT ''User that entered the expense (landlords only see their own)''');
+
+-- ------------------------------------------------------------
 -- Cleanup (helper procedures are no longer needed)
 -- ------------------------------------------------------------
 DROP PROCEDURE IF EXISTS `rms_add_col`;

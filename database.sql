@@ -226,6 +226,7 @@ CREATE TABLE IF NOT EXISTS `wsit_expenses` (
   `description` VARCHAR(255) DEFAULT NULL,
   `amount` DECIMAL(10,2) NOT NULL DEFAULT 0,
   `expense_date` DATE NOT NULL,
+  `created_by` INT(11) DEFAULT NULL COMMENT 'User that entered the expense (landlords only see their own)',
   `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

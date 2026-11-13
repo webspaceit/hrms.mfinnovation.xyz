@@ -17,6 +17,10 @@ if (!$data) {
     jsonResponse(['success' => false, 'message' => 'Not found']);
 }
 
+if (!expenseAccessible((int)$data['id'])) {
+    jsonResponse(['success' => false, 'message' => 'Not found']);
+}
+
 foreach (['amount'] as $k) {
     if (isset($data[$k]) && $data[$k] !== null) {
         $data[$k] = bnNumeral($data[$k]);

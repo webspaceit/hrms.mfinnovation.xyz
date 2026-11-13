@@ -54,7 +54,7 @@ function lang() {
  */
 function plural($n, $singular, $plural = null) {
     if ($plural === null) {
-        return (int)$n === 1 ? $singular : $singular;
+        $plural = $singular . 's';
     }
     return (int)$n === 1 ? $singular : $plural;
 }
@@ -122,7 +122,7 @@ function statusBadge($status) {
     }
     return [
         'class' => $class,
-        'label' => t($status, ucfirst($status))
+        'label' => e(t($status, ucfirst($status)))
     ];
 }
 
@@ -224,8 +224,11 @@ function postArray($key): array {
  * Generate and store CSRF token in session
  */
 function csrf_token() {
-    if (empty($_SESSION[CSRF_TOKEN_NAME])) {
+    $expiry = defined('CSRF_TOKEN_EXPIRY') ? (int)CSRF_TOKEN_EXPIRY : 3600;
+    $created = (int)($_SESSION[CSRF_TOKEN_NAME . '_time'] ?? 0);
+    if (empty($_SESSION[CSRF_TOKEN_NAME]) || $created === 0 || (time() - $created) > $expiry) {
         $_SESSION[CSRF_TOKEN_NAME] = bin2hex(random_bytes(32));
+        $_SESSION[CSRF_TOKEN_NAME . '_time'] = time();
     }
     return $_SESSION[CSRF_TOKEN_NAME];
 }
@@ -234,7 +237,12 @@ function csrf_token() {
  * Verify CSRF token from request
  */
 function csrf_verify($token = null) {
+    $expiry = defined('CSRF_TOKEN_EXPIRY') ? (int)CSRF_TOKEN_EXPIRY : 3600;
     $expected = $_SESSION[CSRF_TOKEN_NAME] ?? '';
+    $created = (int)($_SESSION[CSRF_TOKEN_NAME . '_time'] ?? 0);
+    if ($expected === '' || $created === 0 || (time() - $created) > $expiry) {
+        return false;
+    }
     $provided = $token ?? ($_POST[CSRF_TOKEN_NAME] ?? ($_GET[CSRF_TOKEN_NAME] ?? ''));
     return hash_equals($expected, (string)$provided);
 }
@@ -475,11 +483,6 @@ function translateText($text, $from, $to) {
             CURLOPT_FOLLOWLOCATION => true,
         ]);
         $raw = curl_exec($ch);
-        if ($raw === false) {
-            // Local dev box lacks a CA bundle; retry with verification off
-            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
-            $raw = curl_exec($ch);
-        }
         $code = curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
         if ($code == 200 && $raw) {
             $j = json_decode($raw, true);
@@ -489,7 +492,7 @@ function translateText($text, $from, $to) {
             }
         }
     } else {
-        $ctx = stream_context_create(['ssl' => ['verify_peer' => false, 'verify_peer_name' => false]]);
+        $ctx = stream_context_create(['ssl' => ['verify_peer' => true, 'verify_peer_name' => true]]);
         $raw = @file_get_contents($url, false, $ctx);
         if ($raw) {
             $j = json_decode($raw, true);
@@ -1217,4 +1220,72 @@ function buildingScope($alias = 'b') {
     $uid = (int)Auth::id(); // inline int - injection-proof
     $col = $alias === '' ? 'id' : "$alias.id";
     return " AND $col IN (SELECT DISTINCT f.building_id FROM flats f JOIN leases l ON l.flat_id = f.id JOIN tenants t ON t.id = l.tenant_id WHERE t.created_by = $uid)";
+}
+
+/**
+ * Can the current user manage (view/edit/delete) the given building?
+ * Admins can manage every building; landlords only buildings that contain a
+ * unit leased to a tenant they entered.
+ */
+function buildingAccessible($buildingId) {
+    if (Auth::role() === 'admin') {
+        return true;
+    }
+    return (int)Database::getInstance()->fetchColumn(
+        "SELECT COUNT(*) FROM buildings b
+         JOIN flats f ON f.building_id = b.id
+         JOIN leases l ON l.flat_id = f.id
+         JOIN tenants t ON t.id = l.tenant_id
+         WHERE b.id = :id AND t.created_by = :uid",
+        ['id' => (int)$buildingId, 'uid' => (int)Auth::id()]
+    ) > 0;
+}
+
+/**
+ * Can the current user manage (view/edit/delete) the given flat?
+ * Admins can manage every flat; landlords only flats leased to a tenant they
+ * entered.
+ */
+function flatAccessible($flatId) {
+    if (Auth::role() === 'admin') {
+        return true;
+    }
+    return (int)Database::getInstance()->fetchColumn(
+        "SELECT COUNT(*) FROM flats f
+         JOIN leases l ON l.flat_id = f.id
+         JOIN tenants t ON t.id = l.tenant_id
+         WHERE f.id = :id AND t.created_by = :uid",
+        ['id' => (int)$flatId, 'uid' => (int)Auth::id()]
+    ) > 0;
+}
+
+/**
+ * Landlord data-scoping SQL fragment for expenses. Admins and anonymous
+ * sessions are unrestricted; a landlord only sees expenses they entered
+ * (expenses.created_by).
+ *
+ * @param string $alias Alias of the expenses table in the query; pass '' when
+ *                      the query does not alias its expenses table.
+ * @return string SQL fragment to append ('' when no restriction applies).
+ */
+function expenseScope($alias = 'e') {
+    if (!Auth::check() || Auth::role() === 'admin') {
+        return '';
+    }
+    $uid = (int)Auth::id();
+    return $alias === '' ? " AND created_by = $uid" : " AND $alias.created_by = $uid";
+}
+
+/**
+ * Can the current user manage (view/edit/delete) the given expense?
+ * Admins can manage every expense; landlords only the expenses they entered.
+ */
+function expenseAccessible($expenseId) {
+    if (Auth::role() === 'admin') {
+        return true;
+    }
+    return (int)Database::getInstance()->fetchColumn(
+        "SELECT COUNT(*) FROM expenses WHERE id = :id AND created_by = :uid",
+        ['id' => (int)$expenseId, 'uid' => (int)Auth::id()]
+    ) > 0;
 }

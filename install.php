@@ -26,6 +26,33 @@ $stepChosenByAction = false;
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = post('action');
 
+    // Security guard: once an admin user exists the system is considered
+    // installed, and both the schema install and the admin-creation actions
+    // are refused unless the operator supplies a secret configured in
+    // config/config.php (INSTALL_TOKEN). Without this, anyone could POST
+    // action=create_admin to overwrite the admin password.
+    $installToken   = defined('INSTALL_TOKEN') ? INSTALL_TOKEN : '';
+    $installTokenOk = $installToken !== '' && hash_equals($installToken, post('install_token', ''));
+
+    $alreadyInstalled = false;
+    try {
+        $guardPdo = new PDO(
+            "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=utf8mb4",
+            DB_USER,
+            DB_PASS,
+            [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
+        );
+        $alreadyInstalled = (bool)$guardPdo->query(Database::prefix("SELECT COUNT(*) FROM users WHERE role = 'admin'"))->fetchColumn();
+    } catch (Exception $e) {
+        // Database not reachable / not installed yet - allow the action to proceed.
+    }
+
+    if ($alreadyInstalled && !$installTokenOk && ($action === 'install' || $action === 'create_admin')) {
+        $errors[] = 'Installer is locked: the system is already installed. '
+            . 'To reinstall, define INSTALL_TOKEN in config/config.php and submit it as install_token.';
+        $action = '';
+    }
+
     if ($action === 'install') {
         try {
             $pdo = new PDO(
@@ -264,7 +291,7 @@ if (!$stepChosenByAction) {
                     <p class="mb-0 mt-2">The system is already installed. Re-running the installer will destroy all data.</p>
                 </div>
                 <p class="text-muted small">
-                    To force re-installation (DESTROYS DATA), visit: <code>install.php?force=yes</code>
+                    The system is already installed. For security, delete <code>install.php</code> now.
                 </p>
                 <a href="login" class="btn btn-primary mt-3"><i class="bi bi-box-arrow-in-right mr-1"></i> Go to Login</a>
             <?php endif; ?>

@@ -42,6 +42,9 @@ class Auth {
         Session::set('role', $user['role'] ?? 'landlord');
         Session::set('logged_in', true);
 
+        // Regenerate the session id on privilege change to prevent session fixation.
+        session_regenerate_id(true);
+
         return ['success' => true, 'message' => 'Logged in successfully'];
     }
 
@@ -73,6 +76,9 @@ class Auth {
         Session::set('tenant_id', (int)$tenant['id']);
         Session::set('tenant_name', $tenant['name']);
         Session::set('tenant_logged_in', true);
+
+        // Regenerate the session id on privilege change to prevent session fixation.
+        session_regenerate_id(true);
 
         $tenantModel->touchPortalLogin((int)$tenant['id']);
 

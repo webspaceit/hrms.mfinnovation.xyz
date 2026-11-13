@@ -187,7 +187,7 @@ if (!isset($unpaidShopTotal)) $unpaidShopTotal = 0;
                                 <?php endif; ?>
                             </td>
                             <td><?php echo monthName($p['month']) . ' ' . bnNumeral($p['year']); ?></td>
-                                <td><?php echo $isDue ? '<span class="text-muted">&mdash;</span>' : '<span class="badge bg-light text-dark border">' . t($p['payment_method'], $p['payment_method']) . '</span>'; ?></td>
+                                <td><?php echo $isDue ? '<span class="text-muted">&mdash;</span>' : '<span class="badge bg-light text-dark border">' . e(t($p['payment_method'], $p['payment_method'])) . '</span>'; ?></td>
                                 <td class="fw-semibold <?php echo $isDue ? 'text-danger' : 'text-success'; ?>"><?php echo money($p['total_amount']); ?></td>
                                 <td class="whitespace-nowrap">
                                     <?php if ($isDue): ?>

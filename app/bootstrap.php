@@ -25,10 +25,12 @@
 //
 // Everything is still logged. Now additionally: every error
 // records file/line, uncaught throwables are caught and reported
-// instead of truncating, and ?debug=1 on any URL renders full
-// details in the page.
+// instead of truncating, and APP_DEBUG=1 (server environment) renders
+// full details in the page.
 // ------------------------------------------------------------
-$appDebug = isset($_GET['debug']) && $_GET['debug'] === '1';
+// Debug mode is opt-in via the server environment, not a URL query string, so
+// visitors cannot force error disclosure by appending ?debug=1.
+$appDebug = (getenv('APP_DEBUG') === '1');
 error_reporting(E_ALL);
 ini_set('display_errors', $appDebug ? '1' : '0');
 
@@ -75,9 +77,7 @@ set_exception_handler(function (Throwable $e) use ($appDebug): void {
             . '</pre>';
     } else {
         echo '<div style="background:#fee;border:1px solid #c00;padding:12px;color:#900">'
-            . '<b>Server error:</b> ' . htmlspecialchars($e->getMessage(), ENT_QUOTES) . '<br>'
-            . '<small>' . htmlspecialchars($e->getFile() . ' line ' . $e->getLine(), ENT_QUOTES) . '</small><br>'
-            . 'Add <code>?debug=1</code> to the URL to see the details, or check <code>logs/error.log</code>.'
+            . '<b>Server error.</b> Please try again later or check <code>logs/error.log</code>.'
             . '</div>';
     }
     exit;

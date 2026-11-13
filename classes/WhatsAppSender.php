@@ -38,7 +38,8 @@ class WhatsAppSender {
                 CURLOPT_POSTFIELDS => http_build_query($params),
                 CURLOPT_RETURNTRANSFER => true,
                 CURLOPT_TIMEOUT => 20,
-                CURLOPT_SSL_VERIFYPEER => false,
+                CURLOPT_SSL_VERIFYPEER => true,
+                CURLOPT_SSL_VERIFYHOST => 2,
             ]);
             $resp = curl_exec($ch);
             $err = curl_error($ch);

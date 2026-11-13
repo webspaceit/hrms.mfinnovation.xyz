@@ -502,7 +502,7 @@
                     <?php endif; ?>
                     <tr>
                         <td class="label-cell">Payment Method :</td>
-                        <td class="value-cell" colspan="3"><?php echo t($receipt['payment_method'], ucfirst($receipt['payment_method'])); ?></td>
+                        <td class="value-cell" colspan="3"><?php echo e(t($receipt['payment_method'], ucfirst($receipt['payment_method']))); ?></td>
                     </tr>
                     
                 </table>

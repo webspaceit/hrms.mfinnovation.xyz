@@ -31,9 +31,13 @@ $data = [
 ];
 
 if ($id > 0) {
+    if (!expenseAccessible($id)) {
+        jsonResponse(['success' => false, 'message' => t('access_denied')]);
+    }
     $expenseModel->update($id, $data);
     jsonResponse(['success' => true, 'message' => t('updated_success')]);
 } else {
+    $data['created_by'] = (int)Auth::id();
     $expenseModel->create($data);
     jsonResponse(['success' => true, 'message' => t('added_success')]);
 }

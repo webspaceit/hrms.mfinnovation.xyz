@@ -47,6 +47,9 @@ $data = [
 ];
 
 if ($id > 0) {
+    if (!flatAccessible($id)) {
+        jsonResponse(['success' => false, 'message' => t('access_denied')]);
+    }
     $flatModel->update($id, $data);
     jsonResponse(['success' => true, 'message' => t('updated_success')]);
 } else {

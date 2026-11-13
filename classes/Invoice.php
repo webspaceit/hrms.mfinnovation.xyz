@@ -62,7 +62,7 @@ class Invoice extends BaseModel {
             JOIN tenants t ON t.id = l.tenant_id
             WHERE l.status = 'active' AND t.status = 'active'
               AND l.start_date <= :last_day
-              AND (l.end_date IS NULL OR l.end_date >= :first_day)
+              AND (l.end_date IS NULL OR l.end_date >= :first_day)" . tenantScope('t') . "
             ORDER BY l.id
         ", ['last_day' => $lastDay, 'first_day' => $firstDay]);
 

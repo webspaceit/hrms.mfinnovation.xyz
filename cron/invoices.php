@@ -45,6 +45,7 @@ require_once __DIR__ . '/../classes/Database.php';
 require_once __DIR__ . '/../classes/Session.php';
 require_once __DIR__ . '/../classes/Lang.php';
 require_once __DIR__ . '/../classes/Helpers.php';
+require_once __DIR__ . '/../classes/Auth.php';
 require_once __DIR__ . '/../classes/BaseModel.php';
 require_once __DIR__ . '/../classes/Lease.php';
 require_once __DIR__ . '/../classes/Payment.php';

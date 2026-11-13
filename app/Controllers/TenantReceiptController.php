@@ -29,13 +29,15 @@ class TenantReceiptController extends Controller {
             $paymentId = (int)($_POST['payment_id'] ?? 0);
             $signatureFile = $_FILES['signature'] ?? null;
 
-            if ($paymentId && $signatureFile && $signatureFile['error'] === UPLOAD_ERR_OK) {
-                $allowed = ['image/png', 'image/jpeg', 'image/gif', 'image/webp'];
+            if ($paymentId && $signatureFile && $signatureFile['error'] === UPLOAD_ERR_OK
+                && is_uploaded_file($signatureFile['tmp_name'])
+                && $signatureFile['size'] <= MAX_UPLOAD_SIZE) {
+                $extMap = ['image/png' => 'png', 'image/jpeg' => 'jpg', 'image/gif' => 'gif', 'image/webp' => 'webp'];
                 $finfo = finfo_open(FILEINFO_MIME_TYPE);
                 $mime = finfo_file($finfo, $signatureFile['tmp_name']);
 
-                if (in_array($mime, $allowed)) {
-                    $ext = pathinfo($signatureFile['name'], PATHINFO_EXTENSION) ?: 'png';
+                if (isset($extMap[$mime])) {
+                    $ext = $extMap[$mime];
                     $filename = 'sig_' . $paymentId . '_' . time() . '.' . $ext;
                     $uploadDir = dirname(__DIR__, 2) . '/uploads/signatures/';
                     if (!is_dir($uploadDir)) {
@@ -165,7 +167,7 @@ class TenantReceiptController extends Controller {
         if (!empty($receipt['note_color']) && preg_match('/^#[0-9a-fA-F]{6}$/', (string)$receipt['note_color'])) {
             $noteStyle .= ' color:' . $receipt['note_color'] . ';';
         }
-        if (!empty($receipt['note_font'])) {
+        if (!empty($receipt['note_font']) && array_key_exists($receipt['note_font'], NOTE_FONT_CHOICES)) {
             $noteStyle .= ' font-family:' . $receipt['note_font'] . ';';
         }
 

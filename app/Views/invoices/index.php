@@ -680,13 +680,23 @@ function toggleCheckbox(checkbox) {
     updateSelectedCount();
 }
 
+function escapeHtml(s) {
+    return String(s).replace(/[&<>"\x27]/g, function(c) {
+        if (c === "\x26") return "&amp;";
+        if (c === "\x3c") return "&lt;";
+        if (c === "\x3e") return "&gt;";
+        if (c === "\x22") return "&quot;";
+        return "&#39;";
+    });
+}
+
 function bulkDeleteInvoices() {
     const selectedCount = selectedInvoices.length;
     if (selectedCount === 0) return;
 
     const tenantNames = selectedInvoices.map(id => {
         const inv = invoiceData[id];
-        return inv ? inv.tenant_name : "Invoice " + id;
+        return inv ? escapeHtml(inv.tenant_name) : "Invoice " + id;
     });
 
     const countList = document.getElementById("deleteCountList");

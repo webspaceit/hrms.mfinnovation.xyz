@@ -17,6 +17,10 @@ if (!$data) {
     jsonResponse(['success' => false, 'message' => 'Not found']);
 }
 
+if (!flatAccessible((int)$data['id'])) {
+    jsonResponse(['success' => false, 'message' => 'Not found']);
+}
+
 foreach (['rent_amount', 'advance_amount', 'size_sqft', 'floor', 'bedrooms', 'bathrooms'] as $k) {
     if (isset($data[$k]) && $data[$k] !== null) {
         $data[$k] = bnNumeral(enDigits($data[$k]));

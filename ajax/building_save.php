@@ -30,6 +30,9 @@ $data = [
 ];
 
 if ($id > 0) {
+    if (!buildingAccessible($id)) {
+        jsonResponse(['success' => false, 'message' => t('access_denied')]);
+    }
     $buildingModel->update($id, $data);
     jsonResponse(['success' => true, 'message' => t('updated_success')]);
 } else {

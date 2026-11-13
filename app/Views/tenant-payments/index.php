@@ -52,7 +52,7 @@ require dirname(__DIR__) . '/partials/tenant_header.php';
                                 <td><?php echo e(bnNumeral(date('d-m-Y', strtotime($p['payment_date'])))); ?></td>
                                 <td><?php echo monthName((int)$p['month']) . ' ' . bnNumeral($p['year']); ?></td>
                                 <td class="fw-semibold text-success"><?php echo money($p['total_amount']); ?></td>
-                                <td><span class="badge bg-light text-dark border"><?php echo t($p['payment_method'], $p['payment_method']); ?></span></td>
+                                <td><span class="badge bg-light text-dark border"><?php echo e(t($p['payment_method'], $p['payment_method'])); ?></span></td>
                                 <td>
                                     <?php if ($invStatus === 'paid'): ?>
                                         <span class="badge bg-success-subtle text-success-emphasis"><?php echo t('status_paid'); ?></span>

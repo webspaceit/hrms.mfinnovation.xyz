@@ -21,6 +21,16 @@ if (!\Auth::check() && !\Auth::checkTenant()) {
     exit('Access denied.');
 }
 
+// True when the payment with the given id belongs to the given tenant. Used to
+// authorize signature / service-charge uploads, whose filenames carry the
+// payment id (not the tenant id).
+$paymentBelongsToTenant = function (int $paymentId, int $tenantId): bool {
+    $db = \Database::getInstance()->getConnection();
+    $stmt = $db->prepare(\Database::prefix("SELECT tenant_id FROM payments WHERE id = :id LIMIT 1"));
+    $stmt->execute(['id' => $paymentId]);
+    return (int)$stmt->fetchColumn() === $tenantId;
+};
+
 $rel = isset($_GET['f']) ? trim($_GET['f']) : '';
 
 // Normalise: strip leading slash/dot
@@ -44,6 +54,34 @@ if ($absPath === false || strpos($absPath, $uploadsRoot . DIRECTORY_SEPARATOR) !
 if (!is_file($absPath)) {
     http_response_code(404);
     exit('File not found.');
+}
+
+// Authorize the file. Admin/landlord sessions may access anything under
+// uploads/. A tenant session may only access its own tenant documents
+// (photo/deed/nid) and the signature / service-charge scans tied to its own
+// payments.
+if (!\Auth::check()) {
+    $tenantId   = \Auth::tenantId();
+    $basename   = basename($absPath);
+    $folder     = basename(dirname($absPath));
+    $authorized = false;
+
+    if ($folder === 'tenants') {
+        if (preg_match('/^(photo|deed|nid)_(\d+)_\d+\./i', $basename, $m)) {
+            $authorized = ((int)$m[2] === $tenantId);
+        } elseif (preg_match('/^service_charge_(\d+)_\d+\./i', $basename, $m)) {
+            $authorized = $paymentBelongsToTenant((int)$m[1], $tenantId);
+        }
+    } elseif ($folder === 'signatures') {
+        if (preg_match('/^sig_(\d+)_\d+\./i', $basename, $m)) {
+            $authorized = $paymentBelongsToTenant((int)$m[1], $tenantId);
+        }
+    }
+
+    if (!$authorized) {
+        http_response_code(403);
+        exit('Access denied.');
+    }
 }
 
 // Detect MIME type

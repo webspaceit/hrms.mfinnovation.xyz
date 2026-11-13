@@ -30,6 +30,7 @@ $langSuffix = '?lang=' . $currentLang;
             <?php endif; ?>
 
             <form method="POST" action="">
+                <?php echo csrf_field(); ?>
                 <div class="mb-3">
                     <label class="form-label"><i class="bi bi-person mr-1"></i><?php echo t('username'); ?></label>
                     <input type="text" name="username" class="form-control" required autofocus>

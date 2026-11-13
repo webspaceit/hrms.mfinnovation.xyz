@@ -17,6 +17,10 @@ if (!$data) {
     jsonResponse(['success' => false, 'message' => 'Not found']);
 }
 
+if (!buildingAccessible((int)$data['id'])) {
+    jsonResponse(['success' => false, 'message' => 'Not found']);
+}
+
 foreach (['name', 'address', 'description'] as $k) {
     if (isset($data[$k]) && $data[$k] !== '') {
         $data[$k] = localizeText($data[$k]);

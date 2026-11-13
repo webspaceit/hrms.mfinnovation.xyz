@@ -6,6 +6,12 @@
 require_once __DIR__ . '/../classes/init.php';
 Auth::requireLogin();
 
+// These settings include SMTP/SMS/WhatsApp credentials and the invoice cron
+// token, so only admins may read or write them.
+if (Auth::role() !== 'admin') {
+    jsonResponse(['success' => false, 'message' => 'Access denied'], 403);
+}
+
 $keys = [
     'smtp_host', 'smtp_port', 'smtp_user', 'smtp_pass', 'smtp_from',
     'smtp_from_name', 'smtp_encryption',

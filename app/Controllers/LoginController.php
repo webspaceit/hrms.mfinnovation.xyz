@@ -18,12 +18,16 @@ class LoginController extends Controller {
 
         $error = '';
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $auth = new \Auth();
-            $result = $auth->login(post('username'), post('password'));
-            if ($result['success']) {
-                redirect('dashboard');
+            if (!csrf_verify()) {
+                $error = t('invalid_cred');
+            } else {
+                $auth = new \Auth();
+                $result = $auth->login(post('username'), post('password'));
+                if ($result['success']) {
+                    redirect('dashboard');
+                }
+                $error = $result['message'];
             }
-            $error = $result['message'];
         }
 
         $this->view('login/index', ['error' => $error]);
