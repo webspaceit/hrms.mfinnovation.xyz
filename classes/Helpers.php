@@ -796,14 +796,8 @@ function bnFlatCode($str) {
 }
 
 /**
- * Filename for a downloaded receipt PDF:
- *   <UnitType>-<UnitNo>-<d-M-y>-<H-i-s>-<lang>.pdf
- *   e.g. Shop-S-05-29-sep-26-17-34-05-en.pdf
- *
- * Deliberately ASCII-only. A downloaded filename carrying Bengali characters is
- * unreliable across filesystems, e-mail clients and some Android browsers, and
- * unit numbers can be stored with Bengali digits/letters on older rows, so the
- * code is run through enFlatNo() first.
+ * Filename for a downloaded receipt PDF. Use Bengali labels, numerals and month
+ * names for Bengali receipts; keep English receipts ASCII for broad compatibility.
  *
  * The timestamp keeps same-day downloads from colliding ("Flat-5A-29-sep-26.pdf"
  * twice in a row is indistinguishable in a downloads folder). Time is written
@@ -814,7 +808,7 @@ function receiptPdfFilename($receipt, $lang = null) {
     $lang = $lang ?: Lang::current();
     $lang = $lang === 'bn' ? 'bn' : 'en';
 
-    $type = (($receipt['unit_type'] ?? 'flat') === 'shop') ? 'Shop' : 'Flat';
+    $isShop = (($receipt['unit_type'] ?? 'flat') === 'shop');
 
     // "5A" / "A-12" are fine; anything else collapses to a single separator.
     $no = enFlatNo((string)($receipt['flat_no'] ?? ''));
@@ -823,10 +817,21 @@ function receiptPdfFilename($receipt, $lang = null) {
         $no = 'NA';
     }
 
+    if ($lang === 'bn') {
+        $digits = ['0' => '০', '1' => '১', '2' => '২', '3' => '৩', '4' => '৪',
+            '5' => '৫', '6' => '৬', '7' => '৭', '8' => '৮', '9' => '৯'];
+        $type = $isShop ? 'দোকান' : 'ফ্ল্যাট';
+        $no = strtr(strtoupper($no), bnLetterMap());
+        $no = strtr($no, $digits);
+        $date = strtr(date('d'), $digits) . '-' . monthName(date('n'), 'bn') . '-' . strtr(date('y'), $digits);
+        $time = strtr(date('H-i-s'), $digits);
+        return $type . '-' . $no . '-' . $date . '-' . $time . '-বাংলা.pdf';
+    }
+
+    $type = $isShop ? 'Shop' : 'Flat';
     $date = strtolower(date('d-M-y'));   // 29-Sep-26
     $time = date('H-i-s');               // 17-34-05
-
-    return $type . '-' . $no . '-' . $date . '-' . $time . '-' . $lang . '.pdf';
+    return $type . '-' . $no . '-' . $date . '-' . $time . '-en.pdf';
 }
 
 /**
