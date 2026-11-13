@@ -165,6 +165,14 @@
         @media print {
             body { background: #fff; }
             .toolbar, .no-print { display: none !important; }
+            /* Keep the unit-type label visible in browser-created PDFs. */
+            .badge {
+                background: #007c47 !important;
+                color: #fff !important;
+                border: 1px solid #007c47;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
             .receipt-container {
                 max-width: 100%;
                 box-shadow: none;
