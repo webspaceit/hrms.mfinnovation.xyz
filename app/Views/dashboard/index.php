@@ -41,8 +41,9 @@ require dirname(__DIR__) . '/partials/header.php';
     <div>
         <div class="stat-card bg-warning-c">
             <i class="bi bi-door-open stat-icon"></i>
-            <div class="stat-value"><?php echo bnNumeral($totalFlats + $totalShops); ?> <small class="fs-6">/ <?php echo bnNumeral($occupiedFlats); ?></small>
+            <div class="stat-value"><?php echo bnNumeral($totalFlats + $totalShops + $totalCommercialFloors); ?> <small class="fs-6">/ <?php echo bnNumeral($occupiedFlats); ?></small>
                 <?php if ($totalShops > 0): ?><small class="d-block fs-6"><?php echo bnNumeral($totalShops); ?> <?php echo plural($totalShops, t('shop'), t('shops')); ?></small><?php endif; ?>
+                <?php if ($totalCommercialFloors > 0): ?><small class="d-block fs-6"><?php echo bnNumeral($totalCommercialFloors); ?> <?php echo t('commercial_floor'); ?></small><?php endif; ?>
             </div>
             <div class="stat-label"><?php echo t('total_flats'); ?> · <?php echo t('occupied_flats'); ?></div>
         </div>
@@ -259,9 +260,11 @@ document.addEventListener("DOMContentLoaded", function() {
     const labels = ' . json_encode($chartData['labels']) . ';
     const flatIncome = ' . json_encode($chartData['flatIncome']) . ';
     const shopIncome = ' . json_encode($chartData['shopIncome']) . ';
+    const commercialFloorIncome = ' . json_encode($chartData['commercialFloorIncome']) . ';
     const expense = ' . json_encode($chartData['expense']) . ';
     const flatLabel = ' . json_encode(t('flat_income', 'Flat Income')) . ';
     const shopLabel = ' . json_encode(t('shop_income', 'Shop Income')) . ';
+    const commercialFloorLabel = ' . json_encode(t('commercial_floor_income', 'Commercial Floor Income')) . ';
     const expenseLabel = ' . json_encode(t('expense')) . ';
     const statusLabels = ' . json_encode([t('occupied_flats'), t('available_flats'), t('maintenance')]) . ';
 
@@ -285,6 +288,14 @@ document.addEventListener("DOMContentLoaded", function() {
                         data: shopIncome,
                         backgroundColor: "rgba(59, 130, 246, 0.7)",
                         borderColor: "#2563eb",
+                        borderWidth: 1,
+                        borderRadius: 4
+                    },
+                    {
+                        label: commercialFloorLabel,
+                        data: commercialFloorIncome,
+                        backgroundColor: "rgba(14, 165, 233, 0.7)",
+                        borderColor: "#0284c7",
                         borderWidth: 1,
                         borderRadius: 4
                     },

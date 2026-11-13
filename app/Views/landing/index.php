@@ -105,17 +105,19 @@ $siteName = t('app_name');
                 <button type="button" class="unit-filter btn btn-sm btn-success" data-type="all"><?php echo e(t('landing_filter_all')); ?></button>
                 <button type="button" class="unit-filter btn btn-sm btn-outline-success" data-type="flat"><?php echo e(t('landing_unit_flat')); ?></button>
                 <button type="button" class="unit-filter btn btn-sm btn-outline-success" data-type="shop"><?php echo e(t('landing_unit_shop')); ?></button>
+                <button type="button" class="unit-filter btn btn-sm btn-outline-success" data-type="commercial_floor"><?php echo e(t('commercial_floor')); ?></button>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="unitGrid">
                 <?php foreach ($availableUnits as $u):
                     $isShop = ($u['unit_type'] === 'shop');
+                    $isShopLike = isShopLikeUnit($u['unit_type'] ?? 'flat');
                     $buildingLabel = localizeText((string)($u['building_name'] ?? ''));
                     if ($buildingLabel === '') $buildingLabel = '-';
                     $detailItems = [];
                     if (!empty($u['floor'])) $detailItems[] = ['bi-stairs', e(t('floor') . ': ' . floorLabel($u['floor']))];
-                    if (!$isShop && !empty($u['bedrooms'])) $detailItems[] = ['bi-door-open', e(t('bedrooms') . ': ' . bnNumeral((string)(int)$u['bedrooms']))];
-                    if (!$isShop && !empty($u['bathrooms'])) $detailItems[] = ['bi-droplet', e(t('bathrooms') . ': ' . bnNumeral((string)(int)$u['bathrooms']))];
+                    if (!$isShopLike && !empty($u['bedrooms'])) $detailItems[] = ['bi-door-open', e(t('bedrooms') . ': ' . bnNumeral((string)(int)$u['bedrooms']))];
+                    if (!$isShopLike && !empty($u['bathrooms'])) $detailItems[] = ['bi-droplet', e(t('bathrooms') . ': ' . bnNumeral((string)(int)$u['bathrooms']))];
                     if (!empty($u['size_sqft'])) {
                         $sq = rtrim(rtrim(number_format((float)$u['size_sqft'], 2), '0'), '.');
                         $detailItems[] = ['bi-rulers', e(t('size_sqft') . ': ' . bnNumeral($sq))];
@@ -124,7 +126,7 @@ $siteName = t('app_name');
                 <div class="landing-card bg-white rounded-2xl border border-slate-200 p-5 unit-card" data-type="<?php echo $u['unit_type']; ?>">
                     <div class="flex items-start justify-between gap-2 mb-2">
                         <span class="text-lg font-bold" style="color:#1d3a2b;"><?php echo e(bnFlatCode($u['flat_no'])); ?></span>
-                        <span class="badge <?php echo $isShop ? 'bg-info' : 'bg-success'; ?> text-white"><?php echo e($isShop ? t('landing_unit_shop') : t('landing_unit_flat')); ?></span>
+                        <span class="badge <?php echo $isShopLike ? ($isShop ? 'bg-info' : 'bg-primary') : 'bg-success'; ?> text-white"><?php echo e($isShop ? t('landing_unit_shop') : (($u['unit_type'] ?? '') === 'commercial_floor' ? t('commercial_floor') : t('landing_unit_flat'))); ?></span>
                     </div>
                     <p class="text-sm text-muted mb-3 truncate">
                         <i class="bi bi-building mr-1"></i><?php echo e($buildingLabel); ?>

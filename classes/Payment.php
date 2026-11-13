@@ -104,7 +104,7 @@ class Payment extends BaseModel {
      * Joins payments -> leases -> flats to get the unit_type.
      */
     public function totalCollectedByUnitType($unitType, $year = null, $month = null) {
-        if (!in_array($unitType, ['flat', 'shop'], true)) {
+        if (!in_array($unitType, ['flat', 'shop', 'commercial_floor'], true)) {
             return 0.0;
         }
         $scope = tenantScope('t');

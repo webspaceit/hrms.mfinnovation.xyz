@@ -45,10 +45,13 @@ class TenantInvoiceViewController extends Controller {
         $amountWords = numberToWords((int)$totalDue);
         $monthLabel = monthName($inv['month']) . ' ' . $inv['year'];
         $monthNameBn = monthName($inv['month'], 'bn');
-        $propertyType = $inv['unit_type'] === 'shop' ? 'shop' : 'apartment';
-        $propertyLabel = $propertyType === 'shop' ? t('shop') : t('flat_no');
-        $propertyLabelEn = $propertyType === 'shop' ? 'Shop' : 'Flat';
-        $propertyLabelBn = $propertyType === 'shop' ? 'দোকান' : 'অ্যাপার্টমেন্ট';
+        $isShopLike = isShopLikeUnit($inv['unit_type'] ?? 'flat');
+        $isCommercialFloor = ($inv['unit_type'] ?? '') === 'commercial_floor';
+        $propertyType = $isShopLike ? 'shop' : 'apartment';
+        $propertyLabel = $isCommercialFloor ? t('commercial_floor') : ($propertyType === 'shop' ? t('shop') : t('flat_no'));
+        $propertyLabelEn = $isCommercialFloor ? 'Commercial Floor' : ($propertyType === 'shop' ? 'Shop' : 'Flat');
+        $propertyLabelBn = $isCommercialFloor ? 'বাণিজ্যিক তলা' : ($propertyType === 'shop' ? 'দোকান' : 'অ্যাপার্টমেন্ট');
+        $shopName = $isShopLike ? trim((string)($inv['shop_name'] ?? '')) : '';
 
         // Landowner name: the landlord account that manages this tenant.
         $landownerName = trim((string)($inv['landowner_name'] ?? ''));
@@ -63,9 +66,11 @@ class TenantInvoiceViewController extends Controller {
         $dueDateIso = date('Y-m-d', $dueTs);
 
         // Invoice type label (mirrors the receipt badge)
-        $typeLabel = $propertyType === 'shop'
-            ? ($currentLang === 'bn' ? 'দোকান ভাড়া' : 'Shop Rent')
-            : ($currentLang === 'bn' ? 'মাসিক ভাড়া' : 'Monthly Rent');
+        $typeLabel = $isCommercialFloor
+            ? ($currentLang === 'bn' ? 'বাণিজ্যিক তলার ভাড়া' : 'Commercial Floor Rent')
+            : ($propertyType === 'shop'
+                ? ($currentLang === 'bn' ? 'দোকান ভাড়া' : 'Shop Rent')
+                : ($currentLang === 'bn' ? 'মাসিক ভাড়া' : 'Monthly Rent'));
 
         // WhatsApp link (BD mobile format)
         $phoneDigits = preg_replace('/[^0-9]/', '', enDigits($inv['tenant_phone']));
@@ -121,9 +126,11 @@ class TenantInvoiceViewController extends Controller {
             'monthLabel'        => $monthLabel,
             'monthNameBn'       => $monthNameBn,
             'propertyType'      => $propertyType,
+            'isCommercialFloor' => $isCommercialFloor,
             'propertyLabel'     => $propertyLabel,
             'propertyLabelEn'   => $propertyLabelEn,
             'propertyLabelBn'   => $propertyLabelBn,
+            'shopName'          => $shopName,
             'landownerName'     => $landownerName,
             'issuedDate'        => $issuedDate,
             'dueDate'           => $dueDate,

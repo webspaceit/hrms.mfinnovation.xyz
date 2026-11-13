@@ -41,7 +41,9 @@ class Building extends BaseModel {
                    SUM(CASE WHEN f.unit_type = 'flat' THEN 1 ELSE 0 END) AS flat_count,
                    SUM(CASE WHEN f.unit_type = 'shop' THEN 1 ELSE 0 END) AS shop_count,
                    SUM(CASE WHEN f.unit_type = 'flat' AND f.status = 'available' THEN 1 ELSE 0 END) AS available_flat_count,
-                   SUM(CASE WHEN f.unit_type = 'shop' AND f.status = 'available' THEN 1 ELSE 0 END) AS available_shop_count
+                   SUM(CASE WHEN f.unit_type = 'shop' AND f.status = 'available' THEN 1 ELSE 0 END) AS available_shop_count,
+                   SUM(CASE WHEN f.unit_type = 'commercial_floor' THEN 1 ELSE 0 END) AS commercial_floor_count,
+                   SUM(CASE WHEN f.unit_type = 'commercial_floor' AND f.status = 'available' THEN 1 ELSE 0 END) AS available_commercial_floor_count
             FROM buildings b
             LEFT JOIN flats f ON f.building_id = b.id
             $where

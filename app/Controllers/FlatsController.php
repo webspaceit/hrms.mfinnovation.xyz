@@ -23,7 +23,7 @@ class FlatsController extends Controller {
         // Filters
         $filterBuilding = isset($_GET['building']) ? (int)$_GET['building'] : 0;
         $filterType = isset($_GET['type']) ? $_GET['type'] : '';
-        if ($filterType !== 'flat' && $filterType !== 'shop') {
+        if (!in_array($filterType, ['flat', 'shop', 'commercial_floor'], true)) {
             $filterType = '';
         }
 
@@ -49,6 +49,7 @@ class FlatsController extends Controller {
         $filterUrlAll  = url('flats') . ($filterBuilding ? '?building=' . $filterBuilding : '');
         $filterUrlFlat = url('flats') . '?type=flat' . ($filterBuilding ? '&building=' . $filterBuilding : '');
         $filterUrlShop = url('flats') . '?type=shop' . ($filterBuilding ? '&building=' . $filterBuilding : '');
+        $filterUrlCommercial = url('flats') . '?type=commercial_floor' . ($filterBuilding ? '&building=' . $filterBuilding : '');
 
         $this->view('flats/index', [
             'flats'          => $flats,
@@ -59,6 +60,7 @@ class FlatsController extends Controller {
             'filterUrlAll'   => $filterUrlAll,
             'filterUrlFlat'  => $filterUrlFlat,
             'filterUrlShop'  => $filterUrlShop,
+            'filterUrlCommercial' => $filterUrlCommercial,
         ]);
     }
 }

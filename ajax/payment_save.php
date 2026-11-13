@@ -57,6 +57,13 @@ if (!$lease || !tenantAccessible((int)$lease['tenant_id'])) {
     jsonResponse(['success' => false, 'message' => t('access_denied')], 403);
 }
 
+$leaseUnitType = !empty($lease['flat_id'])
+    ? ((new Flat())->find((int)$lease['flat_id'])['unit_type'] ?? 'flat')
+    : 'flat';
+if (isShopLikeUnit($leaseUnitType)) {
+    $receipt_type = 'rent';
+}
+
 $paymentModel = new Payment();
 
 // The invoice is the single source of truth for the month's bill: the whole

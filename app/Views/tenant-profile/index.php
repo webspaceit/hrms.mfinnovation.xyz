@@ -35,7 +35,7 @@ require dirname(__DIR__) . '/partials/tenant_header.php';
                 <table class="table table-sm mb-0">
                     <tr><th style="width:40%;"><?php echo t('building_name'); ?></th><td><?php echo e(localizeText($lease['building_name'] ?? '') ?: '-'); ?></td></tr>
                     <tr><th><?php echo t('flat_no'); ?></th><td><span class="badge bg-primary-subtle text-primary-emphasis"><?php echo e(bnFlatCode($lease['flat_no'] ?? '-')); ?></span></td></tr>
-                    <tr><th><?php echo t('unit_type'); ?></th><td><?php echo $lease['unit_type'] === 'shop' ? e(t('shop')) : e(t('flat_no')); ?></td></tr>
+                    <tr><th><?php echo t('unit_type'); ?></th><td><?php echo e(unitTypeLabel($lease['unit_type'] ?? 'flat')); ?></td></tr>
                     <tr><th><?php echo t('floor'); ?></th><td><?php echo e(floorLabel($lease['floor'] ?? '')); ?></td></tr>
                 </table>
             <?php else: ?>

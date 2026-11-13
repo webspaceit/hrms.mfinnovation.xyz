@@ -64,9 +64,9 @@ CREATE TABLE IF NOT EXISTS `wsit_buildings` (
 CREATE TABLE IF NOT EXISTS `wsit_flats` (
   `id` INT(11) NOT NULL AUTO_INCREMENT,
   `building_id` INT(11) NOT NULL,
-  `unit_type` ENUM('flat','shop') NOT NULL DEFAULT 'flat',
+  `unit_type` ENUM('flat','shop','commercial_floor') NOT NULL DEFAULT 'flat',
   `flat_no` VARCHAR(50) NOT NULL,
-  `shop_name` VARCHAR(150) DEFAULT NULL COMMENT 'Business name for shop units, shown on the shop rent receipt',
+  `shop_name` VARCHAR(150) DEFAULT NULL COMMENT 'Business or commercial space name, shown on rent documents',
   `floor` VARCHAR(50) DEFAULT NULL,
   `bedrooms` INT(11) NOT NULL DEFAULT 1,
   `bathrooms` INT(11) NOT NULL DEFAULT 1,

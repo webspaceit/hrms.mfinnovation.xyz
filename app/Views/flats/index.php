@@ -1,6 +1,6 @@
 <?php
 // Flats view - data: $flats (array), $buildings (array), $filterBuilding,
-// $filterType, $flatModel, $filterUrlAll / $filterUrlFlat / $filterUrlShop
+// $filterType, $flatModel, $filterUrlAll / $filterUrlFlat / $filterUrlShop / $filterUrlCommercial
 $pageTitle = t('flats');
 require dirname(__DIR__) . '/partials/header.php';
 ?>
@@ -39,6 +39,9 @@ require dirname(__DIR__) . '/partials/header.php';
         <li>
             <a class="nav-link <?php echo $filterType === 'shop' ? 'active' : ''; ?>" href="<?php echo $filterUrlShop; ?>"><i class="bi bi-shop mr-1"></i><?php echo t('all_shops'); ?></a>
         </li>
+        <li>
+            <a class="nav-link <?php echo $filterType === 'commercial_floor' ? 'active' : ''; ?>" href="<?php echo $filterUrlCommercial; ?>"><i class="bi bi-building mr-1"></i><?php echo t('all_commercial_floors'); ?></a>
+        </li>
     </ul>
     <select class="form-select form-select-sm" style="max-width: 240px;" onchange="if(this.value) location='<?php echo url('flats'); ?>?building='+this.value+'<?php echo e($filterType ? '&type=' . $filterType : ''); ?>'; else location='<?php echo e($filterType ? url('flats') . '?type=' . $filterType : url('flats')); ?>';">
         <option value=""><?php echo t('all'); ?> <?php echo t('buildings'); ?></option>
@@ -52,7 +55,7 @@ require dirname(__DIR__) . '/partials/header.php';
     <div class="card-body p-0">
         <div class="table-responsive">
             <table class="table table-hover" data-bulk-entity="flats">
-                <?php $isShopOnlyView = $filterType === 'shop'; ?>
+                <?php $isShopOnlyView = isShopLikeUnit($filterType); ?>
                 <thead>
                     <tr>
                         <th><input type="checkbox" id="selectAll" class="form-check-input"></th>
@@ -79,6 +82,7 @@ require dirname(__DIR__) . '/partials/header.php';
                             $status = statusBadge($f['status']);
                             $tenant = $flatModel->getCurrentTenant($f['id']);
                             $isShop = $f['unit_type'] === 'shop';
+                            $isShopLike = isShopLikeUnit($f['unit_type']);
                             ?>
                             <tr data-id="<?php echo $f['id']; ?>">
                                 <td><input type="checkbox" class="bulk-checkbox form-check-input" value="<?php echo $f['id']; ?>"></td>
@@ -86,19 +90,21 @@ require dirname(__DIR__) . '/partials/header.php';
                                 <td>
                                     <?php if ($isShop): ?>
                                         <span class="badge bg-warning-subtle text-warning-emphasis"><i class="bi bi-shop mr-1"></i><?php echo t('shop'); ?></span>
+                                    <?php elseif ($f['unit_type'] === 'commercial_floor'): ?>
+                                        <span class="badge bg-info-subtle text-info-emphasis"><i class="bi bi-building mr-1"></i><?php echo t('commercial_floor'); ?></span>
                                     <?php else: ?>
                                         <span class="badge bg-primary-subtle text-primary-emphasis"><i class="bi bi-door-open mr-1"></i><?php echo t('flat_no'); ?></span>
                                     <?php endif; ?>
                                 </td>
                                 <td class="fw-semibold">
-                                    <span class="badge bg-<?php echo $isShop ? 'warning' : 'primary'; ?>-subtle text-<?php echo $isShop ? 'warning' : 'primary'; ?>-emphasis"><?php echo e(bnFlatCode($f['flat_no'])); ?></span>
+                                    <span class="badge bg-<?php echo $isShopLike ? ($isShop ? 'warning' : 'info') : 'primary'; ?>-subtle text-<?php echo $isShopLike ? ($isShop ? 'warning' : 'info') : 'primary'; ?>-emphasis"><?php echo e(bnFlatCode($f['flat_no'])); ?></span>
                                     <?php if ($f['size_sqft']): ?><small class="text-muted d-block"><?php echo e(bnNumeral(enDigits($f['size_sqft']))); ?> <?php echo t('sqft'); ?></small><?php endif; ?>
                                 </td>
                                 <td><?php echo e(localizeText($f['building_name'])); ?></td>
                                 <td><?php echo e(floorLabel($f['floor'])); ?></td>
                                 <?php if (!$isShopOnlyView): ?>
-                                <td><?php echo $isShop ? '-' : bnNumeral((int)$f['bedrooms']); ?></td>
-                                <td><?php echo $isShop ? '-' : bnNumeral((int)$f['bathrooms']); ?></td>
+                                <td><?php echo $isShopLike ? '-' : bnNumeral((int)$f['bedrooms']); ?></td>
+                                <td><?php echo $isShopLike ? '-' : bnNumeral((int)$f['bathrooms']); ?></td>
                                 <?php endif; ?>
                                 <td class="text-left fw-semibold"><?php echo money($f['rent_amount']); ?></td>
                                 <td class="text-left">
@@ -133,6 +139,7 @@ require dirname(__DIR__) . '/partials/header.php';
             $status = statusBadge($f['status']);
             $tenant = $flatModel->getCurrentTenant($f['id']);
             $isShop = $f['unit_type'] === 'shop';
+            $isShopLike = isShopLikeUnit($f['unit_type']);
             ?>
             <div class="card fade-in mb-2 flat-card" data-id="<?php echo $f['id']; ?>">
                 <div class="card-body">
@@ -141,6 +148,8 @@ require dirname(__DIR__) . '/partials/header.php';
                             <input type="checkbox" class="bulk-checkbox form-check-input" value="<?php echo $f['id']; ?>" aria-label="<?php echo t('select_all'); ?>">
                             <?php if ($isShop): ?>
                                 <span class="badge bg-warning-subtle text-warning-emphasis"><i class="bi bi-shop mr-1"></i><?php echo t('shop'); ?></span>
+                            <?php elseif ($f['unit_type'] === 'commercial_floor'): ?>
+                                <span class="badge bg-info-subtle text-info-emphasis"><i class="bi bi-building mr-1"></i><?php echo t('commercial_floor'); ?></span>
                             <?php else: ?>
                                 <span class="badge bg-primary-subtle text-primary-emphasis"><i class="bi bi-door-open mr-1"></i><?php echo t('flat_no'); ?></span>
                             <?php endif; ?>
@@ -155,10 +164,10 @@ require dirname(__DIR__) . '/partials/header.php';
                         </div>
                     </div>
                     <div class="fw-semibold">
-                        <span class="badge bg-<?php echo $isShop ? 'warning' : 'primary'; ?>-subtle text-<?php echo $isShop ? 'warning' : 'primary'; ?>-emphasis"><?php echo e(bnFlatCode($f['flat_no'])); ?></span>
+                        <span class="badge bg-<?php echo $isShopLike ? ($isShop ? 'warning' : 'info') : 'primary'; ?>-subtle text-<?php echo $isShopLike ? ($isShop ? 'warning' : 'info') : 'primary'; ?>-emphasis"><?php echo e(bnFlatCode($f['flat_no'])); ?></span>
                         <?php if ($f['size_sqft']): ?><small class="text-muted ml-1"><?php echo e(bnNumeral(enDigits($f['size_sqft']))); ?> <?php echo t('sqft'); ?></small><?php endif; ?>
                     </div>
-                    <?php if ($isShop && !empty($f['shop_name'])): ?>
+                    <?php if ($isShopLike && !empty($f['shop_name'])): ?>
                         <div class="fw-semibold text-dark small">
                             <i class="bi bi-shop mr-1"></i><?php echo e(localizeText($f['shop_name'])); ?>
                         </div>
@@ -167,7 +176,7 @@ require dirname(__DIR__) . '/partials/header.php';
                         <i class="bi bi-building mr-1"></i><?php echo e(localizeText($f['building_name'])); ?>
                         <?php if ($f['floor'] !== ''): ?>· <?php echo e(floorLabel($f['floor'])); ?><?php endif; ?>
                     </div>
-                    <?php if (!$isShop): ?>
+                    <?php if (!$isShopLike): ?>
                         <div class="text-muted small">
                             <i class="bi bi-house mr-1"></i><?php echo bnNumeral((int)$f['bedrooms']); ?> <?php echo t('bedrooms'); ?> · <?php echo bnNumeral((int)$f['bathrooms']); ?> <?php echo t('bathrooms'); ?>
                         </div>
@@ -204,6 +213,7 @@ require dirname(__DIR__) . '/partials/header.php';
                         <select name="unit_type" id="f_type" class="form-select" required onchange="toggleUnitFields()">
                             <option value="flat"><?php echo t('flat_unit'); ?></option>
                             <option value="shop"><?php echo t('shop_unit'); ?></option>
+                            <option value="commercial_floor"><?php echo t('commercial_floor_unit'); ?></option>
                         </select>
                     </div>
                     <div class="mb-3">
@@ -297,6 +307,9 @@ const L10N = ' . json_encode([
     'shop_no'   => t('shop_no'),
     'flat_no'   => t('flat_no'),
     'shop_name' => t('shop_name'),
+    'commercial_floor' => t('commercial_floor'),
+    'commercial_name' => t('commercial_name'),
+    'commercial_floor_no' => t('unit_no'),
     'add_flat'  => t('add_flat'),
     'edit_flat' => t('edit_flat'),
     'save'      => t('save'),
@@ -307,9 +320,13 @@ const REQUIRED = " <span class=\"text-danger\">*</span>";
 function toggleUnitFields() {
     const type = document.getElementById("f_type").value;
     const isShop = type === "shop";
-    document.getElementById("f_room_row").style.display = isShop ? "none" : "";
-    document.getElementById("f_shop_row").style.display = isShop ? "" : "none";
-    document.getElementById("f_no_label").innerHTML = (isShop ? L10N.shop_no : L10N.flat_no) + REQUIRED;
+    const isCommercial = type === "commercial_floor";
+    const isCommercialUnit = isShop || isCommercial;
+    document.getElementById("f_room_row").style.display = isCommercialUnit ? "none" : "";
+    document.getElementById("f_shop_row").style.display = isCommercialUnit ? "" : "none";
+    document.getElementById("f_no_label").innerHTML = (isShop ? L10N.shop_no : (isCommercial ? L10N.commercial_floor_no : L10N.flat_no)) + REQUIRED;
+    document.querySelector('#f_shop_row label').innerHTML = '<i class="bi ' + (isCommercial ? 'bi-building' : 'bi-shop') + ' mr-1"></i>' + (isCommercial ? L10N.commercial_name : L10N.shop_name);
+    document.getElementById("f_shop_name").placeholder = isCommercial ? L10N.commercial_name : L10N.shop_name;
 }
 
 function resetFlatForm() {

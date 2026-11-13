@@ -14,7 +14,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 $id = (int)post('id', 0);
 $building_id = (int)post('building_id', 0);
 $unit_type = post('unit_type', 'flat');
-if ($unit_type !== 'shop') {
+if (!in_array($unit_type, ['flat', 'shop', 'commercial_floor'], true)) {
     $unit_type = 'flat';
 }
 $flat_no = enFlatNo(post('flat_no'));
@@ -22,6 +22,10 @@ $shop_name = trim((string)post('shop_name', ''));
 $floor = bnToEnDigits(post('floor'));
 $bedrooms = (int)bnToEnDigits(post('bedrooms', 0));
 $bathrooms = (int)bnToEnDigits(post('bathrooms', 0));
+if ($unit_type === 'commercial_floor') {
+    $bedrooms = 0;
+    $bathrooms = 0;
+}
 $size_sqft = post('size_sqft') !== '' ? (float)bnToEnDigits(post('size_sqft')) : null;
 $rent_amount = (float)bnToEnDigits(post('rent_amount', 0));
 $advance_amount = (float)bnToEnDigits(post('advance_amount', 0));

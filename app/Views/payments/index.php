@@ -43,8 +43,10 @@ if (!isset($collectedFilteredTotal)) $collectedFilteredTotal = 0;
 if (!isset($unpaidFilteredTotal)) $unpaidFilteredTotal = 0;
 if (!isset($collectedFlatTotal)) $collectedFlatTotal = 0;
 if (!isset($collectedShopTotal)) $collectedShopTotal = 0;
+if (!isset($collectedCommercialFloorTotal)) $collectedCommercialFloorTotal = 0;
 if (!isset($unpaidFlatTotal)) $unpaidFlatTotal = 0;
 if (!isset($unpaidShopTotal)) $unpaidShopTotal = 0;
+if (!isset($unpaidCommercialFloorTotal)) $unpaidCommercialFloorTotal = 0;
 ?>
     <ul class="filter-pills mr-2">
         <li>
@@ -55,6 +57,9 @@ if (!isset($unpaidShopTotal)) $unpaidShopTotal = 0;
         </li>
         <li>
             <a class="nav-link <?php echo isset($filterTypes) && in_array('shop', $filterTypes, true) && count($filterTypes) === 1 ? 'active' : ''; ?>" href="<?php echo url('payments') . '?' . $baseParams . '&type=shop'; ?>"><i class="bi bi-shop mr-1"></i><?php echo t('all_shops'); ?></a>
+        </li>
+        <li>
+            <a class="nav-link <?php echo isset($filterTypes) && in_array('commercial_floor', $filterTypes, true) && count($filterTypes) === 1 ? 'active' : ''; ?>" href="<?php echo url('payments') . '?' . $baseParams . '&type=commercial_floor'; ?>"><i class="bi bi-building mr-1"></i><?php echo t('all_commercial_floors'); ?></a>
         </li>
     </ul>
     <select class="form-select form-select-sm" style="max-width: 180px;" onchange="location='<?php echo url('payments'); ?>?month='+this.value+'&year=<?php echo $year; ?><?php echo $filterBuilding ? '&building=' . (int)$filterBuilding : ''; ?><?php echo $typeParamStr; ?>'">
@@ -91,11 +96,17 @@ if (!isset($unpaidShopTotal)) $unpaidShopTotal = 0;
                 <?php if ($collectedShopTotal > 0 || (!empty($filterTypes) && in_array('shop', $filterTypes, true) && count($filterTypes) <= 2) || (empty($filterTypes) && $collectedShopTotal >= 0)): ?>
                     <span class="badge bg-warning-subtle text-warning-emphasis"><i class="bi bi-shop mr-1"></i><?php echo t('shop_unit'); ?> (<?php echo t('collected'); ?>): <?php echo money($collectedShopTotal); ?></span>
                 <?php endif; ?>
+                <?php if ($collectedCommercialFloorTotal > 0 || (!empty($filterTypes) && in_array('commercial_floor', $filterTypes, true))): ?>
+                    <span class="badge bg-info-subtle text-info-emphasis"><i class="bi bi-building mr-1"></i><?php echo t('commercial_floor'); ?> (<?php echo t('collected'); ?>): <?php echo money($collectedCommercialFloorTotal); ?></span>
+                <?php endif; ?>
                 <?php if ($unpaidFlatTotal > 0): ?>
                     <span class="badge bg-danger-subtle text-danger-emphasis"><i class="bi bi-buildings mr-1"></i><?php echo t('flat_unit'); ?> (<?php echo t('due_rent'); ?>): <?php echo money($unpaidFlatTotal); ?></span>
                 <?php endif; ?>
                 <?php if ($unpaidShopTotal > 0): ?>
                     <span class="badge bg-danger-subtle text-danger-emphasis"><i class="bi bi-shop mr-1"></i><?php echo t('shop_unit'); ?> (<?php echo t('due_rent'); ?>): <?php echo money($unpaidShopTotal); ?></span>
+                <?php endif; ?>
+                <?php if ($unpaidCommercialFloorTotal > 0): ?>
+                    <span class="badge bg-danger-subtle text-danger-emphasis"><i class="bi bi-building mr-1"></i><?php echo t('commercial_floor'); ?> (<?php echo t('due_rent'); ?>): <?php echo money($unpaidCommercialFloorTotal); ?></span>
                 <?php endif; ?>
             </div>
         <?php endif; ?>
@@ -159,6 +170,8 @@ if (!isset($unpaidShopTotal)) $unpaidShopTotal = 0;
                             <td>
                                 <?php if (strtolower($p['unit_type'] ?? 'flat') === 'shop'): ?>
                                     <span class="badge bg-warning-subtle text-warning-emphasis"><i class="bi bi-shop mr-1"></i><?php echo t('shop_unit'); ?></span>
+                                <?php elseif (strtolower($p['unit_type'] ?? '') === 'commercial_floor'): ?>
+                                    <span class="badge bg-info-subtle text-info-emphasis"><i class="bi bi-building mr-1"></i><?php echo t('commercial_floor'); ?></span>
                                 <?php else: ?>
                                     <span class="badge bg-info-subtle text-info-emphasis"><i class="bi bi-buildings mr-1"></i><?php echo t('flat_unit'); ?></span>
                                 <?php endif; ?>
@@ -576,6 +589,10 @@ if (!isset($unpaidShopTotal)) $unpaidShopTotal = 0;
 <?php
 $extraJs = '
 <script>
+function isShopLikeUnit(unitType) {
+    return unitType === "shop" || unitType === "commercial_floor";
+}
+
 window.PAYMENTS = ' . $paymentsJson . ';
 window.UNPAID_INVOICES = ' . $unpaidJson . ';
 window.INVOICE_MAP = ' . $invoiceMapJson . ';
@@ -662,7 +679,7 @@ function openCollectPayment(invId) {
         parking: inv.parking_amount, gas: inv.gas_amount,
         water: inv.water_fee, waste: inv.waste_fee, arrears: inv.arrears
     }, bn);
-    document.getElementById("p_receipt_type").disabled = inv.unit_type === "shop";
+    document.getElementById("p_receipt_type").disabled = isShopLikeUnit(inv.unit_type);
     updateScWrap();
     updateTotal();
     showInvoiceHint(sel, inv.month, inv.year);
@@ -675,7 +692,7 @@ function p_lease_selected() {
         const bn = document.documentElement.lang === "bn";
         document.getElementById("p_amount").value = bn ? toBengaliDigits(opt.dataset.rent || "0") : (opt.dataset.rent || 0);
         const rType = document.getElementById("p_receipt_type");
-        if (opt.dataset.unit === "shop") {
+        if (isShopLikeUnit(opt.dataset.unit)) {
             rType.value = "rent";
             rType.disabled = true;
         } else {
@@ -705,7 +722,7 @@ function p_lease_selected() {
 function updateScWrap() {
     const sel = document.getElementById("p_lease");
     const opt = sel.options[sel.selectedIndex];
-    const isFlatRent = opt && opt.value && opt.dataset.unit !== "shop"
+    const isFlatRent = opt && opt.value && opt.dataset.unit === "flat"
         && document.getElementById("p_receipt_type").value === "rent";
     document.getElementById("p_sc_wrap").style.display = isFlatRent ? "" : "none";
 }
@@ -973,7 +990,7 @@ function editPayment(id) {
     document.getElementById("p_method").value = p.payment_method;
     setPaymentDate(p.payment_date);
     document.getElementById("p_receipt_type").value = p.receipt_type;
-    document.getElementById("p_receipt_type").disabled = p.unit_type === "shop";
+    document.getElementById("p_receipt_type").disabled = isShopLikeUnit(p.unit_type);
     document.getElementById("p_note").value = p.note || "";
     if (p.service_charge_month) setScMonths(p.service_charge_month);
     if (p.service_charge_year) document.getElementById("p_sc_year").value = p.service_charge_year;

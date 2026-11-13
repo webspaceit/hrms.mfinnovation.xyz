@@ -376,9 +376,12 @@ $currentLang = Lang::current();
                     <tr>
                         <td class="label-cell"><?php echo $propertyLabelBn; ?> নাম :</td>
                         <td class="value-cell"><?php echo e(localizeText($inv['building_name'])); ?></td>
-                        <td class="label-cell" style="padding-left:16px;"><?php echo $propertyType === 'shop' ? 'দোকান নং' : 'ফ্ল্যাট নং'; ?> :</td>
+                        <td class="label-cell" style="padding-left:16px;"><?php echo $isCommercialFloor ? 'ইউনিট নং' : ($propertyType === 'shop' ? 'দোকান নং' : 'ফ্ল্যাট নং'); ?> :</td>
                         <td class="value-cell"><?php echo e(bnFlatCode($inv['flat_no'])); ?></td>
                     </tr>
+                    <?php if ($isCommercialFloor): ?>
+                    <tr><td class="label-cell">বাণিজ্যিক স্থানের নাম :</td><td class="value-cell" colspan="3"><?php echo e(localizeText($shopName !== '' ? $shopName : '—')); ?></td></tr>
+                    <?php endif; ?>
                     <tr>
                         <td class="label-cell">ঠিকানা :</td>
                         <td class="value-cell" colspan="3"><?php echo e(localizeText($inv['building_address'])); ?></td>
@@ -407,6 +410,9 @@ $currentLang = Lang::current();
                         <td class="label-cell" style="padding-left:16px;"><?php echo e($propertyLabel); ?> :</td>
                         <td class="value-cell"><?php echo e(bnFlatCode($inv['flat_no'])); ?></td>
                     </tr>
+                    <?php if ($isCommercialFloor): ?>
+                    <tr><td class="label-cell">Commercial Space Name :</td><td class="value-cell" colspan="3"><?php echo e(localizeText($shopName !== '' ? $shopName : '—')); ?></td></tr>
+                    <?php endif; ?>
                     <tr>
                         <td class="label-cell">Address :</td>
                         <td class="value-cell" colspan="3"><?php echo e(localizeText($inv['building_address'])); ?></td>

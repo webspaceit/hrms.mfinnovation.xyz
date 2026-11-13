@@ -31,12 +31,14 @@ require dirname(__DIR__) . '/partials/header.php';
                         <th><?php echo t('available_flats'); ?></th>
                         <th><?php echo t('total_shops'); ?></th>
                         <th><?php echo t('available_shops'); ?></th>
+                        <th><?php echo t('commercial_floor'); ?></th>
+                        <th><?php echo t('available_commercial_floors'); ?></th>
                         <th><?php echo t('actions'); ?></th>
                     </tr>
                 </thead>
                 <tbody>
                     <?php if (empty($buildings)): ?>
-                        <tr><td colspan="10" class="text-muted py-4"><?php echo t('no_data'); ?></td></tr>
+                        <tr><td colspan="12" class="text-muted py-4"><?php echo t('no_data'); ?></td></tr>
                     <?php else: ?>
                         <?php foreach ($buildings as $i => $b): ?>
                             <tr data-id="<?php echo $b['id']; ?>">
@@ -65,6 +67,8 @@ require dirname(__DIR__) . '/partials/header.php';
                                         <?php echo bnNumeral($b['available_shop_count']); ?>
                                     </span>
                                 </td>
+                                <td><span class="text-info"><i class="bi bi-building"></i> <?php echo bnNumeral($b['commercial_floor_count']); ?></span></td>
+                                <td><span class="badge bg-<?php echo $b['available_commercial_floor_count'] > 0 ? 'success' : 'secondary'; ?>-subtle text-<?php echo $b['available_commercial_floor_count'] > 0 ? 'success' : 'secondary'; ?>-emphasis"><?php echo bnNumeral($b['available_commercial_floor_count']); ?></span></td>
                                 <td>
                                     <?php echo actionButtons([
                                         ['label' => t('edit'), 'icon' => 'bi bi-pencil', 'variant' => 'edit', 'onclick' => 'editBuilding(' . (int)$b['id'] . ')'],

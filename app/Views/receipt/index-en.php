@@ -388,9 +388,9 @@
                     </colgroup>
                     
                     <tr>
-                        <td class="label-cell">Shop Name :</td>
+                        <td class="label-cell"><?php echo $isCommercialFloor ? 'Commercial Space Name' : 'Shop Name'; ?> :</td>
                         <td class="value-cell" style="white-space:normal;"><?php echo e(localizeText($shopName !== '' ? $shopName : '—')); ?></td>
-                        <td class="label-cell" style="padding-left:16px;">Shop No :</td>
+                        <td class="label-cell" style="padding-left:16px;"><?php echo $isCommercialFloor ? 'Unit No' : 'Shop No'; ?> :</td>
                         <td class="value-cell"><?php echo e(bnFlatCode($receipt['flat_no'])); ?></td>
                     </tr>
                     <tr>

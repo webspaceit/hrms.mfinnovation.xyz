@@ -375,9 +375,9 @@
                     </colgroup>
                     <?php if ($currentLang === 'bn'): ?>
                     <tr>
-                        <td class="label-cell">দোকানের নাম :</td>
+                        <td class="label-cell"><?php echo $isCommercialFloor ? 'বাণিজ্যিক স্থানের নাম' : 'দোকানের নাম'; ?> :</td>
                         <td class="value-cell" style="white-space:normal;"><?php echo e(localizeText($shopName !== '' ? $shopName : '—')); ?></td>
-                        <td class="label-cell" style="padding-left:16px;">দোকান নং :</td>
+                        <td class="label-cell" style="padding-left:16px;"><?php echo $isCommercialFloor ? 'ইউনিট নং' : 'দোকান নং'; ?> :</td>
                         <td class="value-cell"><?php echo e(bnFlatCode($inv['flat_no'])); ?></td>
                     </tr>
                     <tr>
@@ -409,9 +409,9 @@
                     <?php endif; ?>
                     <?php else: ?>
                     <tr>
-                        <td class="label-cell">Shop Name :</td>
+                        <td class="label-cell"><?php echo $isCommercialFloor ? 'Commercial Space Name' : 'Shop Name'; ?> :</td>
                         <td class="value-cell" style="white-space:normal;"><?php echo e(localizeText($shopName !== '' ? $shopName : '—')); ?></td>
-                        <td class="label-cell" style="padding-left:16px;">Shop No :</td>
+                        <td class="label-cell" style="padding-left:16px;"><?php echo $isCommercialFloor ? 'Unit No' : 'Shop No'; ?> :</td>
                         <td class="value-cell"><?php echo e(bnFlatCode($inv['flat_no'])); ?></td>
                     </tr>
                     <tr>
@@ -455,7 +455,7 @@
                     <tr>
                         <td class="label-cell"><?php echo $propertyLabelBn; ?> নাম :</td>
                         <td class="value-cell"><?php echo e(localizeText($inv['building_name'])); ?></td>
-                        <td class="label-cell" style="padding-left:16px;"><?php echo $propertyType === 'shop' ? 'দোকান নং' : 'ফ্ল্যাট নং'; ?> :</td>
+                        <td class="label-cell" style="padding-left:16px;"><?php echo $isCommercialFloor ? 'ইউনিট নং' : ($propertyType === 'shop' ? 'দোকান নং' : 'ফ্ল্যাট নং'); ?> :</td>
                         <td class="value-cell"><?php echo e(bnFlatCode($inv['flat_no'])); ?></td>
                     </tr>
                     <tr>

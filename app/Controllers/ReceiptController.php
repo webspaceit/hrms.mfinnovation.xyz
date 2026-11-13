@@ -102,7 +102,7 @@ class ReceiptController extends Controller {
         $totalAmount = (float)$receipt['total_amount'];
         $amountWords = numberToWords((int)$totalAmount);
         $cur = CURRENCY;
-        $unitLabel = $receipt['unit_type'] === 'shop' ? t('shop') : t('flat_no');
+        $unitLabel = unitTypeLabel($receipt['unit_type'] ?? 'flat');
         $monthLabel = monthName($receipt['month']);
         $currentLang = \Lang::current();
 
@@ -126,36 +126,38 @@ class ReceiptController extends Controller {
 
         // Receipt type comes from the payment entry: flat receipts can be flat rent
         // (default), parking bill or gas bill. Shop receipts are always shop rent.
-        $propertyType = $receipt['unit_type'] === 'shop' ? 'shop' : 'apartment';
+        $isShopLike = isShopLikeUnit($receipt['unit_type'] ?? 'flat');
+        $isCommercialFloor = ($receipt['unit_type'] ?? '') === 'commercial_floor';
+        $propertyType = $isShopLike ? 'shop' : 'apartment';
         $allowedTypes = ['rent', 'parking', 'gas', 'water', 'waste'];
         $receiptType = in_array($receipt['receipt_type'] ?? 'rent', $allowedTypes)
             ? $receipt['receipt_type']
             : 'rent';
-        if ($propertyType === 'shop') {
+        if ($isShopLike) {
             $receiptType = 'rent';
         }
-        $propertyLabel = $propertyType === 'shop' ? t('shop') : t('flat_no');
-        $propertyLabelEn = $propertyType === 'shop' ? 'Shop' : 'Flat';
-        $propertyLabelBn = $propertyType === 'shop' ? 'দোকান' : 'অ্যাপার্টমেন্ট';
+        $propertyLabel = $isCommercialFloor ? t('commercial_floor') : ($propertyType === 'shop' ? t('shop') : t('flat_no'));
+        $propertyLabelEn = $isCommercialFloor ? 'Commercial Floor' : ($propertyType === 'shop' ? 'Shop' : 'Flat');
+        $propertyLabelBn = $isCommercialFloor ? 'বাণিজ্যিক তলা' : ($propertyType === 'shop' ? 'দোকান' : 'অ্যাপার্টমেন্ট');
 
         // Receipt type comes from the payment entry: flat receipts can be flat rent
         // (default), parking bill or gas bill.
         $typeLabel = $currentLang === 'bn'
-            ? ($receiptType === 'parking' ? 'পার্কিং বিল' : ($receiptType === 'gas' ? 'গ্যাস বিল' : ($propertyType === 'shop' ? 'দোকান ভাড়া' : 'অ্যাপার্টমেন্ট ভাড়া')))
-            : ($receiptType === 'parking' ? 'Parking Bill' : ($receiptType === 'gas' ? 'Gas Bill' : ($propertyType === 'shop' ? 'Shop Rent' : 'Flat Rent')));
+            ? ($receiptType === 'parking' ? 'পার্কিং বিল' : ($receiptType === 'gas' ? 'গ্যাস বিল' : ($isCommercialFloor ? 'বাণিজ্যিক তলার ভাড়া' : ($propertyType === 'shop' ? 'দোকান ভাড়া' : 'অ্যাপার্টমেন্ট ভাড়া'))))
+            : ($receiptType === 'parking' ? 'Parking Bill' : ($receiptType === 'gas' ? 'Gas Bill' : ($isCommercialFloor ? 'Commercial Floor Rent' : ($propertyType === 'shop' ? 'Shop Rent' : 'Flat Rent'))));
         $feeRowLabel = $currentLang === 'bn'
             ? ($receiptType === 'parking' ? 'পার্কিং ফি :' : ($receiptType === 'gas' ? 'গ্যাস ফি :' : 'মাসিক ভাড়া :'))
             : ($receiptType === 'parking' ? 'Parking Fee :' : ($receiptType === 'gas' ? 'Gas Fee :' : 'Monthly Rent :'));
 
         // Holding label
-        $holdingLabel = $propertyType === 'shop' ? t('shop_no') : t('flat_no');
-        $holdingLabelBn = $propertyType === 'shop' ? 'দোকান নং' : 'ফ্ল্যাট নং';
+        $holdingLabel = $isCommercialFloor ? t('unit_no') : ($propertyType === 'shop' ? t('shop_no') : t('flat_no'));
+        $holdingLabelBn = $isCommercialFloor ? 'ইউনিট নং' : ($propertyType === 'shop' ? 'দোকান নং' : 'ফ্ল্যাট নং');
 
         // Shop business name (only meaningful for shop units).
-        $shopName = $propertyType === 'shop' ? trim((string)($receipt['shop_name'] ?? '')) : '';
+        $shopName = $isShopLike ? trim((string)($receipt['shop_name'] ?? '')) : '';
 
         // Building holding number (city corporation / pourashava) — shown on shop receipts.
-        $holdingNo = $propertyType === 'shop' ? trim((string)($receipt['building_holding_no'] ?? '')) : '';
+        $holdingNo = $isShopLike ? trim((string)($receipt['building_holding_no'] ?? '')) : '';
 
         // Landowner name: the landlord account that manages this tenant.
         $landownerName = trim((string)($receipt['landowner_name'] ?? ''));
@@ -349,6 +351,7 @@ class ReceiptController extends Controller {
             'copySuffix'        => $copySuffix,
             'monthNameBn'       => $monthNameBn,
             'propertyType'      => $propertyType,
+            'isCommercialFloor' => $isCommercialFloor,
             'receiptType'       => $receiptType,
             'propertyLabelEn'   => $propertyLabelEn,
             'propertyLabelBn'   => $propertyLabelBn,

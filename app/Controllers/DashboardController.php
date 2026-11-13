@@ -26,8 +26,9 @@ class DashboardController extends Controller {
         // Stats - units/buildings are scoped for landlords to the units their
         // tenants occupy (admins / anonymous see the global numbers).
         $totalBuildings = $buildingModel->count('1=1' . buildingScope(''));
-        $totalFlats = $flatModel->count('1=1' . unitScope(''));
+        $totalFlats = $flatModel->count("unit_type = 'flat'" . unitScope(''));
         $totalShops = $flatModel->count("unit_type = 'shop'" . unitScope(''));
+        $totalCommercialFloors = $flatModel->count("unit_type = 'commercial_floor'" . unitScope(''));
         $occupiedFlats = $flatModel->count("status = 'occupied'" . unitScope(''));
         $availableFlats = $flatModel->count("status = 'available'" . unitScope(''));
         $totalTenants = $tenantModel->count("status = 'active'" . tenantScope(''));
@@ -50,6 +51,7 @@ class DashboardController extends Controller {
             'expense'     => [],
             'flatIncome'  => [],
             'shopIncome'  => [],
+            'commercialFloorIncome' => [],
         ];
         for ($i = 11; $i >= 0; $i--) {
             $ts = strtotime("-$i months");
@@ -60,6 +62,7 @@ class DashboardController extends Controller {
             $chartData['expense'][] = $expenseModel->totalExpense($y, $m);
             $chartData['flatIncome'][] = $paymentModel->totalCollectedByUnitType('flat', $y, $m);
             $chartData['shopIncome'][] = $paymentModel->totalCollectedByUnitType('shop', $y, $m);
+            $chartData['commercialFloorIncome'][] = $paymentModel->totalCollectedByUnitType('commercial_floor', $y, $m);
         }
 
         // Recent payments + available units. A landlord's units are all leased
@@ -91,6 +94,7 @@ class DashboardController extends Controller {
             'activeLeases'       => $activeLeases,
             'totalFlats'         => $totalFlats,
             'totalShops'         => $totalShops,
+            'totalCommercialFloors' => $totalCommercialFloors,
             'occupiedFlats'      => $occupiedFlats,
             'availableFlats'     => $availableFlats,
             'monthlyExpenses'    => $monthlyExpenses,

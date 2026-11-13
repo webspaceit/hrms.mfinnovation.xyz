@@ -46,7 +46,7 @@ class PaymentsController extends Controller {
             // Also accept comma-separated lists such as ?type=flat,shop.
             foreach (explode(',', (string)$t) as $piece) {
                 $piece = strtolower(trim($piece));
-                if (($piece === 'flat' || $piece === 'shop') && !in_array($piece, $filterTypes, true)) {
+                if (in_array($piece, ['flat', 'shop', 'commercial_floor'], true) && !in_array($piece, $filterTypes, true)) {
                     $filterTypes[] = $piece;
                 }
             }
@@ -235,6 +235,7 @@ class PaymentsController extends Controller {
         // Calculate individual unit totals - include both paid payments and dues? We need PAID collected
         $collectedFlatTotal = 0.0;
         $collectedShopTotal = 0.0;
+        $collectedCommercialFloorTotal = 0.0;
         $collectedFilteredTotal = 0.0;
         // Count from paid payments only
         foreach ($payments as $p) {
@@ -251,6 +252,8 @@ class PaymentsController extends Controller {
             $unitType = strtolower($p['unit_type'] ?? 'flat');
             if ($unitType === 'shop') {
                 $collectedShopTotal += $amt;
+            } elseif ($unitType === 'commercial_floor') {
+                $collectedCommercialFloorTotal += $amt;
             } else {
                 $collectedFlatTotal += $amt;
             }
@@ -258,6 +261,7 @@ class PaymentsController extends Controller {
 
         $unpaidFlatTotal = 0.0;
         $unpaidShopTotal = 0.0;
+        $unpaidCommercialFloorTotal = 0.0;
         $unpaidFilteredTotal = 0.0;
         // Fully unpaid rows (no payment recorded)
         foreach ($unpaidRows as $r) {
@@ -266,6 +270,8 @@ class PaymentsController extends Controller {
             $unpaidFilteredTotal += $rem;
             if ($unitType === 'shop') {
                 $unpaidShopTotal += $rem;
+            } elseif ($unitType === 'commercial_floor') {
+                $unpaidCommercialFloorTotal += $rem;
             } else {
                 $unpaidFlatTotal += $rem;
             }
@@ -287,6 +293,8 @@ class PaymentsController extends Controller {
             $unitType = strtolower($p['unit_type'] ?? 'flat');
             if ($unitType === 'shop') {
                 $unpaidShopTotal += $rem;
+            } elseif ($unitType === 'commercial_floor') {
+                $unpaidCommercialFloorTotal += $rem;
             } else {
                 $unpaidFlatTotal += $rem;
             }
@@ -330,9 +338,11 @@ class PaymentsController extends Controller {
             'buildingOptions' => $buildingOptions,
             'collectedFlatTotal' => $collectedFlatTotal,
             'collectedShopTotal' => $collectedShopTotal,
+            'collectedCommercialFloorTotal' => $collectedCommercialFloorTotal,
             'collectedFilteredTotal' => $collectedFilteredTotal,
             'unpaidFlatTotal' => $unpaidFlatTotal,
             'unpaidShopTotal' => $unpaidShopTotal,
+            'unpaidCommercialFloorTotal' => $unpaidCommercialFloorTotal,
             'unpaidFilteredTotal' => $unpaidFilteredTotal,
         ]);
     }

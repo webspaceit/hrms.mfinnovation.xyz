@@ -77,8 +77,9 @@ CALL rms_add_col('wsit_buildings', 'holding_no', 'VARCHAR(50) DEFAULT NULL COMME
 -- ------------------------------------------------------------
 -- Flats
 -- ------------------------------------------------------------
-CALL rms_add_col('wsit_flats', 'shop_name', 'VARCHAR(150) DEFAULT NULL COMMENT ''Business name for shop units, shown on the shop rent receipt''');
-CALL rms_add_col('wsit_flats', 'unit_type', 'ENUM(''flat'',''shop'') NOT NULL DEFAULT ''flat''');
+CALL rms_add_col('wsit_flats', 'shop_name', 'VARCHAR(150) DEFAULT NULL COMMENT ''Business or commercial space name, shown on rent documents''');
+CALL rms_add_col('wsit_flats', 'unit_type', 'ENUM(''flat'',''shop'',''commercial_floor'') NOT NULL DEFAULT ''flat''');
+ALTER TABLE `wsit_flats` MODIFY `unit_type` ENUM('flat','shop','commercial_floor') NOT NULL DEFAULT 'flat';
 
 -- ------------------------------------------------------------
 -- Tenants (documents, ownership, tenant portal)

@@ -106,6 +106,8 @@ require dirname(__DIR__) . '/partials/header.php';
                                 <td><?php echo e(localizeText($inv['building_name'])); ?>
                                     <?php if ($inv['unit_type'] === 'shop'): ?>
                                         <span class="badge bg-warning-subtle text-warning-emphasis ml-1"><?php echo t('shop_unit'); ?></span>
+                                    <?php elseif ($inv['unit_type'] === 'commercial_floor'): ?>
+                                        <span class="badge bg-info-subtle text-info-emphasis ml-1"><?php echo t('commercial_floor'); ?></span>
                                     <?php endif; ?>
                                 </td>
                                 <td><span class="badge bg-primary-subtle text-primary-emphasis"><?php echo e(bnFlatCode($inv['flat_no'])); ?></span></td>

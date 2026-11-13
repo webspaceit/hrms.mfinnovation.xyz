@@ -48,7 +48,7 @@ require dirname(__DIR__) . '/partials/header.php';
                                     <small class="text-muted d-block"><?php echo e($l['tenant_phone'] ? bnNumeral(enDigits($l['tenant_phone'])) : ''); ?></small>
                                 </td>
                                 <td>
-                                    <?php $badgeIcon = isset($l['unit_type']) && $l['unit_type'] === 'shop' ? '<i class="bi bi-shop mr-1"></i>' . t('shop') . ' · ' : ''; ?>
+                                    <?php $badgeIcon = isset($l['unit_type']) && $l['unit_type'] === 'shop' ? '<i class="bi bi-shop mr-1"></i>' . t('shop') . ' · ' : (isset($l['unit_type']) && $l['unit_type'] === 'commercial_floor' ? '<i class="bi bi-building mr-1"></i>' . t('commercial_floor') . ' · ' : ''); ?>
                                     <span class="badge bg-info-subtle text-info-emphasis"><?php echo $badgeIcon; ?> <?php echo e(localizeText($l['building_name'])); ?> · <?php echo e(bnFlatCode($l['flat_no'])); ?></span>
                                 </td>
                                 <td><?php echo e(bnNumeral(date('d-m-Y', strtotime($l['start_date'])))); ?></td>
@@ -102,7 +102,7 @@ require dirname(__DIR__) . '/partials/header.php';
                         <select name="select_flat" id="l_flat" class="form-select" required onchange="l_flat_selected()">
                             <option value="">-- <?php echo t('select_flat'); ?> --</option>
                             <?php foreach ($allFlats as $f): ?>
-                                <?php $unitTag = $f['unit_type'] === 'shop' ? '[' . t('shop') . ']' : ''; ?>
+                                <?php $unitTag = $f['unit_type'] === 'shop' ? '[' . t('shop') . ']' : ($f['unit_type'] === 'commercial_floor' ? '[' . t('commercial_floor') . ']' : ''); ?>
                                 <?php $statusTag = $f['status'] !== 'available' ? ' (' . t($f['status']) . ')' : ''; ?>
                                 <option value="<?php echo $f['id']; ?>" data-rent="<?php echo $f['rent_amount']; ?>" data-advance="<?php echo $f['advance_amount']; ?>"><?php echo $unitTag; ?> <?php echo e(localizeText($f['building_name'])); ?> · <?php echo e(bnFlatCode($f['flat_no'])); ?><?php echo e($statusTag); ?></option>
                             <?php endforeach; ?>

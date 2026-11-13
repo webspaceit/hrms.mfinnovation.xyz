@@ -413,9 +413,9 @@
                     </colgroup>
                     
                     <tr>
-                        <td class="label-cell">দোকানের নাম :</td>
+                        <td class="label-cell"><?php echo $isCommercialFloor ? 'বাণিজ্যিক স্থানের নাম' : 'দোকানের নাম'; ?> :</td>
                         <td class="value-cell" style="white-space:normal;"><?php echo e(localizeText($shopName !== '' ? $shopName : '—')); ?></td>
-                        <td class="label-cell" style="padding-left:16px;">দোকান নং :</td>
+                        <td class="label-cell" style="padding-left:16px;"><?php echo $isCommercialFloor ? 'ইউনিট নং' : 'দোকান নং'; ?> :</td>
                         <td class="value-cell"><?php echo e(bnFlatCode($receipt['flat_no'])); ?></td>
                     </tr>
                     <tr>

@@ -115,6 +115,13 @@ if (!$existing || !$targetLease
     jsonResponse(['success' => false, 'message' => t('access_denied')], 403);
 }
 
+$existingUnitType = !empty($existing['flat_id'])
+    ? ((new Flat())->find((int)$existing['flat_id'])['unit_type'] ?? 'flat')
+    : 'flat';
+if (isShopLikeUnit($existingUnitType)) {
+    $receipt_type = 'rent';
+}
+
 $total_amount = $amount + $parking_amount + $gas_amount + $water_fee + $waste_fee + $arrears;
 
 // The invoice is the single source of truth for the month's bill: after this
