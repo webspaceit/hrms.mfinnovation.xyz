@@ -2,6 +2,11 @@
 // Flats view - data: $flats (array), $buildings (array), $filterBuilding,
 // $filterType, $flatModel, $filterUrlAll / $filterUrlFlat / $filterUrlShop / $filterUrlCommercial
 $pageTitle = t('flats');
+$addButtonLabel = $filterType === 'shop'
+    ? t('add_shop_unit')
+    : ($filterType === 'commercial_floor'
+        ? t('add_commercial_floor')
+        : ($filterType === 'flat' ? t('add_flat') : t('add_unit')));
 require dirname(__DIR__) . '/partials/header.php';
 ?>
 
@@ -20,8 +25,8 @@ require dirname(__DIR__) . '/partials/header.php';
         <button id="bulkDeleteBtn" class="btn btn-sm btn-danger" style="display:none;" data-delete-text="<?php echo t('delete_selected'); ?>" onclick="BulkSelect.confirmAndDelete()">
             <i class="bi bi-trash mr-1"></i><?php echo t('delete_selected'); ?> (0)
         </button>
-        <button class="btn btn-primary" onclick="resetFlatForm(); openModal('flatModal')">
-            <i class="bi bi-plus-lg mr-1"></i> <?php echo t('add_flat'); ?>
+        <button class="btn btn-primary" onclick="prepareAddUnit()">
+            <i class="bi bi-plus-lg mr-1"></i> <?php echo e($addButtonLabel); ?>
         </button>
     </div>
 </div>
@@ -311,10 +316,15 @@ const L10N = ' . json_encode([
     'commercial_name' => t('commercial_name'),
     'commercial_floor_no' => t('unit_no'),
     'add_flat'  => t('add_flat'),
+    'add_unit'  => t('add_unit'),
+    'add_shop'  => t('add_shop_unit'),
+    'add_commercial_floor' => t('add_commercial_floor'),
     'edit_flat' => t('edit_flat'),
     'save'      => t('save'),
     'update'    => t('update'),
 ]) . ';
+const PAGE_BUILDING_ID = ' . json_encode((int)$filterBuilding) . ';
+const PAGE_UNIT_TYPE = ' . json_encode($filterType) . ';
 const REQUIRED = " <span class=\"text-danger\">*</span>";
 
 function toggleUnitFields() {
@@ -325,7 +335,7 @@ function toggleUnitFields() {
     document.getElementById("f_room_row").style.display = isCommercialUnit ? "none" : "";
     document.getElementById("f_shop_row").style.display = isCommercialUnit ? "" : "none";
     document.getElementById("f_no_label").innerHTML = (isShop ? L10N.shop_no : (isCommercial ? L10N.commercial_floor_no : L10N.flat_no)) + REQUIRED;
-    document.querySelector('#f_shop_row label').innerHTML = '<i class="bi ' + (isCommercial ? 'bi-building' : 'bi-shop') + ' mr-1"></i>' + (isCommercial ? L10N.commercial_name : L10N.shop_name);
+    document.querySelector("#f_shop_row label").innerHTML = "<i class=\'bi " + (isCommercial ? "bi-building" : "bi-shop") + " mr-1\'></i>" + (isCommercial ? L10N.commercial_name : L10N.shop_name);
     document.getElementById("f_shop_name").placeholder = isCommercial ? L10N.commercial_name : L10N.shop_name;
 }
 
@@ -340,8 +350,25 @@ function resetFlatForm() {
     document.getElementById("f_no_label").innerHTML = L10N.flat_no + REQUIRED;
     document.getElementById("f_shop_row").style.display = "none";
     document.getElementById("f_shop_name").value = "";
+    toggleUnitFields();
     document.getElementById("flatModalTitle").textContent = L10N.add_flat;
     document.getElementById("f_submit").textContent = L10N.save;
+}
+
+function prepareAddUnit() {
+    resetFlatForm();
+    if (PAGE_BUILDING_ID) {
+        document.getElementById("f_building").value = String(PAGE_BUILDING_ID);
+    }
+    if (["flat", "shop", "commercial_floor"].includes(PAGE_UNIT_TYPE)) {
+        document.getElementById("f_type").value = PAGE_UNIT_TYPE;
+        toggleUnitFields();
+    }
+    const selectedType = document.getElementById("f_type").value;
+    document.getElementById("flatModalTitle").textContent = selectedType === "shop"
+        ? L10N.add_shop
+        : (selectedType === "commercial_floor" ? L10N.add_commercial_floor : L10N.add_flat);
+    openModal("flatModal");
 }
 
 function editFlat(id) {

@@ -97,6 +97,9 @@ return [
 
     // Flats
     'add_flat'       => 'Add Flat',
+    'add_unit'       => 'Add Unit',
+    'add_shop_unit'  => 'Add Shop',
+    'add_commercial_floor' => 'Add Commercial Floor',
     'edit_flat'      => 'Edit Flat',
     'flat_no'        => 'Flat No',
     'flat_shop_no'   => 'Flat No/Shop No',
