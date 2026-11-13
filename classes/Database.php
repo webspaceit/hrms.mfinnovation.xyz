@@ -15,6 +15,8 @@ class Database {
     public static $tables = [
         'users', 'buildings', 'flats', 'tenants', 'leases', 'payments',
         'expenses', 'settings', 'translation_cache', 'invoices', 'invoice_sends',
+        'lease_settlements', 'lease_settlement_allocations',
+        'lease_settlements', 'lease_settlement_allocations',
     ];
 
     // Rewrite known table names with the configured DB_PREFIX.

@@ -93,6 +93,15 @@ class Invoice extends BaseModel {
             );
 
             if ($existing) {
+                $settledLeaseEnd = $this->db->fetch(
+                    "SELECT id FROM lease_settlements
+                     WHERE lease_id = :l AND MONTH(end_date) = :m AND YEAR(end_date) = :y LIMIT 1",
+                    ['l' => (int)$lease['id'], 'm' => (int)$month, 'y' => (int)$year]
+                );
+                if ($settledLeaseEnd) {
+                    $skipped++;
+                    continue;
+                }
                 // Manually edited invoices keep their values until reset.
                 // Exception: when nothing has been collected for this
                 // lease/month/year there is no payment depending on those

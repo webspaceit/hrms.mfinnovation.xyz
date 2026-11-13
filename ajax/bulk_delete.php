@@ -86,6 +86,14 @@ try {
             continue;
         }
 
+        if ($entity === 'leases' && (int)Database::getInstance()->fetchColumn(
+            "SELECT COUNT(*) FROM lease_settlements WHERE lease_id = :l",
+            ['l' => (int)$id]
+        ) > 0) {
+            $errorCount++;
+            continue;
+        }
+
         // Run pre-delete side effects
         switch ($sideEffect) {
             case 'documents':

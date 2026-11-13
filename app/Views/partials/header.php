@@ -79,6 +79,9 @@ $user = Auth::user();
                 <i class="bi bi-gear"></i> <span><?php echo t('settings'); ?></span>
             </a>
             <?php endif; ?>
+            <a href="<?php echo url('home'); ?>?preview=1&amp;lang=<?php echo rawurlencode($currentLang); ?>" class="nav-link">
+                <i class="bi bi-house-door"></i> <span><?php echo t('front_page'); ?></span>
+            </a>
             <div class="sidebar-divider"></div>
             <a href="<?php echo url('logout') . $langSuffix; ?>" class="nav-link text-danger">
                 <i class="bi bi-box-arrow-right"></i> <span><?php echo t('logout'); ?></span>

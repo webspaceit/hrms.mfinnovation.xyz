@@ -12,11 +12,14 @@ class Lease extends BaseModel {
         $scope = tenantScope('t');
         return $this->db->fetchAll("
             SELECT l.*, t.name AS tenant_name, t.phone AS tenant_phone,
-                   f.flat_no, f.unit_type, f.advance_amount AS unit_advance, b.name AS building_name
+                   f.flat_no, f.unit_type, f.advance_amount AS unit_advance, b.name AS building_name,
+                   ls.id AS settlement_id, ls.settled_at, ls.refund_amount AS settlement_refund,
+                   ls.balance_due AS settlement_balance
             FROM leases l
             LEFT JOIN tenants t ON t.id = l.tenant_id
             LEFT JOIN flats f ON f.id = l.flat_id
             LEFT JOIN buildings b ON b.id = f.building_id
+            LEFT JOIN lease_settlements ls ON ls.lease_id = l.id
             " . ($scope !== '' ? "WHERE 1=1" . $scope : "") . "
             ORDER BY l.start_date DESC
         ");

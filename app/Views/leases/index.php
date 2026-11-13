@@ -55,16 +55,30 @@ require dirname(__DIR__) . '/partials/header.php';
                                 <td><?php echo $l['end_date'] ? e(bnNumeral(date('d-m-Y', strtotime($l['end_date'])))) : '-'; ?></td>
                                 <td><?php echo money($l['rent_amount']); ?></td>
                                 <td><?php echo money($l['utility_fee']); ?></td>
-                                <td><?php echo !empty($l['unit_advance']) ? money($l['unit_advance']) : '-'; ?></td>
+                                <td><?php echo !empty($l['advance_amount']) ? money($l['advance_amount']) : '-'; ?>
+                                    <?php if (!empty($l['settlement_id'])): ?><small class="d-block text-success"><?php echo t('settlement_details'); ?></small><?php endif; ?>
+                                </td>
                                 <td>
                                     <span class="badge bg-<?php echo $st['class']; ?>-subtle text-<?php echo $st['class']; ?>-emphasis"><?php echo $st['label']; ?></span>
                                 </td>
                                 <td>
-                                    <?php echo actionButtons([
-                                        ['label' => t('edit'), 'icon' => 'bi bi-pencil', 'variant' => 'edit', 'onclick' => 'editLease(' . (int)$l['id'] . ')'],
-                                        ['label' => t('delete'), 'icon' => 'bi bi-trash', 'variant' => 'delete',
-                                         'onclick' => 'confirmDelete(' . jsQuote(BASE_URL . 'ajax/lease_delete.php?id=' . (int)$l['id']) . ', ' . jsQuote(t('delete_confirm')) . ')'],
-                                    ]); ?>
+                                    <?php
+                                    $leaseActions = [];
+                                    if (empty($l['settlement_id'])) {
+                                        $leaseActions[] = ['label' => t('edit'), 'icon' => 'bi bi-pencil', 'variant' => 'edit', 'onclick' => 'editLease(' . (int)$l['id'] . ')'];
+                                        $leaseActions[] = ['label' => t('delete'), 'icon' => 'bi bi-trash', 'variant' => 'delete',
+                                            'onclick' => 'confirmDelete(' . jsQuote(BASE_URL . 'ajax/lease_delete.php?id=' . (int)$l['id']) . ', ' . jsQuote(t('delete_confirm')) . ')'];
+                                    }
+                                    if (isShopLikeUnit($l['unit_type'] ?? '') && !empty($l['end_date'])) {
+                                        $leaseActions[] = [
+                                            'label' => !empty($l['settlement_id']) ? t('settlement_details') : t('lease_end_settlement'),
+                                            'icon' => 'bi bi-calculator',
+                                            'variant' => 'view',
+                                            'onclick' => 'openLeaseSettlement(' . (int)$l['id'] . ')',
+                                        ];
+                                    }
+                                    echo actionButtons($leaseActions);
+                                    ?>
                                 </td>
                             </tr>
                         <?php endforeach; ?>
@@ -142,6 +156,45 @@ require dirname(__DIR__) . '/partials/header.php';
     </div>
 </div>
 
+<!-- Lease-end settlement preview -->
+<div class="modal" id="leaseSettlementModal" data-close-on-backdrop="false" data-close-on-escape="false">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-0 bg-primary text-white">
+                <h5 class="modal-title"><i class="bi bi-calculator mr-1"></i><?php echo t('lease_end_settlement'); ?></h5>
+                <button type="button" class="btn-close btn-close-white" onclick="closeModal('leaseSettlementModal')" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="leaseSettlementMessage" class="alert alert-info py-2" style="display:none;"></div>
+                <div id="leaseSettlementContent" style="display:none;">
+                    <div class="fw-semibold mb-2" id="settlementLeaseLabel"></div>
+                    <div class="table-responsive">
+                        <table class="table table-sm mb-0">
+                            <tbody>
+                                <tr><th><?php echo t('settlement_end_date'); ?></th><td id="settlementEndDate" class="text-right"></td></tr>
+                                <tr><th><?php echo t('settlement_prorated_rent'); ?></th><td id="settlementProratedRent" class="text-right"></td></tr>
+                                <tr><th><?php echo t('settlement_days'); ?></th><td id="settlementDays" class="text-right"></td></tr>
+                                <tr><th><?php echo t('settlement_due_rent'); ?></th><td id="settlementDue" class="text-right"></td></tr>
+                                <tr><th><?php echo t('settlement_payment_credit'); ?></th><td id="settlementPaymentCredit" class="text-right"></td></tr>
+                                <tr><th><?php echo t('settlement_advance'); ?></th><td id="settlementAdvance" class="text-right"></td></tr>
+                                <tr><th><?php echo t('settlement_advance_applied'); ?></th><td id="settlementAdvanceApplied" class="text-right"></td></tr>
+                                <tr class="table-success"><th><?php echo t('settlement_refund'); ?></th><td id="settlementRefund" class="text-right fw-bold"></td></tr>
+                                <tr class="table-warning"><th><?php echo t('settlement_balance_due'); ?></th><td id="settlementBalance" class="text-right fw-bold"></td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-0 bg-light">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('leaseSettlementModal')"><?php echo t('cancel'); ?></button>
+                <button type="button" class="btn btn-primary" id="settleLeaseConfirm" style="display:none;" onclick="confirmLeaseSettlement()">
+                    <i class="bi bi-check2-circle mr-1"></i><?php echo t('confirm_settlement'); ?>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Confirm Delete Modal -->
 <div class="modal" id="confirmModal" data-close-on-backdrop="false" data-close-on-escape="false">
     <div class="modal-dialog modal-dialog-centered modal-sm">
@@ -212,11 +265,10 @@ function editLease(id) {
             document.getElementById("l_end").value = d.end_date || "";
             document.getElementById("l_rent").value = d.rent_amount;
             document.getElementById("l_utility").value = d.utility_fee;
-            // Advance shown on Edit Lease comes from the unit (flats.php):
-            // lease_get returns the unit advance amount as unit_advance.
+            // Keep the actual advance captured on this lease, not the unit default.
             const bnUpd = document.documentElement.lang === "bn";
-            const unitAdv = d.unit_advance || "";
-            document.getElementById("l_advance").value = bnUpd && unitAdv ? toBengaliDigits(unitAdv) : unitAdv;
+            const leaseAdv = d.advance_amount || "";
+            document.getElementById("l_advance").value = bnUpd && leaseAdv ? toBengaliDigits(leaseAdv) : leaseAdv;
             document.getElementById("leaseModalTitle").textContent = "' . t('edit_lease') . '";
             document.getElementById("l_submit").textContent = "' . t('update') . '";
             openModal("leaseModal");
@@ -228,6 +280,72 @@ document.getElementById("leaseForm").addEventListener("submit", function(e) {
     e.preventDefault();
     submitModalForm("leaseForm", BASE_URL + "ajax/lease_save.php");
 });
+
+let settlementLeaseId = 0;
+function openLeaseSettlement(id) {
+    settlementLeaseId = id;
+    const message = document.getElementById("leaseSettlementMessage");
+    document.getElementById("leaseSettlementContent").style.display = "none";
+    document.getElementById("settleLeaseConfirm").style.display = "none";
+    message.className = "alert alert-info py-2";
+    message.textContent = ' . json_encode(t('settlement_loading')) . ';
+    message.style.display = "";
+    openModal("leaseSettlementModal");
+
+    ajax(BASE_URL + "ajax/lease_settlement_preview.php", { id: id }, function(result) {
+        if (!result.success) {
+            message.className = "alert alert-danger py-2";
+            message.textContent = result.message || ' . json_encode(t('error_occurred')) . ';
+            return;
+        }
+        const data = result.data;
+        const settlement = data.settled ? data.settlement : data;
+        const lease = data.lease;
+        document.getElementById("settlementLeaseLabel").textContent =
+            (lease.tenant_name || "") + " · " + (lease.building_name || "") + " · " + (lease.flat_no || "");
+        document.getElementById("settlementEndDate").textContent = settlement.end_date || "—";
+        document.getElementById("settlementProratedRent").textContent = formatMoney(settlement.prorated_rent || 0);
+        document.getElementById("settlementDays").textContent =
+            (document.documentElement.lang === "bn" ? toBengaliDigits(settlement.days_occupied || 0) : String(settlement.days_occupied || 0))
+            + " / " + (document.documentElement.lang === "bn" ? toBengaliDigits(settlement.days_in_month || 0) : String(settlement.days_in_month || 0));
+        document.getElementById("settlementDue").textContent = formatMoney(settlement.eligible_due || 0);
+        document.getElementById("settlementPaymentCredit").textContent = formatMoney(settlement.payment_credit || 0);
+        document.getElementById("settlementAdvance").textContent = formatMoney(settlement.advance_amount || 0);
+        document.getElementById("settlementAdvanceApplied").textContent = formatMoney(settlement.advance_applied || 0);
+        document.getElementById("settlementRefund").textContent = formatMoney(settlement.refund_amount || 0);
+        document.getElementById("settlementBalance").textContent = formatMoney(settlement.balance_due || 0);
+        document.getElementById("leaseSettlementContent").style.display = "";
+
+        if (data.settled) {
+            message.className = "alert alert-success py-2";
+            message.textContent = ' . json_encode(t('settlement_completed')) . ' + " " + (settlement.settled_at || "");
+        } else if (!data.can_settle) {
+            message.className = "alert alert-warning py-2";
+            message.textContent = ' . json_encode(t('settlement_end_date_not_reached')) . ';
+        } else {
+            message.style.display = "none";
+            document.getElementById("settleLeaseConfirm").style.display = "";
+        }
+    });
+}
+
+function confirmLeaseSettlement() {
+    const button = document.getElementById("settleLeaseConfirm");
+    button.disabled = true;
+    ajax(BASE_URL + "ajax/lease_settlement_save.php", { id: settlementLeaseId }, function(result) {
+        button.disabled = false;
+        if (result.success) {
+            closeModal("leaseSettlementModal");
+            showToast(result.message, "success");
+            setTimeout(function() { location.reload(); }, 500);
+        } else {
+            const message = document.getElementById("leaseSettlementMessage");
+            message.className = "alert alert-danger py-2";
+            message.textContent = result.message || ' . json_encode(t('error_occurred')) . ';
+            message.style.display = "";
+        }
+    });
+}
 </script>';
 require dirname(__DIR__) . '/partials/footer.php';
 ?>

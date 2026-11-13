@@ -23,6 +23,12 @@ if (!$lease) {
 if (!tenantAccessible((int)$lease['tenant_id'])) {
     jsonResponse(['success' => false, 'message' => t('access_denied')], 403);
 }
+if ((int)Database::getInstance()->fetchColumn(
+    "SELECT COUNT(*) FROM lease_settlements WHERE lease_id = :l",
+    ['l' => $leaseId]
+) > 0) {
+    jsonResponse(['success' => false, 'message' => t('lease_settled_cannot_delete')]);
+}
 if ($lease) {
     $leaseModel->delete($leaseId);
     $flatModel->refreshStatus($lease['flat_id']);

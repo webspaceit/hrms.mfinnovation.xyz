@@ -107,6 +107,7 @@ require_once __DIR__ . '/Lease.php';
 require_once __DIR__ . '/Payment.php';
 require_once __DIR__ . '/Expense.php';
 require_once __DIR__ . '/Invoice.php';
+require_once __DIR__ . '/LeaseSettlement.php';
 require_once __DIR__ . '/Mailer.php';
 require_once __DIR__ . '/SmsSender.php';
 require_once __DIR__ . '/WhatsAppSender.php';

@@ -12,11 +12,13 @@ use App\Core\Controller;
 class LandingController extends Controller {
 
     public function index(): void {
-        // Already signed in? Skip the landing and go to the dashboard.
-        if (\Auth::check()) {
+        // Signed-in users can open the public landing page from the sidebar
+        // through preview=1; normal visits still go straight to their dashboard.
+        $preview = isset($_GET['preview']) && $_GET['preview'] === '1';
+        if (!$preview && \Auth::check()) {
             redirect('dashboard');
         }
-        if (\Auth::checkTenant()) {
+        if (!$preview && \Auth::checkTenant()) {
             redirect('tenant-dashboard');
         }
 

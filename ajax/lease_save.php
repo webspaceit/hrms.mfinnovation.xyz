@@ -35,6 +35,13 @@ if ($id > 0) {
     if (!$existing || !tenantAccessible((int)$existing['tenant_id']) || !tenantAccessible($tenant_id)) {
         jsonResponse(['success' => false, 'message' => t('access_denied')], 403);
     }
+    $settled = (int)Database::getInstance()->fetchColumn(
+        "SELECT COUNT(*) FROM lease_settlements WHERE lease_id = :l",
+        ['l' => $id]
+    );
+    if ($settled > 0) {
+        jsonResponse(['success' => false, 'message' => t('lease_settled_cannot_edit')]);
+    }
 } elseif (!tenantAccessible($tenant_id)) {
     jsonResponse(['success' => false, 'message' => t('access_denied')], 403);
 }

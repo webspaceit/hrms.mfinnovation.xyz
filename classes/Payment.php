@@ -187,11 +187,17 @@ class Payment extends BaseModel {
      * Sum of all installments collected for a lease/month/year.
      */
     public function sumForInvoice($leaseId, $month, $year) {
-        return (float)$this->db->fetchColumn(
+        $payments = (float)$this->db->fetchColumn(
             "SELECT COALESCE(SUM(total_amount), 0) FROM payments
              WHERE lease_id = :lease AND month = :month AND year = :year",
             ['lease' => $leaseId, 'month' => $month, 'year' => $year]
         );
+        $allocations = (float)$this->db->fetchColumn(
+            "SELECT COALESCE(SUM(amount), 0) FROM lease_settlement_allocations
+             WHERE lease_id = :lease AND month = :month AND year = :year",
+            ['lease' => $leaseId, 'month' => $month, 'year' => $year]
+        );
+        return $payments + $allocations;
     }
 
     /**
@@ -234,10 +240,18 @@ class Payment extends BaseModel {
              WHERE lease_id = :l AND month = :m AND year = :y",
             ['l' => $leaseId, 'm' => $month, 'y' => $year]
         );
+        $sum += (float)$this->db->fetchColumn(
+            "SELECT COALESCE(SUM(amount), 0) FROM lease_settlement_allocations
+             WHERE lease_id = :l AND month = :m AND year = :y",
+            ['l' => $leaseId, 'm' => $month, 'y' => $year]
+        );
         $due = (float)$inv['total_due'];
         $paidAt = $this->db->fetchColumn(
-            "SELECT MAX(created_at) FROM payments WHERE lease_id = :l AND month = :m AND year = :y",
-            ['l' => $leaseId, 'm' => $month, 'y' => $year]
+            "SELECT GREATEST(
+                COALESCE((SELECT MAX(created_at) FROM payments WHERE lease_id = :lp AND month = :mp AND year = :yp), '1000-01-01 00:00:00'),
+                COALESCE((SELECT MAX(created_at) FROM lease_settlement_allocations WHERE lease_id = :la AND month = :ma AND year = :ya), '1000-01-01 00:00:00')
+             )",
+            ['lp' => $leaseId, 'mp' => $month, 'yp' => $year, 'la' => $leaseId, 'ma' => $month, 'ya' => $year]
         );
 
         $status = $sum <= 0.009 ? 'unpaid' : ($sum >= $due - 0.009 ? 'paid' : 'partial');
@@ -257,11 +271,17 @@ class Payment extends BaseModel {
      * Sum of rent installments collected for a lease/month/year.
      */
     public function sumRentForInvoice($leaseId, $month, $year) {
-        return (float)$this->db->fetchColumn(
+        $payments = (float)$this->db->fetchColumn(
             "SELECT COALESCE(SUM(amount), 0) FROM payments
+             WHERE lease_id = :lease AND month = :month AND year = :year AND receipt_type = 'rent'",
+            ['lease' => $leaseId, 'month' => $month, 'year' => $year]
+        );
+        $allocations = (float)$this->db->fetchColumn(
+            "SELECT COALESCE(SUM(amount), 0) FROM lease_settlement_allocations
              WHERE lease_id = :lease AND month = :month AND year = :year",
             ['lease' => $leaseId, 'month' => $month, 'year' => $year]
         );
+        return $payments + $allocations;
     }
 
     /**
