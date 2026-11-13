@@ -165,6 +165,22 @@ function url($path = '') {
 }
 
 /**
+ * URL for a static asset, versioned by its modification time.
+ *
+ * The hosting runs mod_pagespeed, which rewrites CSS/JS to a fingerprinted
+ * file served with max-age=1 year. When the stylesheet URL never changes, a
+ * browser (or a pagespeed edge copy) can keep rendering the pre-deploy CSS
+ * while the HTML is already new - the page then looks half-styled. The mtime
+ * query makes every deploy a new URL, so the fresh file is always fetched.
+ */
+function asset($path) {
+    $path = ltrim((string)$path, '/');
+    $file = __DIR__ . '/../' . $path;
+    $version = is_file($file) ? filemtime($file) : null;
+    return url($path) . ($version ? '?v=' . $version : '');
+}
+
+/**
  * Redirect helper - accepts routes ('payments') or legacy *.php paths.
  */
 function redirect($url) {

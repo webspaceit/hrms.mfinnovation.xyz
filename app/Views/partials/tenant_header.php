@@ -22,10 +22,10 @@ $portalCurrent = basename($_SERVER['PHP_SELF']);
     <!-- Bootstrap Icons -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
     <!-- Custom CSS -->
-    <link href="<?php echo url('assets/css/style.css'); ?>" rel="stylesheet">
+    <link href="<?php echo asset('assets/css/style.css'); ?>" rel="stylesheet">
     <link rel="icon" type="image/svg+xml" href="<?php echo url('assets/images/favicon.svg'); ?>">
     <!-- Core app JS loaded early with defer so toggleDropdown etc. are always defined -->
-    <script src="<?php echo url('assets/js/app.js'); ?>" defer></script>
+    <script src="<?php echo asset('assets/js/app.js'); ?>" defer></script>
 </head>
 <body class="bg-[#f4f7f5]">
 <div class="flex" id="wrapper">

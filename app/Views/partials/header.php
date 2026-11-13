@@ -37,10 +37,10 @@ $accountInitials = mb_strtoupper(mb_substr($accountInitials, 0, 2));
     <!-- Flatpickr (date picker) CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <!-- Custom CSS -->
-    <link href="<?php echo url('assets/css/style.css'); ?>" rel="stylesheet">
+    <link href="<?php echo asset('assets/css/style.css'); ?>" rel="stylesheet">
     <link rel="icon" type="image/svg+xml" href="<?php echo url('assets/images/favicon.svg'); ?>">
     <!-- Core app JS loaded early with defer so toggleDropdown etc. are always defined -->
-    <script src="<?php echo url('assets/js/app.js'); ?>" defer></script>
+    <script src="<?php echo asset('assets/js/app.js'); ?>" defer></script>
 </head>
 <body class="bg-[#f4f7f5]">
 <script>

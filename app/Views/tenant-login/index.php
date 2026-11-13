@@ -12,7 +12,7 @@ $langSuffix = '?lang=' . $currentLang;
     <!-- Tailwind CSS (runtime CDN) -->
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
-    <link href="<?php echo BASE_URL; ?>assets/css/style.css" rel="stylesheet">
+    <link href="<?php echo asset('assets/css/style.css'); ?>" rel="stylesheet">
     <link rel="icon" type="image/svg+xml" href="<?php echo BASE_URL; ?>assets/images/favicon.svg">
 </head>
 <body>
