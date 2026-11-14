@@ -404,6 +404,25 @@ function showToast(message, type = 'success') {
 }
 
 // ---- Generic AJAX helper ----
+
+/**
+ * Attach the page language to an endpoint URL.
+ *
+ * The UI language can come from a ?lang= override that only lives for one
+ * request. An XHR does not inherit it, so the server fell back to the session
+ * (or site default) language and modals opened in a different language than
+ * the page around them - e.g. an English buildings page whose edit dialog was
+ * filled with Bengali values.
+ */
+function withLang(url) {
+    var lang = document.documentElement.lang;
+    if (!lang) return url;
+    var base = new URL(url, window.location.origin);
+    if (base.origin !== window.location.origin) return url;
+    base.searchParams.set('lang', lang);
+    return base.pathname + base.search;
+}
+
 function ajax(url, data, callback) {
     var params = new URLSearchParams();
     params.append('csrf_token', CSRF_TOKEN);
@@ -415,7 +434,7 @@ function ajax(url, data, callback) {
             params.append(key, val);
         }
     }
-    fetch(url, {
+    fetch(withLang(url), {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: params
@@ -454,7 +473,7 @@ function executeDelete(endpoint, id) {
     // `endpoint` is the pathname taken from the URL passed to confirmDelete(),
     // which callers already build with BASE_URL (e.g. "/oop-rms/ajax/x_delete.php").
     // Do NOT prepend BASE_URL again here or the request 404s.
-    fetch(endpoint, {
+    fetch(withLang(endpoint), {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: params
@@ -490,7 +509,7 @@ function submitModalForm(formId, url, onSuccess) {
     if (!form) return;
 
     const data = new FormData(form);
-    fetch(url, {
+    fetch(withLang(url), {
         method: 'POST',
         body: data
     })

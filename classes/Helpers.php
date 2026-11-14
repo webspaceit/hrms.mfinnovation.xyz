@@ -492,12 +492,25 @@ function translateText($text, $from, $to) {
 
     if (function_exists('curl_init')) {
         $ch = curl_init($url);
-        curl_setopt_array($ch, [
+        $opts = [
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_TIMEOUT => 12,
             CURLOPT_SSL_VERIFYPEER => true,
             CURLOPT_FOLLOWLOCATION => true,
-        ]);
+        ];
+        // A PHP build with no CA bundle configured (curl.cainfo empty, as on
+        // stock WAMP) fails every HTTPS call with "unable to get local issuer
+        // certificate". Translation then silently returns the source text, so
+        // new Bengali names/descriptions never render in English - only the
+        // rows already in translation_cache did. Use the bundled bundle in
+        // that case; verification stays on, it just has a trust store now.
+        if (!ini_get('curl.cainfo')) {
+            $caBundle = __DIR__ . '/../config/cacert.pem';
+            if (is_file($caBundle)) {
+                $opts[CURLOPT_CAINFO] = $caBundle;
+            }
+        }
+        curl_setopt_array($ch, $opts);
         $raw = curl_exec($ch);
         $code = curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
         if ($code == 200 && $raw) {

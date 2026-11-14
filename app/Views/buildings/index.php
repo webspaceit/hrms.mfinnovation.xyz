@@ -145,21 +145,50 @@ require dirname(__DIR__) . '/partials/header.php';
 <?php
 $extraJs = '
 <script>
+// The dialog is filled with the text in the current UI language, while these
+// keep the values exactly as stored. On submit, a field the user did not touch
+// is posted back with its stored value, so opening the English dialog and
+// pressing Update cannot replace the Bengali original with its translation.
+var buildingFields = { name: "b_name", holding_no: "b_holding_no", address: "b_address", description: "b_description" };
+var buildingStored = {};
+var buildingDisplay = {};
+
+function clearBuildingOriginals() {
+    buildingStored = {};
+    buildingDisplay = {};
+    for (var key in buildingFields) {
+        var el = document.getElementById(buildingFields[key]);
+        if (el) el.removeAttribute("data-display");
+    }
+}
+
+function fillBuildingForm(shown, stored) {
+    buildingStored = {};
+    buildingDisplay = {};
+    for (var key in buildingFields) {
+        var el = document.getElementById(buildingFields[key]);
+        var value = (shown[key] === undefined || shown[key] === null) ? "" : String(shown[key]);
+        var raw = (stored[key] === undefined || stored[key] === null) ? "" : String(stored[key]);
+        el.value = value;
+        el.setAttribute("data-display", value);
+        buildingDisplay[key] = value;
+        buildingStored[key] = raw;
+    }
+}
+
 function resetBuildingForm() {
     document.getElementById("buildingForm").reset();
     document.getElementById("b_id").value = "";
     document.getElementById("buildingModalTitle").textContent = "' . t('add_building') . '";
     document.getElementById("b_submit").textContent = "' . t('save') . '";
+    clearBuildingOriginals();
 }
 
 function editBuilding(id) {
     ajax(BASE_URL + "ajax/building_get.php", { id: id }, function(result) {
         if (result.success) {
             document.getElementById("b_id").value = result.data.id;
-            document.getElementById("b_name").value = result.data.name;
-            document.getElementById("b_holding_no").value = result.data.holding_no || "";
-            document.getElementById("b_address").value = result.data.address || "";
-            document.getElementById("b_description").value = result.data.description || "";
+            fillBuildingForm(result.data, result.raw || result.data);
             document.getElementById("buildingModalTitle").textContent = "' . t('edit_building') . '";
             document.getElementById("b_submit").textContent = "' . t('update') . '";
             openModal("buildingModal");
@@ -169,6 +198,12 @@ function editBuilding(id) {
 
 document.getElementById("buildingForm").addEventListener("submit", function(e) {
     e.preventDefault();
+    for (var key in buildingFields) {
+        var el = document.getElementById(buildingFields[key]);
+        if (el.getAttribute("data-display") !== null && el.value === buildingDisplay[key]) {
+            el.value = buildingStored[key];
+        }
+    }
     submitModalForm("buildingForm", BASE_URL + "ajax/building_save.php");
 });
 </script>';
