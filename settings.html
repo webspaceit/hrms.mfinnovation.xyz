@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>সেটিংস - ভাড়া ব্যবস্থাপনা সিস্টেম</title>
+    <!-- Tailwind CSS (runtime CDN) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <!-- Flatpickr (date picker) CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <!-- Custom CSS -->
+    <link href="/oop-rms/assets/css/style.css?v=1794648579" rel="stylesheet">
+    <link rel="icon" type="image/svg+xml" href="/oop-rms/assets/images/favicon.svg">
+    <!-- Core app JS loaded early with defer so toggleDropdown etc. are always defined -->
+    <script src="/oop-rms/assets/js/app.js?v=1794618666" defer></script>
+    <!-- PWA: installable app -->
+    <meta name="theme-color" content="#007c47">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="RMS">
+    <link rel="manifest" href="/oop-rms/manifest.php">
+    <link rel="apple-touch-icon" sizes="180x180" href="/oop-rms/assets/icons/apple-touch-icon.png?v=1794645686">
+    <link rel="icon" type="image/png" sizes="32x32" href="/oop-rms/assets/icons/favicon-32.png?v=1794645686">
+    <meta name="csrf-token" content="af1d8c3b853eba140b44cc7008b7e37f64b2db2660b113842e4c4710579d1f41">
+    <script src="/oop-rms/assets/js/pwa.js?v=1794645757" defer></script>
+</head>
+<body class="bg-[#f4f7f5]">
+<script>
+function setDefaultLanguage(lang) {
+    ajax(BASE_URL + "ajax/settings_save.php", { language: lang }, function (result) {
+        if (result.success) {
+            setLanguage(lang);
+        } else {
+            showToast(result.message || "Could not save the default language", "danger");
+        }
+    });
+}
+</script>
+<div class="flex" id="wrapper">
+    <!-- Mobile sidebar backdrop -->
+    <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="toggleSidebar()"></div>
+    <!-- Sidebar -->
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <a href="/oop-rms/dashboard?lang=bn" class="sidebar-brand-link">
+                <span class="sidebar-logo" aria-hidden="true"><i class="bi bi-buildings"></i></span>
+                <span class="sidebar-brand-wrap">
+                    <span class="sidebar-brand">ভাড়া ব্যবস্থাপনা সিস্টেম</span>
+                    <span class="sidebar-brand-sub">অ্যাডমিন প্যানেল</span>
+                </span>
+            </a>
+            <button class="btn btn-link md:hidden text-white sidebar-close ml-auto" onclick="toggleSidebar()" aria-label="Close">
+                <i class="bi bi-x-lg"></i>
+            </button>
+        </div>
+
+        <nav class="sidebar-nav">
+            <div class="sidebar-section">সারসংক্ষেপ</div>
+            <a href="/oop-rms/dashboard?lang=bn" class="nav-link ">
+                <i class="bi bi-speedometer2"></i> <span>ড্যাশবোর্ড</span>
+            </a>
+
+            <div class="sidebar-section">সম্পত্তি</div>
+            <a href="/oop-rms/buildings?lang=bn" class="nav-link ">
+                <i class="bi bi-buildings"></i> <span>ভবনসমূহ</span>
+            </a>
+            <a href="/oop-rms/flats?lang=bn" class="nav-link ">
+                <i class="bi bi-door-open"></i> <span>ফ্ল্যাট বা দোকান</span>
+            </a>
+            <a href="/oop-rms/tenants?lang=bn" class="nav-link ">
+                <i class="bi bi-people"></i> <span>ভাড়াটিয়া</span>
+            </a>
+            <a href="/oop-rms/leases?lang=bn" class="nav-link ">
+                <i class="bi bi-file-earmark-text"></i> <span>লিজ / চুক্তি</span>
+            </a>
+
+            <div class="sidebar-section">হিসাব-নিকাশ</div>
+            <a href="/oop-rms/payments?lang=bn" class="nav-link ">
+                <i class="bi bi-cash-stack"></i> <span>ভাড়া আদায়</span>
+            </a>
+            <a href="/oop-rms/invoices?lang=bn" class="nav-link ">
+                <i class="bi bi-envelope-paper"></i> <span>চালান (বকেয়া বিল)</span>
+            </a>
+            <a href="/oop-rms/expenses?lang=bn" class="nav-link ">
+                <i class="bi bi-receipt"></i> <span>ব্যয়</span>
+            </a>
+            <a href="/oop-rms/reports?lang=bn" class="nav-link ">
+                <i class="bi bi-graph-up"></i> <span>রিপোর্ট</span>
+            </a>
+
+            <div class="sidebar-section">প্রশাসন</div>
+                        <a href="/oop-rms/users?lang=bn" class="nav-link ">
+                <i class="bi bi-person-gear"></i> <span>ব্যবহারকারী</span>
+            </a>
+            <a href="/oop-rms/settings?lang=bn" class="nav-link active">
+                <i class="bi bi-gear"></i> <span>সেটিংস</span>
+            </a>
+                        <a href="/oop-rms/?preview=1&amp;lang=bn" class="nav-link">
+                <i class="bi bi-box-arrow-up-right"></i> <span>সামনের পৃষ্ঠা</span>
+            </a>
+        </nav>
+
+        <div class="sidebar-footer">
+            <div class="sidebar-user">
+                <span class="sidebar-avatar" aria-hidden="true">মক</span>
+                <span class="sidebar-user-meta">
+                    <span class="sidebar-user-name" title="মোহাম্মদ কুদরত-ই-খুদা">মোহাম্মদ কুদরত-ই-খুদা</span>
+                    <span class="sidebar-user-role">অ্যাডমিন</span>
+                </span>
+            </div>
+            <a href="/oop-rms/logout?lang=bn" class="sidebar-logout" title="লগ আউট" aria-label="লগ আউট">
+                <i class="bi bi-box-arrow-right"></i>
+            </a>
+        </div>
+    </div>
+
+    <!-- Page Content Wrapper -->
+    <div id="page-content-wrapper" class="flex-1 min-w-0">
+        <!-- Top Navbar -->
+        <nav class="topbar">
+            <button class="btn btn-outline-secondary md:hidden" onclick="toggleSidebar()" aria-label="Menu">
+                <i class="bi bi-list"></i>
+            </button>
+            <span class="topbar-title">সেটিংস - ভাড়া ব্যবস্থাপনা সিস্টেম</span>
+
+            <div class="flex items-center gap-2 ml-auto">
+                <!-- Language Switcher -->
+                <div class="dropdown">
+                    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" onclick="toggleDropdown(this)">
+                        <i class="bi bi-translate"></i> বাংলা                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item " href="javascript:void(0)" onclick="setLanguage('en')">
+                            <i class="bi bi-check-circle mr-1"></i> ইংরেজি                        </a></li>
+                        <li><a class="dropdown-item active" href="javascript:void(0)" onclick="setLanguage('bn')">
+                            <i class="bi bi-check-circle mr-1"></i> বাংলা                        </a></li>
+                                                <li><hr class="dropdown-divider"></li>
+                        <li><span class="dropdown-item-text small text-muted">ডিফল্ট ভাষা: বাংলা</span></li>
+                        <li><a class="dropdown-item" href="javascript:void(0)" onclick="setDefaultLanguage('bn')">
+                            <i class="bi bi-globe mr-1"></i> সাইটের ডিফল্ট বাংলা করুন                        </a></li>
+                        <li><a class="dropdown-item" href="javascript:void(0)" onclick="setDefaultLanguage('en')">
+                            <i class="bi bi-globe mr-1"></i> সাইটের ডিফল্ট ইংরেজি করুন                        </a></li>
+                                            </ul>
+                </div>
+
+                <!-- User -->
+                <div class="dropdown">
+                    <button class="btn btn-sm btn-outline-primary dropdown-toggle" type="button" onclick="toggleDropdown(this)">
+                        <i class="bi bi-person-circle mr-1"></i> <span class="user-name">মোহাম্মদ কুদরত-ই-খুদা</span>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><span class="dropdown-item-text small text-muted">webspaceit@gmail.com</span></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item text-danger" href="/oop-rms/logout?lang=bn">
+                            <i class="bi bi-box-arrow-right mr-1"></i> লগ আউট                        </a></li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            
+<div class="flex flex-wrap items-center justify-between gap-2 mb-4 fade-in">
+    <h4 class="mb-0"><i class="bi bi-gear mr-2"></i>সেটিংস</h4>
+</div>
+
+<div class="row fade-in">
+    <div class="col-lg-6 col-xl-5">
+        <div class="card">
+            <div class="card-header bg-white">
+                <i class="bi bi-translate mr-1"></i> ভাষা            </div>
+            <div class="card-body">
+                <form id="settingsForm">
+                    <input type="hidden" name="csrf_token" value="af1d8c3b853eba140b44cc7008b7e37f64b2db2660b113842e4c4710579d1f41">                    <div class="mb-3">
+                        <label for="default_language" class="form-label fw-semibold">
+                            ডিফল্ট ভাষা                        </label>
+                        <select class="form-select settings-language-select" id="default_language" name="language">
+                                                            <option value="bn" selected>
+                                    বাংলা                                </option>
+                                                            <option value="en" >
+                                    ইংরেজি                                </option>
+                                                    </select>
+                        <div class="form-text">ভিজিটর নিজে ভাষা বাছাই না করলে যে ভাষা দেখবেন। উপরের বার থেকে বেছে নেওয়া ভাষা শুধু ওই ব্রাউজারেই থাকে।</div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-lg mr-1"></i> সংরক্ষণ                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-6 col-xl-7">
+        <div class="card">
+            <div class="card-header bg-white">
+                <i class="bi bi-bell mr-1"></i> ভাড়া স্মারক            </div>
+            <div class="card-body">
+                <p class="text-muted small mb-3">অপরিশোধিত চালানের জন্য স্বয়ংক্রিয় স্মারক — ভাড়াটিয়ার কাছে পৌঁছানো প্রথম চ্যানেল দিয়ে পাঠানো হয়।</p>
+                <form id="reminderForm">
+                    <input type="hidden" name="csrf_token" value="af1d8c3b853eba140b44cc7008b7e37f64b2db2660b113842e4c4710579d1f41">                    <div class="mb-3">
+                        <label class="form-label fw-semibold" for="reminder_enabled">স্মারক চালু করুন</label>
+                        <select class="form-select" id="reminder_enabled" name="reminder_enabled">
+                            <option value="1">হ্যাঁ</option>
+                            <option value="0">না</option>
+                        </select>
+                    </div>
+                    <div class="row g-2">
+                        <div class="col-6 col-md-4 mb-3">
+                            <label class="form-label" for="reminder_days_before">প্রথম স্মারক (নির্ধারিত তারিখের কত দিন আগে)</label>
+                            <input type="number" min="0" max="30" class="form-control" id="reminder_days_before" name="reminder_days_before">
+                        </div>
+                        <div class="col-6 col-md-4 mb-3">
+                            <label class="form-label" for="reminder_repeat_days">বিলম্বের পর পুনরায় (দিন)</label>
+                            <input type="number" min="0" max="60" class="form-control" id="reminder_repeat_days" name="reminder_repeat_days">
+                        </div>
+                        <div class="col-6 col-md-4 mb-3">
+                            <label class="form-label" for="reminder_max">প্রতি চালানে সর্বোচ্চ স্মারক</label>
+                            <input type="number" min="1" max="10" class="form-control" id="reminder_max" name="reminder_max">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="reminder_channels">চ্যানেলের ক্রম</label>
+                        <input type="text" class="form-control" id="reminder_channels" name="reminder_channels" placeholder="push,whatsapp,email,sms">
+                        <div class="form-text">কমা দিয়ে লিখুন, প্রথম কার্যকর চ্যানেল ব্যবহার হবে। উদাহরণ: push,whatsapp,email,sms। পুশ বিনামূল্যে; এসএমএস/হোয়াটসঅ্যাপে খরচ আছে।</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="reminder_cron_token">স্মারক ক্রন টোকেন</label>
+                        <input type="text" class="form-control" id="reminder_cron_token" name="reminder_cron_token" autocomplete="off">
+                        <div class="form-text">প্রতিদিন চালান: php cron/reminders.php &lt;token&gt;  (অথবা /cron/reminders.php?token=...)</div>
+                    </div>
+                    <div class="alert alert-light border small mb-3" id="reminderSchedule" data-label="স্মারক যাবে: %s"></div>
+
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-lg mr-1"></i> সংরক্ষণ                    </button>
+                </form>
+
+                <hr class="my-4">
+
+                <h6 class="fw-semibold mb-2"><i class="bi bi-phone-vibrate mr-1"></i>ব্রাউজার নোটিফিকেশন (Web Push)</h6>
+                <p class="text-muted small mb-2">VAPID কী একবার তৈরি করুন। প্রতিটি নোটিফিকেশন এই কী দিয়ে সাইন হয় — ভাড়াটিয়া সাবস্ক্রাইব করার পর পরিবর্তন করবেন না।</p>
+                <div class="mb-3">
+                    <label class="form-label" for="push_subject">যোগাযোগ (mailto:)</label>
+                    <input type="text" class="form-control" id="push_subject" name="push_subject" placeholder="mailto:admin@example.com" autocomplete="off">
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" id="generateKeys">
+                        <i class="bi bi-key mr-1"></i>কী তৈরি করুন                    </button>
+                    <button type="button" class="btn btn-outline-primary btn-sm" id="testPush">
+                        <i class="bi bi-send mr-1"></i>পরীক্ষামূলক নোটিফিকেশন পাঠান                    </button>
+                </div>
+                <div class="form-text mt-2" id="pushState"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('settingsForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    var lang = document.getElementById('default_language').value;
+    submitModalForm('settingsForm', BASE_URL + 'ajax/settings_save.php', function () {
+        // The default only applies to browsers that have not picked a language
+        // themselves, so the admin who just saved it would otherwise still see
+        // their own older choice (session/cookie rms_lang) and think the save
+        // did nothing. Switch this browser too, like the topbar's
+        // "set as site default" action already does (setDefaultLanguage()).
+        setTimeout(function () { setLanguage(lang); }, 700);
+    });
+});
+</script>
+
+</main>
+
+        <footer class="footer text-center py-3">
+            <small class="text-muted">© 2026 ভাড়া ব্যবস্থাপনা সিস্টেম</small>
+        </footer>
+    </div>
+</div>
+
+<!-- Toast / Notification container -->
+<div class="fixed bottom-0 right-0 p-3" style="z-index: 1060">
+    <div id="toast-container" class="flex flex-col gap-2"></div>
+</div>
+
+<!-- Bulk Delete Confirmation Modal -->
+<div class="modal" id="bulkDeleteConfirmModal" data-close-on-backdrop="false" data-close-on-escape="false">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content">
+            <div class="modal-header border-0 bg-danger text-white">
+                <h5 class="modal-title"><i class="bi bi-exclamation-triangle mr-1"></i>নির্বাচিতগুলো মুছে ফেলুন</h5>
+                <button type="button" class="btn-close btn-close-white" onclick="closeModal('bulkDeleteConfirmModal')" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center py-4">
+                <p class="mb-0">আপনি কি নিশ্চিত যে আপনি নির্বাচিত রেকর্ডগুলো মুছে ফেলতে চান?</p>
+                <p class="mb-0 mt-2"><strong id="bulkDeleteCount">0</strong> <span id="bulkDeleteType">রেকর্ড</span></p>
+            </div>
+            <div class="modal-footer border-0 bg-light py-3">
+                <button type="button" class="btn btn-secondary px-4" onclick="closeModal('bulkDeleteConfirmModal')">বাতিল</button>
+                <button type="button" class="btn btn-danger px-4" id="bulkDeleteConfirmBtn">নির্বাচিতগুলো মুছে ফেলুন</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Single-item Delete Confirmation Modal -->
+<div class="modal" id="confirmModal" data-close-on-backdrop="false" data-close-on-escape="false">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content">
+            <div class="modal-header border-0 bg-danger text-white">
+                <h5 class="modal-title"><i class="bi bi-exclamation-triangle mr-1"></i>আপনি কি এটি মুছে ফেলতে চান?</h5>
+                <button type="button" class="btn-close btn-close-white" onclick="closeModal('confirmModal')" aria-label="Close"></button>
+            </div>
+            <div class="modal-body text-center py-4">
+                <p class="mb-0" id="confirmModalText">আপনি কি এটি মুছে ফেলতে চান?</p>
+            </div>
+            <div class="modal-footer border-0 bg-light py-3">
+                <button type="button" class="btn btn-secondary px-4" onclick="closeModal('confirmModal')">বাতিল</button>
+                <button type="button" class="btn btn-danger px-4" id="confirmDeleteBtn"><i class="bi bi-trash mr-1"></i>মুছুন</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- JS -->
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/bn.js"></script>
+<script>
+const BASE_URL = '/oop-rms/';
+const CSRF_TOKEN = 'af1d8c3b853eba140b44cc7008b7e37f64b2db2660b113842e4c4710579d1f41';
+const BULK_LANGS = {
+    confirm_delete: 'আপনি কি নিশ্চিত যে আপনি নির্বাচিত রেকর্ডগুলো মুছে ফেলতে চান?',
+    record: 'রেকর্ড',
+    records: 'রেকর্ড',
+    delete_selected: 'নির্বাচিতগুলো মুছে ফেলুন'
+};
+</script>
+<script src="/oop-rms/assets/js/bulk_select.js"></script>
+</body>
+</html>
+<script>
+// ---- Rent reminders + Web Push settings ----
+(function () {
+    var endpoint = BASE_URL + 'ajax/reminder_settings.php';
+    var form = document.getElementById('reminderForm');
+    var scheduleBox = document.getElementById('reminderSchedule');
+    var pushState = document.getElementById('pushState');
+    var csrf = form.querySelector('input[name="csrf_token"]').value;
+
+    function fill(d) {
+        if (!d) return;
+        document.getElementById('reminder_enabled').value = d.reminder_enabled === '1' ? '1' : '0';
+        document.getElementById('reminder_days_before').value = d.reminder_days_before;
+        document.getElementById('reminder_repeat_days').value = d.reminder_repeat_days;
+        document.getElementById('reminder_max').value = d.reminder_max;
+        document.getElementById('reminder_channels').value = d.reminder_channels;
+        document.getElementById('reminder_cron_token').value = d.reminder_cron_token;
+        document.getElementById('push_subject').value = d.push_subject || '';
+        scheduleBox.textContent = d.schedule
+            ? (scheduleBox.dataset.label || '%s').replace('%s', d.schedule)
+            : '';
+        pushState.innerHTML = (d.has_keys ? '&#10003; ' : '&#9888; ') + (d.last_run ? 'last run: ' + d.last_run : '');
+    }
+
+    fetch(endpoint, { credentials: 'same-origin' })
+        .then(function (r) { return r.json(); })
+        .then(function (res) { fill(res.data); })
+        .catch(function () {});
+
+    function post(fields, onDone) {
+        var fd = new FormData();
+        fd.append('csrf_token', csrf);
+        Object.keys(fields).forEach(function (k) { fd.append(k, fields[k]); });
+        fetch(endpoint, { method: 'POST', credentials: 'same-origin', body: fd })
+            .then(function (r) { return r.json(); })
+            .then(onDone)
+            .catch(function () { showToast('Request failed', 'danger'); });
+    }
+
+    form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        var fields = { action: 'save' };
+        ['reminder_enabled', 'reminder_days_before', 'reminder_repeat_days', 'reminder_max',
+         'reminder_channels', 'reminder_cron_token', 'push_subject'].forEach(function (id) {
+            fields[id] = document.getElementById(id).value;
+        });
+        post(fields, function (res) {
+            if (res.success) { fill(res.data); showToast(res.message, 'success'); }
+            else { showToast(res.message || 'Error', 'danger'); }
+        });
+    });
+
+    document.getElementById('generateKeys').addEventListener('click', function () {
+        post({ action: 'generate_keys', push_subject: document.getElementById('push_subject').value }, function (res) {
+            showToast(res.message, res.success ? 'success' : 'danger');
+            if (res.success) { pushState.innerHTML = '&#10003; keys ready'; }
+        });
+    });
+
+    document.getElementById('testPush').addEventListener('click', function () {
+        post({ action: 'test_push' }, function (res) {
+            showToast(res.message, res.success ? 'success' : 'danger');
+        });
+    });
+})();
+</script>
+

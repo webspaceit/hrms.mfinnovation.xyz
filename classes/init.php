@@ -111,6 +111,9 @@ require_once __DIR__ . '/LeaseSettlement.php';
 require_once __DIR__ . '/Mailer.php';
 require_once __DIR__ . '/SmsSender.php';
 require_once __DIR__ . '/WhatsAppSender.php';
+require_once __DIR__ . '/WebPush.php';
+require_once __DIR__ . '/PushSubscription.php';
+require_once __DIR__ . '/Reminder.php';
 
 // Start session
 Session::start();

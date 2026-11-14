@@ -490,4 +490,48 @@ return [
     'my_dues_hint'         => 'Your monthly dues and how much of them is already paid.',
     'view_receipt'         => 'Receipt',
     'view_demand_note'     => 'Demand Note',
+
+    // ---- Due-date reminders + browser push ----
+    'reminder_subject'     => 'Rent reminder',
+    'reminder_heading'     => 'Rent reminder',
+    'reminder_stage_before'=> '%s day(s) before the due date',
+    'reminder_stage_due'   => 'due today',
+    'reminder_stage_overdue' => '%s day(s) overdue',
+    'reminder_test_title'  => 'Test notification',
+    'reminder_test_body'   => 'Push notifications work on this device.',
+
+    'reminders'            => 'Rent Reminders',
+    'reminders_hint'       => 'Automatic reminders for unpaid invoices, sent through the first channel that reaches the tenant.',
+    'reminders_enabled'    => 'Enable reminders',
+    'reminder_days_before' => 'First reminder (days before due)',
+    'reminder_repeat_days' => 'Repeat after due date (days)',
+    'reminder_max'         => 'Maximum reminders per invoice',
+    'reminder_channels'    => 'Channel priority',
+    'reminder_channels_hint' => 'Comma separated, first working channel wins. Example: push,whatsapp,email,sms. Push is free; SMS/WhatsApp cost money.',
+    'reminder_cron_token'  => 'Reminder cron token',
+    'reminder_cron_hint'   => 'Run daily: php cron/reminders.php &lt;token&gt;  (or /cron/reminders.php?token=...)',
+    'reminder_schedule_preview' => 'Reminders go out: %s',
+    'reminders_saved'      => 'Reminder settings saved',
+
+    'push_subject'         => 'Contact address (mailto:)',
+    'push_settings'        => 'Browser notifications (Web Push)',
+    'push_keys_hint'       => 'Generate the VAPID keys once. They sign every notification - do not change them after tenants subscribe.',
+    'generate_keys'        => 'Generate keys',
+    'keys_generated'       => 'VAPID keys generated',
+    'push_test'            => 'Send test notification',
+    'push_test_result'     => 'Test: %d sent, %d failed, %d removed (of %d devices)',
+    'push_not_configured'  => 'Generate the VAPID keys first',
+
+    'reminder_notify_title' => 'Rent reminders',
+    'reminder_notify_body'  => 'Get a notification when your rent is due.',
+    'reminder_enable_btn'   => 'Turn on reminders',
+    'reminder_disable_btn'  => 'Turn off reminders',
+    'reminder_on'           => 'Reminders are on for this device',
+    'reminder_unsupported'  => 'This browser does not support notifications',
+    'reminder_blocked'      => 'Notifications are blocked for this site in your browser settings',
+    'reminder_denied'       => 'Notification permission was not granted',
+    'reminder_subscribed'   => 'Reminders turned on for this device',
+    'reminder_unsubscribed' => 'Reminders turned off for this device',
 ];
+
+

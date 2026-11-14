@@ -491,4 +491,48 @@ return [
     'my_dues_hint'         => 'আপনার মাসিক বাকি এবং কতটুকু পরিশোধিত হয়েছে।',
     'view_receipt'         => 'রসিদ',
     'view_demand_note'     => 'চালান',
+
+    // ---- Due-date reminders + browser push ----
+    'reminder_subject'     => 'ভাড়া স্মারক',
+    'reminder_heading'     => 'ভাড়া স্মারক',
+    'reminder_stage_before'=> 'পরিশোধের তারিখের %s দিন আগে',
+    'reminder_stage_due'   => 'আজই পরিশোধের শেষ দিন',
+    'reminder_stage_overdue' => '%s দিন বিলম্বিত',
+    'reminder_test_title'  => 'পরীক্ষামূলক নোটিফিকেশন',
+    'reminder_test_body'   => 'এই ডিভাইসে নোটিফিকেশন কাজ করছে।',
+
+    'reminders'            => 'ভাড়া স্মারক',
+    'reminders_hint'       => 'অপরিশোধিত চালানের জন্য স্বয়ংক্রিয় স্মারক — ভাড়াটিয়ার কাছে পৌঁছানো প্রথম চ্যানেল দিয়ে পাঠানো হয়।',
+    'reminders_enabled'    => 'স্মারক চালু করুন',
+    'reminder_days_before' => 'প্রথম স্মারক (নির্ধারিত তারিখের কত দিন আগে)',
+    'reminder_repeat_days' => 'বিলম্বের পর পুনরায় (দিন)',
+    'reminder_max'         => 'প্রতি চালানে সর্বোচ্চ স্মারক',
+    'reminder_channels'    => 'চ্যানেলের ক্রম',
+    'reminder_channels_hint' => 'কমা দিয়ে লিখুন, প্রথম কার্যকর চ্যানেল ব্যবহার হবে। উদাহরণ: push,whatsapp,email,sms। পুশ বিনামূল্যে; এসএমএস/হোয়াটসঅ্যাপে খরচ আছে।',
+    'reminder_cron_token'  => 'স্মারক ক্রন টোকেন',
+    'reminder_cron_hint'   => 'প্রতিদিন চালান: php cron/reminders.php &lt;token&gt;  (অথবা /cron/reminders.php?token=...)',
+    'reminder_schedule_preview' => 'স্মারক যাবে: %s',
+    'reminders_saved'      => 'স্মারক সেটিংস সংরক্ষিত হয়েছে',
+
+    'push_subject'         => 'যোগাযোগ (mailto:)',
+    'push_settings'        => 'ব্রাউজার নোটিফিকেশন (Web Push)',
+    'push_keys_hint'       => 'VAPID কী একবার তৈরি করুন। প্রতিটি নোটিফিকেশন এই কী দিয়ে সাইন হয় — ভাড়াটিয়া সাবস্ক্রাইব করার পর পরিবর্তন করবেন না।',
+    'generate_keys'        => 'কী তৈরি করুন',
+    'keys_generated'       => 'VAPID কী তৈরি হয়েছে',
+    'push_test'            => 'পরীক্ষামূলক নোটিফিকেশন পাঠান',
+    'push_test_result'     => 'পরীক্ষা: %d পাঠানো, %d ব্যর্থ, %d সরানো হয়েছে (%d ডিভাইসের মধ্যে)',
+    'push_not_configured'  => 'আগে VAPID কী তৈরি করুন',
+
+    'reminder_notify_title' => 'ভাড়া স্মারক',
+    'reminder_notify_body'  => 'ভাড়া পরিশোধের সময় হলে নোটিফিকেশন পান।',
+    'reminder_enable_btn'   => 'স্মারক চালু করুন',
+    'reminder_disable_btn'  => 'স্মারক বন্ধ করুন',
+    'reminder_on'           => 'এই ডিভাইসে স্মারক চালু আছে',
+    'reminder_unsupported'  => 'এই ব্রাউজার নোটিফিকেশন সমর্থন করে না',
+    'reminder_blocked'      => 'ব্রাউজার সেটিংসে এই সাইটের নোটিফিকেশন বন্ধ আছে',
+    'reminder_denied'       => 'নোটিফিকেশনের অনুমতি দেওয়া হয়নি',
+    'reminder_subscribed'   => 'এই ডিভাইসে স্মারক চালু হয়েছে',
+    'reminder_unsubscribed' => 'এই ডিভাইসে স্মারক বন্ধ হয়েছে',
 ];
+
+

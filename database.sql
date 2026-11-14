@@ -267,6 +267,46 @@ CREATE TABLE IF NOT EXISTS `wsit_invoice_sends` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ------------------------------------------------------------
+-- Browser push subscriptions (due-date reminders)
+-- One tenant can enable notifications on several devices.
+-- ------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `wsit_push_subscriptions` (
+  `id` INT(11) NOT NULL AUTO_INCREMENT,
+  `tenant_id` INT(11) NOT NULL,
+  `endpoint` VARCHAR(500) NOT NULL,
+  `p256dh` VARCHAR(191) NOT NULL,
+  `auth` VARCHAR(64) NOT NULL,
+  `user_agent` VARCHAR(255) DEFAULT NULL,
+  `last_success_at` DATETIME DEFAULT NULL,
+  `last_error` VARCHAR(255) DEFAULT NULL,
+  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_push_endpoint` (`endpoint`(190)),
+  KEY `tenant_id` (`tenant_id`),
+  CONSTRAINT `fk_push_sub_tenant` FOREIGN KEY (`tenant_id`) REFERENCES `wsit_tenants` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ------------------------------------------------------------
+-- Reminder log (due-date reminders sent per invoice/stage/channel)
+-- The unique key is what makes the daily cron idempotent.
+-- ------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `wsit_invoice_reminders` (
+  `id` INT(11) NOT NULL AUTO_INCREMENT,
+  `invoice_id` INT(11) NOT NULL,
+  `stage` VARCHAR(16) NOT NULL COMMENT 'before | due | overdue_1 | overdue_2 ...',
+  `channel` VARCHAR(16) NOT NULL COMMENT 'push | whatsapp | email | sms',
+  `recipient` VARCHAR(191) DEFAULT NULL,
+  `status` ENUM('sent','failed') NOT NULL DEFAULT 'sent',
+  `error` VARCHAR(255) DEFAULT NULL,
+  `sent_on` DATE NOT NULL,
+  `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_reminder_stage` (`invoice_id`,`stage`,`channel`),
+  KEY `sent_on` (`sent_on`),
+  CONSTRAINT `fk_reminder_invoice` FOREIGN KEY (`invoice_id`) REFERENCES `wsit_invoices` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ------------------------------------------------------------
 -- Expenses
 -- ------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `wsit_expenses` (
@@ -314,7 +354,12 @@ CREATE TABLE IF NOT EXISTS `wsit_translation_cache` (
 INSERT INTO `wsit_settings` (`setting_key`, `setting_value`) VALUES
 ('site_name', 'Rent Management System'),
 ('language', 'bn'),
-('currency', '৳')
+('currency', '৳'),
+('reminder_enabled', '0'),
+('reminder_days_before', '3'),
+('reminder_repeat_days', '7'),
+('reminder_max', '3'),
+('reminder_channels', 'push,whatsapp,email')
 ON DUPLICATE KEY UPDATE `setting_key` = `setting_key`;
 
 SET FOREIGN_KEY_CHECKS = 1;

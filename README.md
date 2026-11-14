@@ -13,6 +13,7 @@ A lightweight, bilingual (English / Bengali) rent management system built with o
 - **Tenant Portal** — tenants log in to see their dues, invoices, receipts and profile
 - **Expenses** — category-based expense tracking
 - **Reports** — yearly income/expense comparison chart + per-building income
+- **Due-date reminders** — automatic WhatsApp / email / SMS / browser-push reminders before and after the due date, with a per-invoice log so nobody is notified twice
 - **Bilingual UI** — full English ↔ Bengali switch (session + cookie based)
 - **AJAX everywhere** — add/edit/delete with modals, no page reloads
 - **Auth system** — hashed passwords (bcrypt), session-based login, CSRF tokens
@@ -88,6 +89,75 @@ no build step: the router (`index.php`), the rewrite rules (`.htaccess`),
 the installer and the SQL dumps must sit at document root, and the web
 server needs `assets/`, `ajax/`, `uploads/` reachable. The MVC code lives
 in `app/`; `classes/` is the model layer kept from the original build.
+
+## Install as a Mobile App (PWA)
+
+The app is already installable — no separate mobile codebase. On Android Chrome / desktop
+Chrome / Edge, open the site and use **Install app** (or the install banner the app shows).
+On iPhone/iPad, open it in Safari → **Share** → **Add to Home Screen**. It then opens
+full screen with the RMS icon, keeps its own splash colour, and shows a proper offline
+screen instead of a browser error.
+
+| File | Role |
+|---|---|
+| `manifest.php` | Web app manifest (name, icons, colours, shortcuts). Generated in PHP so it works in a sub-folder and gets the `application/manifest+json` type without server config. |
+| `sw.js` | Service worker. Network-first for page loads (never caches private HTML), cache-first for `assets/`, offline fallback page, and never touches `ajax/`, `file.php`, `install.php`, `cron/`. |
+| `offline.html` | Bilingual offline screen, self-contained (no network, no CSS dependency). |
+| `assets/js/pwa.js` | Registers the service worker, shows the install banner, handles the iOS "Add to Home Screen" hint and update notices. |
+| `app/Views/partials/pwa_head.php` | The `<link rel="manifest">`, `theme-color`, Apple meta and icons — one include shared by the admin, tenant, login and landing layouts. |
+| `assets/icons/*` | 192/512 icons, maskable variants and the 180px `apple-touch-icon`. Rebuild with `python tools/make_icons.py` (needs Pillow). |
+
+Notes:
+
+- Service workers require **HTTPS** (or `localhost`). Installability disappears on plain
+  `http://` domains, so put the live site behind a certificate (Let's Encrypt is enough).
+- After deploying, bump `VERSION` in `sw.js` so clients drop the old cache.
+- Test with Chrome DevTools → **Application → Manifest / Service Workers**, and
+  **Lighthouse → Installable**.
+- Page HTML is deliberately never cached: tenant invoices and payments are private, and a
+  cached page on a shared phone would outlive a logout.
+
+## Due-date Reminders
+
+Unpaid invoices get automatic reminders on a schedule you control
+(**Settings -> Rent Reminders**): 3 days before the due date, on the due date,
+then every 7 days, up to 3 reminders - all four numbers are editable.
+
+Each reminder goes out through the **first channel that can reach the tenant**:
+
+```
+push  >  whatsapp  >  email  >  sms
+```
+
+Push is free, WhatsApp/SMS are not, so the order matters. A tenant with no push
+subscription still gets WhatsApp or email instead of silence.
+
+| File | Role |
+|---|---|
+| `classes/Reminder.php` | Schedule (slots), candidate query, channel fallback, message text, dedupe. |
+| `classes/WebPush.php` | RFC 8291 payload encryption + RFC 8292 VAPID JWT, pure PHP + OpenSSL. |
+| `classes/PushSubscription.php` | Browser endpoints per tenant (several devices allowed). |
+| `cron/reminders.php` | Daily runner: `php cron/reminders.php <token>` (also over HTTP). |
+| `ajax/push_subscribe.php`, `ajax/push_unsubscribe.php` | Tenant opt-in endpoints. |
+| `ajax/reminder_settings.php` | Admin settings, VAPID key generation, test notification. |
+| `assets/js/push.js` | "Turn on reminders" card on the tenant dashboard. |
+| `db_reminders_upgrade.sql` | Upgrade for existing databases. |
+
+Why it never double-sends: `wsit_invoice_reminders` has a UNIQUE key on
+`(invoice_id, stage, channel)`, and `INSERT IGNORE` plus an `alreadySent()`
+check make the cron idempotent - run it twice a day and the tenant still gets
+one message per stage.
+
+Tests (dev only, no network needed):
+
+```bash
+php tools/webpush_check.php                     # RFC 8291 vector + ES256 verify
+php tools/remrun.php --dry                      # print today's reminder plan
+node tools/fake_push_server.js %TEMP%/sub.json  # decrypts a real payload
+```
+
+Push requires **HTTPS** (or `localhost`). iOS needs 16.4+ and the app added to
+the home screen; Android Chrome works everywhere.
 
 ## Usage Notes
 

@@ -1,0 +1,8 @@
+# Minimal OpenSSL config so PHP can create EC keys even when the
+# system openssl.cnf is missing or unreadable (common on Windows/WAMP
+# and on some shared hosts).
+[ req ]
+default_bits = 2048
+distinguished_name = req_distinguished_name
+
+[ req_distinguished_name ]

@@ -31,6 +31,39 @@
     </div>
 </div>
 
+<?php
+// Due-date reminders opt-in. push.js reads every string from these
+// data attributes, which keeps the copy in lang/*.php.
+$pushCardAttrs = [
+    'data-vapid'         => (string)getSetting('push_vapid_public', ''),
+    'data-csrf'          => csrf_token(),
+    'data-url-subscribe' => url('ajax/push_subscribe.php'),
+    'data-url-unsubscribe' => url('ajax/push_unsubscribe.php'),
+    'data-msg-on'        => t('reminder_on'),
+    'data-msg-off'       => t('reminder_notify_body'),
+    'data-msg-unsupported' => t('reminder_unsupported'),
+    'data-msg-blocked'   => t('reminder_blocked'),
+    'data-msg-denied'    => t('reminder_denied'),
+    'data-msg-error'     => t('error_occurred'),
+    'data-btn-on'        => t('reminder_disable_btn'),
+    'data-btn-off'       => t('reminder_enable_btn'),
+];
+?>
+<div class="card fade-in mb-4" id="pushCard" <?php foreach ($pushCardAttrs as $attr => $value): echo $attr . '="' . e($value) . '" '; endforeach; ?>>
+    <div class="card-body flex flex-wrap items-center justify-between gap-3">
+        <div class="flex items-center gap-3">
+            <span class="push-icon"><i class="bi bi-bell-fill"></i></span>
+            <div>
+                <div class="fw-semibold"><?php echo t('reminder_notify_title'); ?></div>
+                <div class="text-muted small" id="pushStatus"><?php echo t('reminder_notify_body'); ?></div>
+            </div>
+        </div>
+        <button type="button" class="btn btn-primary btn-sm" id="pushToggle" data-mode="on" disabled>
+            <i class="bi bi-bell mr-1"></i><span><?php echo t('reminder_enable_btn'); ?></span>
+        </button>
+    </div>
+</div>
+
 <?php if ($currentInvoice): ?>
 <div class="card fade-in mb-4">
     <div class="card-body">

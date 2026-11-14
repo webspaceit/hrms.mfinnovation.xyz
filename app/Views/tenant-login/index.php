@@ -14,6 +14,7 @@ $langSuffix = '?lang=' . $currentLang;
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
     <link href="<?php echo asset('assets/css/style.css'); ?>" rel="stylesheet">
     <link rel="icon" type="image/svg+xml" href="<?php echo BASE_URL; ?>assets/images/favicon.svg">
+<?php require dirname(__DIR__) . '/partials/pwa_head.php'; ?>
 </head>
 <body>
 <div class="auth-wrapper">

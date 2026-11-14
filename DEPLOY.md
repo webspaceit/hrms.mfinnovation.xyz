@@ -237,6 +237,29 @@ working.
 
 ---
 
+## 8b. Due-date reminder cron (optional)
+
+Reminders reuse the same gateways as invoices. They need their own daily run:
+
+`
+# cPanel cron - every day at 10:00 (or Windows Task Scheduler on a local box)
+0 10 * * *  /usr/local/bin/php /home/USER/public_html/oop_rms/cron/reminders.php TOKEN
+`
+
+The token comes from **Settings -> Rent Reminders -> Reminder cron token**.
+Hosts without CLI can call https://yourdomain/cron/reminders.php?token=TOKEN.
+
+Useful flags:
+
+`ash
+php cron/reminders.php TOKEN --dry            # print the plan, send nothing
+php cron/reminders.php TOKEN --today=2026-12-01
+php cron/reminders.php TOKEN --push-test      # test notification to every device
+`
+
+Browser push needs **HTTPS**. Generate the VAPID keys once in
+**Settings -> Rent Reminders -> Generate keys** and do not change them after
+tenants have subscribed (their subscriptions are tied to that key).
 ## 9. PDF compression (optional)
 
 Uploaded PDFs are re-compressed with Ghostscript when:
@@ -268,6 +291,8 @@ it would create empty tables. Instead:
      invoices TO wsit_invoices, invoice_sends TO wsit_invoice_sends;
    ```
 
+4. **Run `db_reminders_upgrade.sql` once** if you want due-date reminders (creates `wsit_push_subscriptions` + `wsit_invoice_reminders`).
+
 3. **Run `db_alter_upgrade.sql` once** (phpMyAdmin → Import). It is the
    single *ALTER-only* upgrade that adds every column and table a newer
    build needs: shop names, holding numbers, service-charge uploads and
@@ -279,10 +304,10 @@ it would create empty tables. Instead:
    on a database that is already current. All existing user accounts are
    kept as `admin` — reassign individual ones from the **Users** page.
 
-4. Replace the files with this package, keeping your existing
+5. Replace the files with this package, keeping your existing
    `config/config.php`, `uploads/` and `logs/`.
 
-5. The old page URLs (`payments.php`, `flats.php`, …) are gone — bookmark
+6. The old page URLs (`payments.php`, `flats.php`, …) are gone — bookmark
    the new clean ones (`/payments`, `/flats`, …). Old links 404 by design.
 
 ---
@@ -303,3 +328,5 @@ it would create empty tables. Instead:
 - [ ] `cron/invoices.php` scheduled with its token
 - [ ] Test: bilingual switch works, receipt/invoice print fine
 - [ ] Non-Apache hosts: rewrite block applied (or accept `index.php?r=` URLs)
+
+

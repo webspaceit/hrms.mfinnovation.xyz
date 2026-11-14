@@ -15,6 +15,7 @@ class Database {
     public static $tables = [
         'users', 'buildings', 'flats', 'tenants', 'leases', 'payments',
         'expenses', 'settings', 'translation_cache', 'invoices', 'invoice_sends',
+        'invoice_reminders', 'push_subscriptions',
         'lease_settlements', 'lease_settlement_allocations',
         'lease_settlements', 'lease_settlement_allocations',
     ];

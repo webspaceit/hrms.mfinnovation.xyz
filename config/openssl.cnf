@@ -1,0 +1,15 @@
+# ------------------------------------------------------------
+# Minimal OpenSSL config used by classes/WebPush.php.
+#
+# PHP on Windows/WAMP (and some shared hosts) ships no default
+# openssl.cnf, and openssl_pkey_new() then fails with
+# "system library:fopen:No such process" when creating EC keys.
+# Passing this file as the "config" option makes key generation
+# work everywhere. It defines nothing sensitive.
+# ------------------------------------------------------------
+
+[ req ]
+default_bits       = 2048
+distinguished_name = req_distinguished_name
+
+[ req_distinguished_name ]

@@ -15,6 +15,7 @@ $siteName = t('app_name');
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
     <link href="<?php echo asset('assets/css/style.css'); ?>" rel="stylesheet">
     <link rel="icon" type="image/svg+xml" href="<?php echo url('assets/images/favicon.svg'); ?>">
+<?php require dirname(__DIR__) . '/partials/pwa_head.php'; ?>
     <style>
         .landing-hero {
             background:

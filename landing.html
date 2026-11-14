@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ভাড়া ব্যবস্থাপনা সিস্টেম</title>
+    <!-- Tailwind CSS (runtime CDN) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="/oop-rms/assets/css/style.css?v=1794645765" rel="stylesheet">
+    <link rel="icon" type="image/svg+xml" href="/oop-rms/assets/images/favicon.svg">
+    <!-- PWA: installable app -->
+    <meta name="theme-color" content="#007c47">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="RMS">
+    <link rel="manifest" href="/oop-rms/manifest.php">
+    <link rel="apple-touch-icon" sizes="180x180" href="/oop-rms/assets/icons/apple-touch-icon.png?v=1794645686">
+    <link rel="icon" type="image/png" sizes="32x32" href="/oop-rms/assets/icons/favicon-32.png?v=1794645686">
+    <script src="/oop-rms/assets/js/pwa.js?v=1794645757" defer></script>
+    <style>
+        .landing-hero {
+            background:
+                radial-gradient(900px 400px at 85% -10%, rgba(255,255,255,.14), transparent 60%),
+                radial-gradient(700px 380px at -10% 110%, rgba(255,255,255,.10), transparent 60%),
+                linear-gradient(135deg, #005a33 0%, #007c47 45%, #0d9488 100%);
+        }
+        .landing-card {
+            transition: transform .18s ease, box-shadow .18s ease;
+        }
+        .landing-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 18px 40px -18px rgba(0, 92, 51, .45);
+        }
+        .feature-chip {
+            transition: background .15s ease, border-color .15s ease;
+        }
+        .feature-chip:hover {
+            background: #eefaf3;
+            border-color: #a7dfc0;
+        }
+    </style>
+</head>
+<body class="bg-[#f4f7f5]">
+
+    <!-- Top bar: brand + language switch -->
+    <header class="py-4 px-5 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+            <i class="bi bi-buildings text-3xl" style="color:#007c47;"></i>
+            <span class="font-bold text-lg" style="color:#1d3a2b;">ভাড়া ব্যবস্থাপনা সিস্টেম</span>
+        </div>
+        <div class="flex items-center gap-2">
+            <a href="javascript:void(0)" onclick="setLanguage('en')" class="btn btn-sm btn-outline-secondary">ইংরেজি</a>
+            <a href="javascript:void(0)" onclick="setLanguage('bn')" class="btn btn-sm btn-success">বাংলা</a>
+        </div>
+    </header>
+
+    <!-- Hero -->
+    <main class="landing-hero text-white">
+        <div class="max-w-5xl mx-auto px-4 py-16 md:py-20 text-center">
+            <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-white/15 border border-white/25 mb-5">
+                <i class="bi bi-buildings text-3xl"></i>
+            </div>
+            <h1 class="text-3xl md:text-5xl font-extrabold leading-tight mb-4">এক জায়গায় পরিচালনা করুন আপনার ভাড়ার সম্পত্তি</h1>
+            <p class="text-base md:text-lg opacity-90 max-w-2xl mx-auto mb-10">বিল্ডিং, ফ্ল্যাট, দোকান, ভাড়াটিয়া, মাসিক বিল, ভাড়া আদায়, রসিদ ও রিপোর্ট — আপনার ভাড়া ব্যবসার জন্য যা যা প্রয়োজন।</p>
+
+            <!-- Login gates -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5 max-w-2xl mx-auto text-left">
+                <div class="landing-card bg-white rounded-2xl p-6 text-slate-800">
+                    <div class="flex items-center gap-2 mb-2">
+                        <i class="bi bi-shield-lock text-2xl" style="color:#007c47;"></i>
+                        <h2 class="text-lg font-bold mb-0">অ্যাডমিন লগইন</h2>
+                    </div>
+                    <p class="text-sm text-muted mb-4">একটি ড্যাশবোর্ড থেকে বিল্ডিং, ফ্ল্যাট, ভাড়াটিয়া, লিজ, বিল ও রিপোর্ট পরিচালনা করুন।</p>
+                    <a href="/oop-rms/login" class="btn btn-success btn-lg w-100">
+                        <i class="bi bi-box-arrow-in-right mr-1"></i> লগইন                    </a>
+                </div>
+                <div class="landing-card bg-white rounded-2xl p-6 text-slate-800">
+                    <div class="flex items-center gap-2 mb-2">
+                        <i class="bi bi-house-door text-2xl" style="color:#0d9488;"></i>
+                        <h2 class="text-lg font-bold mb-0">ভাড়াটিয়া লগইন</h2>
+                    </div>
+                    <p class="text-sm text-muted mb-4">লগইন করে আপনার বকেয়া, ইনভয়েস ও ভাড়ার রসিদ দেখুন।</p>
+                    <a href="/oop-rms/tenant-login" class="btn btn-outline-success btn-lg w-100">
+                        <i class="bi bi-box-arrow-in-right mr-1"></i> ভাড়াটিয়া পোর্টাল                    </a>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Available for rent -->
+    <section class="max-w-5xl mx-auto px-4 py-12" id="available-units">
+        <h2 class="text-center text-xl md:text-2xl font-bold mb-2" style="color:#1d3a2b;">
+            <i class="bi bi-house-check mr-1" style="color:#007c47;"></i> ভাড়ার জন্য উপলব্ধ        </h2>
+        <p class="text-center text-sm text-muted mb-6">ভাড়ার জন্য প্রস্তুত ফ্ল্যাট ও দোকান।</p>
+
+                    <!-- Type filter -->
+            <div class="flex justify-center flex-wrap gap-2 mb-6" id="unitFilters">
+                <button type="button" class="unit-filter btn btn-sm btn-success" data-type="all">সব</button>
+                <button type="button" class="unit-filter btn btn-sm btn-outline-success" data-type="flat">ফ্ল্যাট</button>
+                <button type="button" class="unit-filter btn btn-sm btn-outline-success" data-type="shop">দোকান</button>
+                <button type="button" class="unit-filter btn btn-sm btn-outline-success" data-type="commercial_floor">বাণিজ্যিক তলা</button>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="unitGrid">
+                                <div class="landing-card bg-white rounded-2xl border border-slate-200 p-5 unit-card" data-type="commercial_floor">
+                    <div class="flex items-start justify-between gap-2 mb-2">
+                        <span class="text-lg font-bold" style="color:#1d3a2b;">২</span>
+                        <span class="badge bg-primary text-white">বাণিজ্যিক তলা</span>
+                    </div>
+                    <p class="text-sm text-muted mb-3 truncate">
+                        <i class="bi bi-building mr-1"></i>প্রফেসর লজ                    </p>
+                                        <ul class="text-sm text-muted mb-3 flex flex-wrap gap-x-4 gap-y-1 p-0 m-0 list-none">
+                                                <li class="flex items-center gap-1"><i class="bi bi-stairs"></i>তলা: 1st and 2nd</li>
+                                                <li class="flex items-center gap-1"><i class="bi bi-rulers"></i>আয়তন (বর্গফুট): ৫,৫০০</li>
+                                            </ul>
+                                        <div class="border-t pt-3" style="border-color:#e2e8f0;">
+                        <div class="text-xs text-muted">মাসিক ভাড়া</div>
+                        <div class="text-lg font-bold" style="color:#007c47;">
+                            ৳৫০,০০০.০০<span class="text-sm font-normal text-muted"> / মাস</span>
+                        </div>
+                    </div>
+                </div>
+                            </div>
+
+            <script>
+                (function () {
+                    const filterButtons = document.querySelectorAll('#unitFilters .unit-filter');
+                    const unitCards = document.querySelectorAll('#unitGrid .unit-card');
+                    function applyFilter(type) {
+                        filterButtons.forEach(btn => {
+                            const active = btn.dataset.type === type;
+                            btn.classList.toggle('btn-success', active);
+                            btn.classList.toggle('btn-outline-success', !active);
+                        });
+                        unitCards.forEach(card => {
+                            card.style.display = (type === 'all' || card.dataset.type === type) ? '' : 'none';
+                        });
+                    }
+                    filterButtons.forEach(btn => {
+                        btn.addEventListener('click', () => applyFilter(btn.dataset.type));
+                    });
+                })();
+            </script>
+            </section>
+
+    <!-- Features -->
+    <section class="max-w-5xl mx-auto px-4 py-12">
+        <h2 class="text-center text-xl md:text-2xl font-bold mb-6" style="color:#1d3a2b;">
+            <i class="bi bi-stars mr-1" style="color:#007c47;"></i> সবকিছু যা যা প্রয়োজন        </h2>
+        <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+                        <div class="feature-chip flex items-center gap-3 bg-white rounded-xl border border-slate-200 p-4">
+                <i class="bi bi-buildings text-xl" style="color:#007c47;"></i>
+                <span class="font-semibold text-sm" style="color:#1d3a2b;">ভবনসমূহ</span>
+            </div>
+                        <div class="feature-chip flex items-center gap-3 bg-white rounded-xl border border-slate-200 p-4">
+                <i class="bi bi-door-open text-xl" style="color:#007c47;"></i>
+                <span class="font-semibold text-sm" style="color:#1d3a2b;">ফ্ল্যাটসমূহ</span>
+            </div>
+                        <div class="feature-chip flex items-center gap-3 bg-white rounded-xl border border-slate-200 p-4">
+                <i class="bi bi-shop text-xl" style="color:#007c47;"></i>
+                <span class="font-semibold text-sm" style="color:#1d3a2b;">দোকান</span>
+            </div>
+                        <div class="feature-chip flex items-center gap-3 bg-white rounded-xl border border-slate-200 p-4">
+                <i class="bi bi-people text-xl" style="color:#007c47;"></i>
+                <span class="font-semibold text-sm" style="color:#1d3a2b;">ভাড়াটিয়া</span>
+            </div>
+                        <div class="feature-chip flex items-center gap-3 bg-white rounded-xl border border-slate-200 p-4">
+                <i class="bi bi-file-earmark-text text-xl" style="color:#007c47;"></i>
+                <span class="font-semibold text-sm" style="color:#1d3a2b;">লিজ / চুক্তি</span>
+            </div>
+                        <div class="feature-chip flex items-center gap-3 bg-white rounded-xl border border-slate-200 p-4">
+                <i class="bi bi-envelope-paper text-xl" style="color:#007c47;"></i>
+                <span class="font-semibold text-sm" style="color:#1d3a2b;">চালান (বকেয়া বিল)</span>
+            </div>
+                        <div class="feature-chip flex items-center gap-3 bg-white rounded-xl border border-slate-200 p-4">
+                <i class="bi bi-cash-stack text-xl" style="color:#007c47;"></i>
+                <span class="font-semibold text-sm" style="color:#1d3a2b;">ভাড়া আদায়</span>
+            </div>
+                        <div class="feature-chip flex items-center gap-3 bg-white rounded-xl border border-slate-200 p-4">
+                <i class="bi bi-receipt text-xl" style="color:#007c47;"></i>
+                <span class="font-semibold text-sm" style="color:#1d3a2b;">ভাড়া আদায়ের রসিদ</span>
+            </div>
+                        <div class="feature-chip flex items-center gap-3 bg-white rounded-xl border border-slate-200 p-4">
+                <i class="bi bi-graph-up text-xl" style="color:#007c47;"></i>
+                <span class="font-semibold text-sm" style="color:#1d3a2b;">রিপোর্ট</span>
+            </div>
+                    </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="text-center text-sm text-muted py-6 border-t border-slate-200">
+        &copy; ২০২৬ ভাড়া ব্যবস্থাপনা সিস্টেম    </footer>
+
+    <script>
+        const BASE_URL = '/oop-rms/';
+        const CSRF_TOKEN = 'fc43648de8619d2b9df248f779f3cda042a13c4e48ab9a7c5f7cb205dde7c911';
+        function setLanguage(lang) {
+            fetch(BASE_URL + 'ajax/lang.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: 'lang=' + encodeURIComponent(lang) + '&csrf_token=' + encodeURIComponent(CSRF_TOKEN)
+            }).then(res => res.json()).then(data => {
+                if (!data.success) {
+                    console.error('Language switch failed:', data.message || data);
+                }
+                reloadWithLang(lang);
+            }).catch(err => {
+                console.error('Language switch request failed:', err);
+                reloadWithLang(lang);
+            });
+        }
+        function reloadWithLang(lang) {
+            const url = new URL(window.location.href);
+            url.searchParams.set('lang', lang);
+            window.location.href = url.toString();
+        }
+    </script>
+</body>
+</html>
