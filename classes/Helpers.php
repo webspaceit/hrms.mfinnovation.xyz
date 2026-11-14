@@ -374,6 +374,21 @@ function translationScriptOk($translated, $to) {
  * proper nouns / place names unchanged (e.g. "Poribagh" -> "Poribagh"),
  * which would otherwise render as English on the Bengali UI.
  */
+/**
+ * Record why a translation fell back to the source text.
+ *
+ * Without this the UI just shows the untranslated string and there is no way
+ * to tell a missing CA bundle from a quota limit or a blocked outbound
+ * connection. Deduplicated per request so a page with many rows logs once.
+ */
+function translationLogFailure($reason, $from, $to) {
+    static $logged = [];
+    $key = $from . '|' . $to . '|' . $reason;
+    if (isset($logged[$key])) return;
+    $logged[$key] = true;
+    error_log('translateText: ' . $reason . ' (' . $from . '->' . $to . ')');
+}
+
 function translateText($text, $from, $to) {
     $text = trim((string)$text);
     if ($text === '') return $text;
@@ -491,6 +506,9 @@ function translateText($text, $from, $to) {
     $raw = false;
 
     if (function_exists('curl_init')) {
+        $caBundle = __DIR__ . '/../config/cacert.pem';
+        $hasBundle = is_file($caBundle);
+
         $ch = curl_init($url);
         $opts = [
             CURLOPT_RETURNTRANSFER => true,
@@ -498,26 +516,42 @@ function translateText($text, $from, $to) {
             CURLOPT_SSL_VERIFYPEER => true,
             CURLOPT_FOLLOWLOCATION => true,
         ];
-        // A PHP build with no CA bundle configured (curl.cainfo empty, as on
-        // stock WAMP) fails every HTTPS call with "unable to get local issuer
-        // certificate". Translation then silently returns the source text, so
-        // new Bengali names/descriptions never render in English - only the
-        // rows already in translation_cache did. Use the bundled bundle in
-        // that case; verification stays on, it just has a trust store now.
-        if (!ini_get('curl.cainfo')) {
-            $caBundle = __DIR__ . '/../config/cacert.pem';
-            if (is_file($caBundle)) {
-                $opts[CURLOPT_CAINFO] = $caBundle;
-            }
+        // A PHP build with no CA trust store (stock WAMP leaves curl.cainfo
+        // empty) fails every HTTPS call with "unable to get local issuer
+        // certificate", and translateText then silently returns the source
+        // text - only strings already in translation_cache looked translated.
+        if ($hasBundle && !ini_get('curl.cainfo')) {
+            $opts[CURLOPT_CAINFO] = $caBundle;
         }
         curl_setopt_array($ch, $opts);
+
         $raw = curl_exec($ch);
         $code = curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
-        if ($code == 200 && $raw) {
+        $errno = curl_errno($ch);
+
+        // Some hosts do point curl.cainfo at a path that is missing or stale,
+        // which fails the same way. Retry once with the bundle we ship.
+        if ($raw === false && $hasBundle && in_array($errno, [60, 77], true)) {
+            curl_setopt($ch, CURLOPT_CAINFO, $caBundle);
+            $raw = curl_exec($ch);
+            $code = curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
+            $errno = curl_errno($ch);
+        }
+
+        if ($raw === false) {
+            translationLogFailure('curl ' . $errno . ' ' . curl_error($ch), $from, $to);
+        } elseif ($code != 200) {
+            translationLogFailure('HTTP ' . $code, $from, $to);
+        } else {
             $j = json_decode($raw, true);
             $txt = $j['responseData']['translatedText'] ?? null;
             if ($txt && stripos($txt, 'MYMEMORY') === false) {
                 $result = translationScriptOk($txt, $to);
+                if ($result === null) {
+                    translationLogFailure('rejected, wrong script', $from, $to);
+                }
+            } else {
+                translationLogFailure('empty or quota response', $from, $to);
             }
         }
     } else {
