@@ -64,7 +64,7 @@ $roleLabels = [
                                         <?php endforeach; ?>
                                     </select>
                                 </td>
-                                <td><?php echo e(!empty($u['created_at']) ? date('d M Y', strtotime($u['created_at'])) : '-'); ?></td>
+                                <td><?php echo e(!empty($u['created_at']) ? dateLong($u['created_at']) : '-'); ?></td>
                                 <td class="text-end text-nowrap">
                                     <button class="btn btn-sm btn-outline-primary" title="<?php echo t('edit'); ?>"
                                             onclick="openUserModal(<?php echo (int)$u['id']; ?>)">
