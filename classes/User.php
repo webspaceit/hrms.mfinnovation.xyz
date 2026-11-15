@@ -52,6 +52,25 @@ class User extends BaseModel {
     }
 
     /**
+     * Is the email already used by another account?
+     *
+     * Auth::findByUsername() also matches on email, so two accounts sharing
+     * an address make one of them unloggable. A blank email is skipped: the
+     * column is NOT NULL, so '' is a real value that several rows may hold.
+     */
+    public function emailTaken($email, $exceptId = 0) {
+        $email = trim((string)$email);
+        if ($email === '') {
+            return false;
+        }
+        $found = $this->db->fetch(
+            "SELECT id FROM users WHERE email = :e AND id <> :id LIMIT 1",
+            ['e' => $email, 'id' => (int)$exceptId]
+        );
+        return (bool)$found;
+    }
+
+    /**
      * Update a user's role, disallowing demotion of the last admin.
      */
     public function updateRole($id, $role) {

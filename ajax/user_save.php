@@ -20,6 +20,7 @@ $username = trim(post('username'));
 $full_name = trim(post('full_name'));
 $email = trim(post('email'));
 $password = (string)($_POST['password'] ?? '');
+$password_confirm = (string)($_POST['password_confirm'] ?? '');
 
 // A disabled <select> is not posted by the browser, so "role" can be absent
 // when an admin edits their own account. Absent means "leave the role alone",
@@ -38,11 +39,23 @@ if ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
     jsonResponse(['success' => false, 'message' => t('invalid_email')]);
 }
 
+// The form asks for the password twice. A blank confirmation alongside a
+// typed password is a mismatch, not "skip the check": the browser mirror is
+// only there to catch typos before the account exists.
+// !array_key_exists keeps a tab still holding the pre-update form (which posts
+// no confirmation field) working until it is reloaded.
+if ($password !== '' && array_key_exists('password_confirm', $_POST) && !hash_equals($password_confirm, $password)) {
+    jsonResponse(['success' => false, 'message' => t('passwords_not_match')]);
+}
+
 $userModel = new User();
 
 // Username / email must not be used by another account.
 if ($userModel->usernameTaken($username, $id)) {
     jsonResponse(['success' => false, 'message' => t('username_taken')]);
+}
+if ($userModel->emailTaken($email, $id)) {
+    jsonResponse(['success' => false, 'message' => t('email_taken')]);
 }
 
 // Changing your own role is blocked to avoid locking yourself out.
@@ -75,7 +88,14 @@ if ($id > 0) {
         }
     }
     if ($data) {
-        $userModel->update($id, $data);
+        try {
+            $userModel->update($id, $data);
+        } catch (PDOException $e) {
+            // A 500 here reaches the browser as HTML, which the modal reports
+            // as the unhelpful "Request failed". Return JSON instead.
+            error_log('user_save update: ' . $e->getMessage());
+            jsonResponse(['success' => false, 'message' => t('error_occurred')]);
+        }
     }
     jsonResponse(['success' => true, 'message' => t('updated_success')]);
 }
@@ -89,5 +109,10 @@ if (!$hasRole) {
 }
 $data['role'] = $role;
 $data['password'] = password_hash($password, PASSWORD_DEFAULT);
-$userModel->create($data);
+try {
+    $userModel->create($data);
+} catch (PDOException $e) {
+    error_log('user_save create: ' . $e->getMessage());
+    jsonResponse(['success' => false, 'message' => t('error_occurred')]);
+}
 jsonResponse(['success' => true, 'message' => t('added_success')]);

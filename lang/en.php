@@ -269,6 +269,8 @@ return [
     'invalid_email'        => 'Please enter a valid email address',
     'invalid_date'         => 'Please enter a valid date (DD-MM-YYYY)',
     'passwords_not_match'  => 'Passwords do not match',
+    'recheck_password'     => 'Retype password',
+    'email_taken'          => 'This email is already used by another account',
     'leave_blank_keep'     => 'Leave blank to keep the current password',
     'delete_user_q'        => 'Delete this user account?',
     'you_this'             => 'This is you',

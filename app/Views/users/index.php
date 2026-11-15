@@ -128,6 +128,12 @@ $roleLabels = [
                         <input type="password" class="form-control" name="password" id="user_password" autocomplete="new-password">
                         <div class="form-text" id="user_pwd_hint"></div>
                     </div>
+                    <div class="mb-3" id="user_pwd_confirm_field">
+                        <label class="form-label" id="user_pwd_confirm_label">
+                            <?php echo t('recheck_password'); ?> <span id="user_pwd_confirm_star">*</span>
+                        </label>
+                        <input type="password" class="form-control" name="password_confirm" id="user_password_confirm" autocomplete="new-password">
+                    </div>
                 </div>
                 <div class="modal-footer border-0">
                     <button type="button" class="btn btn-secondary" onclick="closeModal('userModal')"><?php echo t('cancel'); ?></button>
@@ -195,11 +201,20 @@ function openUserModal(id) {
     const form = document.getElementById('userForm');
     form.reset();
     document.getElementById('user_id').value = '';
+    // reset() restores values, not the disabled flag: editing your own account
+    // once used to leave the role select permanently disabled, and the leftover
+    // mirror input made every later save post the role twice.
+    document.getElementById('user_role').disabled = false;
+    const staleMirror = document.getElementById('user_role_mirror');
+    if (staleMirror) staleMirror.remove();
     document.getElementById('user_role').value = 'landlord';
-    const pwdField = document.getElementById('user_pwd_field');
     const pwdLabel = document.getElementById('user_pwd_label');
     const pwdHint = document.getElementById('user_pwd_hint');
+    const pwdConfirm = document.getElementById('user_password_confirm');
+    const pwdConfirmStar = document.getElementById('user_pwd_confirm_star');
     document.getElementById('user_password').required = true;
+    pwdConfirm.required = true;
+    pwdConfirmStar.style.display = '';
     pwdLabel.innerHTML = '<?php echo t('password'); ?> *';
     pwdHint.textContent = '';
 
@@ -216,8 +231,10 @@ function openUserModal(id) {
         document.getElementById('user_username').value = u.username;
         document.getElementById('user_email').value = u.email || '';
         document.getElementById('user_role').value = u.role;
-        // Leave blank to keep current password
+        // Leave blank to keep current password; only then is the recheck optional
         document.getElementById('user_password').required = false;
+        pwdConfirm.required = false;
+        pwdConfirmStar.style.display = 'none';
         pwdLabel.innerHTML = '<?php echo t('password'); ?>';
         pwdHint.textContent = <?php echo jsQuote(t('leave_blank_keep', 'Leave blank to keep the current password')); ?>;
         // Your own role cannot be changed
@@ -259,6 +276,13 @@ function changeRole(id, el) {
 
 document.getElementById('userForm').addEventListener('submit', function(e) {
     e.preventDefault();
+    const pw = document.getElementById('user_password').value;
+    const cf = document.getElementById('user_password_confirm').value;
+    if (pw !== '' && pw !== cf) {
+        showToast(<?php echo jsQuote(t('passwords_not_match', 'Passwords do not match')); ?>, 'danger');
+        document.getElementById('user_password_confirm').focus();
+        return;
+    }
     // A disabled <select> is omitted from FormData, so mirror its value into a
     // real input first - otherwise editing your own account posts no role.
     const role = document.getElementById('user_role');
@@ -272,6 +296,11 @@ document.getElementById('userForm').addEventListener('submit', function(e) {
             document.getElementById('userForm').appendChild(mirror);
         }
         mirror.value = role.value;
+    } else if (role) {
+        // Never post role twice: PHP keeps the last value, so a leftover mirror
+        // would override the role actually picked in the select.
+        const mirror = document.getElementById('user_role_mirror');
+        if (mirror) mirror.remove();
     }
     submitModalForm('userForm', '<?php echo BASE_URL; ?>ajax/user_save.php');
 });

@@ -513,7 +513,15 @@ function submitModalForm(formId, url, onSuccess) {
         method: 'POST',
         body: data
     })
-        .then(res => res.json())
+        .then(res => res.text().then(function (body) {
+            var parsed = null;
+            try { parsed = JSON.parse(body); } catch (err) { parsed = null; }
+            if (parsed) return parsed;
+            // HTML instead of JSON means the POST was redirected to the login
+            // page (expired session / CSRF window) or PHP died before it could
+            // answer. Reporting "Request failed" there hides the only clue.
+            throw { httpStatus: res.status, redirected: res.redirected };
+        }))
         .then(result => {
             if (result.success) {
                 showToast(result.message, 'success');
@@ -526,7 +534,15 @@ function submitModalForm(formId, url, onSuccess) {
                 showToast(result.message || 'Error', 'danger');
             }
         })
-        .catch(() => showToast('Request failed', 'danger'));
+        .catch(function (err) {
+            var msg = 'Request failed';
+            if (err && err.httpStatus) {
+                msg = (err.redirected || err.httpStatus === 401 || err.httpStatus === 403)
+                    ? 'Session or security token expired. Reload the page and try again.'
+                    : 'Server error (HTTP ' + err.httpStatus + '). Reload the page and try again.';
+            }
+            showToast(msg, 'danger');
+        });
 }
 
 // ---- Number / currency formatting ----
