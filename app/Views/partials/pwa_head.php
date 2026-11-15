@@ -19,4 +19,8 @@
     <link rel="apple-touch-icon" sizes="180x180" href="<?php echo asset('assets/icons/apple-touch-icon.png'); ?>">
     <link rel="icon" type="image/png" sizes="32x32" href="<?php echo asset('assets/icons/favicon-32.png'); ?>">
     <meta name="csrf-token" content="<?php echo e(csrf_token()); ?>">
+    <!-- The base path is passed explicitly: the host's PageSpeed optimizer
+         inlines pwa.js and drops the <script src> tag, so the file cannot
+         work out its own location. Keep this line BEFORE pwa.js. -->
+    <script>window.RMS_PWA_BASE = <?php echo json_encode(BASE_URL); ?>;</script>
     <script src="<?php echo asset('assets/js/pwa.js'); ?>" defer></script>

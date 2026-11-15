@@ -9,11 +9,28 @@
 (function () {
     'use strict';
 
+    // Base URL ("/", "/oop-rms/", ...). The live host runs a PageSpeed
+    // optimizer that INLINES small scripts, which deletes the
+    // <script src="...pwa.js"> tag. Deriving the base from that tag alone
+    // silently killed the whole file in production, so fall back through
+    // several sources instead of bailing out.
     var script = document.querySelector('script[src*="pwa.js"]');
-    if (!script) return;
 
-    // .../assets/js/pwa.js -> ".../" (works in a sub-folder install too)
-    var BASE = script.src.replace(/assets\/js\/pwa\.js.*$/, '');
+    var BASE = (function () {
+        // 1) written by app/Views/partials/pwa_head.php, just above us
+        if (window.RMS_PWA_BASE) return String(window.RMS_PWA_BASE);
+        // 2) our own tag, when the file is served as a real external script
+        if (script && script.src) {
+            return script.src.replace(/assets\/js\/pwa\.js.*$/, '');
+        }
+        // 3) the manifest link always sits next to us in <head>
+        var link = document.querySelector('link[rel="manifest"]');
+        if (link && link.href) return link.href.replace(/[^\/]*$/, '');
+        // 4) last resort - works for a domain-root install
+        return '/';
+    })();
+
+    if (BASE.charAt(BASE.length - 1) !== '/') BASE += '/';
     var LANG = (document.documentElement.lang || 'en').toLowerCase().indexOf('bn') === 0 ? 'bn' : 'en';
 
     var TEXT = {
