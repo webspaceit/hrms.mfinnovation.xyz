@@ -575,46 +575,8 @@
     </div>
 
     <script>
-    /* ------------------------------------------------------------
-       The downloaded PDF must always use the desktop layout. On a phone the
-       @media (max-width:576px) block is active, so html2pdf baked the compact
-       mobile styling into the A4 page. Dropping that one media rule for the
-       duration of the capture lets the receipt lay out exactly as it does on
-       a desktop; re-inserting it afterwards leaves the on-screen view
-       untouched.
-    ------------------------------------------------------------ */
-    function forceDesktopLayout(el) {
-        const removed = [];
-        for (let s = 0; s < document.styleSheets.length; s++) {
-            const sheet = document.styleSheets[s];
-            let rules;
-            try { rules = sheet.cssRules; } catch (e) { continue; }   // cross-origin
-            if (!rules) continue;
-            for (let i = rules.length - 1; i >= 0; i--) {
-                const r = rules[i];
-                if (r.type === CSSRule.MEDIA_RULE && /max-width:\s*576px/.test(r.conditionText)) {
-                    removed.push({ sheet: sheet, index: i, css: r.cssText });
-                    sheet.deleteRule(i);
-                }
-            }
-        }
-        // Do NOT pin a px width here: html2pdf clones the receipt into a
-        // container that is exactly the A4 content width (190mm). Anything
-        // wider overflows that container and gets cropped out of the PDF.
-        void el.offsetWidth;   // force reflow before html2pdf measures
-
-        let restored = false;
-        return function () {
-            if (restored) return;
-            restored = true;
-            removed.sort(function (a, b) { return a.index - b.index; })
-                   .forEach(function (r) { r.sheet.insertRule(r.css, r.index); });
-        };
-    }
     function downloadPDF() {
         const element = document.querySelector('.receipt-container');
-        if (!element) return;
-        const restoreLayout = forceDesktopLayout(element);
         
         // Hide toolbar (no-print elements)
         const toolbar = document.querySelector('.toolbar');
@@ -659,7 +621,6 @@
         if (typeof html2pdf === 'undefined') {
             console.error('html2pdf library not loaded');
             alert('PDF generation library not loaded. Please refresh the page.');
-            restoreLayout();
             if (watermark) watermark.style.display = '';
             if (uploadSig) uploadSig.style.display = '';
             if (toolbar) toolbar.style.display = '';
@@ -667,12 +628,10 @@
         }
         
         html2pdf().set(opt).from(element).save().then(function() {
-            restoreLayout();
             if (watermark) watermark.style.display = '';
             if (uploadSig) uploadSig.style.display = '';
             if (toolbar) toolbar.style.display = '';
         }).catch(function(err) {
-            restoreLayout();
             console.error('PDF generation failed:', err);
             alert('PDF generation failed. Please try again.');
             if (watermark) watermark.style.display = '';
