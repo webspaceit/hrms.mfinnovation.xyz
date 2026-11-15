@@ -611,6 +611,111 @@ function localizeText($text) {
 }
 
 /**
+ * Display name for a system account (admin / landlord) in the current language.
+ *
+ * Accounts store full_name exactly as typed, so one can hold a Bengali name
+ * while the UI runs in English. localizeName() is still tried first (it honours
+ * the manual name map and translation_cache), but machine translation cannot
+ * reliably render a Bengali proper noun in Latin script: it returns the source
+ * unchanged or writes another script, which translationScriptOk() rejects.
+ * Falling back to the account's Latin username keeps Bengali out of the English
+ * UI - the "Entered By" badges, owner dropdowns and the topbar - without
+ * blocking a table render on repeated translation attempts.
+ *
+ * Memoised per request: the tenants table prints the same few creators on every
+ * row, and each uncached localizeName() call can hit the network.
+ */
+function displayUserName($fullName, $username = '') {
+    static $memo = [];
+
+    $name     = trim((string)$fullName);
+    $username = trim((string)$username);
+    $lang     = Lang::current();
+
+    if ($name === '') {
+        return $username;
+    }
+
+    $key = $lang . '|' . $name . '|' . $username;
+    if (array_key_exists($key, $memo)) {
+        return $memo[$key];
+    }
+
+    // Latin stored name: the Bengali UI translates it as it always did.
+    if (!isBengali($name)) {
+        return $memo[$key] = $lang === 'bn' ? localizeName($name) : $name;
+    }
+
+    if ($lang === 'bn') {
+        return $memo[$key] = $name;
+    }
+
+    // English UI, Bengali stored name. Never call the translation API here:
+    // this runs for every row of the tenants table and on every page through
+    // the topbar, and an unreachable API would stall the render for 12s a name.
+    $known = bengaliNameMap();
+    if (isset($known[$name])) {
+        return $memo[$key] = $known[$name];
+    }
+    $cached = translationCacheLookup($name, 'bn', 'en');
+    if ($cached !== '') {
+        return $memo[$key] = $cached;
+    }
+
+    // Unmapped name: the login name is Latin and unambiguous, which beats
+    // printing Bengali script in an English page.
+    return $memo[$key] = $username !== '' ? $username : $name;
+}
+
+/**
+ * Latin renderings for Bengali names stored on an account.
+ *
+ * A person's name is data, not a phrase: machine translation returns it
+ * unchanged or writes it in Arabic script, which translationScriptOk() rejects.
+ * Everything not listed here falls back to the account's username, so this map
+ * only has to carry the names actually in use (Users -> Edit sets them).
+ */
+function bengaliNameMap() {
+    return [
+        'মোঃ আবু তালেব'        => 'Md. Abu Taleb',
+        'এ কে এম রহমত উল্লাহ' => 'A K M Rahmat Ullah',
+        'মোঃ কে এম রহমত উল্লাহ' => 'Md. K M Rahmat Ullah',
+    ];
+}
+
+/**
+ * Read a finished translation from translation_cache without any network call.
+ * Returns '' when nothing usable is cached.
+ */
+function translationCacheLookup($text, $from, $to) {
+    static $memo = [];
+
+    $key = $from . '|' . $to . '|' . $text;
+    if (array_key_exists($key, $memo)) {
+        return $memo[$key];
+    }
+    $memo[$key] = '';
+
+    try {
+        $value = Database::getInstance()->fetchColumn(
+            "SELECT result FROM translation_cache WHERE src = :s AND lang_from = :f AND lang_to = :t LIMIT 1",
+            ['s' => $text, 'f' => $from, 't' => $to]
+        );
+        $value = is_string($value) ? trim($value) : '';
+        if ($value !== '') {
+            // A row stored in the wrong script is a poisoned entry.
+            $ok = translationScriptOk($value, $to);
+            $value = $ok === null ? '' : $ok;
+        }
+        $memo[$key] = $value;
+    } catch (Exception $e) {
+        $memo[$key] = '';
+    }
+
+    return $memo[$key];
+}
+
+/**
  * Short codes that can be typed inside a payment note. The service charge
  * month/year picked in the payment form is printed in place of the code, so
  * the note does not have to repeat it by hand:

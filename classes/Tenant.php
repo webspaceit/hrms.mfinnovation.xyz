@@ -13,7 +13,7 @@ class Tenant extends BaseModel {
         return $this->db->fetchAll("
             SELECT t.*, l.id AS lease_id, l.flat_id, l.rent_amount, l.status AS lease_status,
                    f.flat_no, f.unit_type, f.advance_amount, b.name AS building_name,
-                   cu.full_name AS created_by_name
+                   cu.full_name AS created_by_name, cu.username AS created_by_username
             FROM tenants t
             LEFT JOIN leases l ON l.tenant_id = t.id AND l.status = 'active'
             LEFT JOIN flats f ON f.id = l.flat_id

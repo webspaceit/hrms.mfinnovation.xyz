@@ -12,7 +12,7 @@ $user = Auth::user();
 // Identity card in the sidebar footer. The name is localized once here and
 // reused by the topbar, so the Bengali UI does not pay for a second
 // translation lookup on the same string.
-$accountName = $user ? localizeName($user['full_name'] ?? '') : '';
+$accountName = $user ? displayUserName($user['full_name'] ?? '', $user['username'] ?? '') : '';
 $accountRole = $user ? t($user['role'] ?? '', ucfirst((string)($user['role'] ?? ''))) : '';
 $accountInitials = '';
 foreach (preg_split('/\s+/u', trim($accountName)) ?: [] as $namePart) {

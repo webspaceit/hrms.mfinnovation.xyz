@@ -227,7 +227,7 @@ require dirname(__DIR__) . '/partials/header.php';
                         </td>
                         <td>
                             <span id="owner-name-<?php echo (int)$tn['id']; ?>" class="badge <?php echo !empty($tn['created_by_name']) ? 'bg-secondary-subtle text-secondary-emphasis' : 'bg-warning-subtle text-warning-emphasis'; ?>">
-                                <?php echo !empty($tn['created_by_name']) ? e($tn['created_by_name']) : t('unassigned'); ?>
+                                <?php echo !empty($tn['created_by_name']) ? e(displayUserName($tn['created_by_name'], $tn['created_by_username'] ?? '')) : t('unassigned'); ?>
                             </span>
                         </td>
                         <td class="text-end">
@@ -237,7 +237,7 @@ require dirname(__DIR__) . '/partials/header.php';
                                 <option value="0"><?php echo t('unassigned'); ?></option>
                                 <?php foreach ($assignUsers as $u): ?>
                                     <option value="<?php echo (int)$u['id']; ?>"<?php echo (int)$u['id'] === (int)($tn['created_by'] ?? 0) ? ' selected' : ''; ?>>
-                                        <?php echo e($u['full_name'] ?: $u['username']); ?> (<?php echo e(t($u['role'], $u['role'])); ?>)
+                                        <?php echo e(displayUserName($u['full_name'], $u['username'])); ?> (<?php echo e(t($u['role'], $u['role'])); ?>)
                                     </option>
                                 <?php endforeach; ?>
                             </select>

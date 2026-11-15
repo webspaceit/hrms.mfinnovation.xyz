@@ -42,7 +42,7 @@ $roleLabels = [
                                 <td><?php echo bnNumeral($i + 1); ?></td>
                                 <td class="fw-semibold">
                                     <i class="bi bi-person-circle mr-1 text-primary"></i>
-                                    <?php echo e(localizeName($u['full_name'])); ?>
+                                    <?php echo e(displayUserName($u['full_name'], $u['username'])); ?>
                                     <?php if ($isSelf): ?>
                                         <span class="badge bg-secondary text-white" title="<?php echo t('you_this', 'It is you'); ?>"><i class="bi bi-person-check"></i></span>
                                     <?php endif; ?>
@@ -71,7 +71,7 @@ $roleLabels = [
                                         <i class="bi bi-pencil"></i>
                                     </button>
                                     <button class="btn btn-sm btn-outline-warning" title="<?php echo t('reset_password'); ?>"
-                                            onclick="openPwdModal(<?php echo (int)$u['id']; ?>, <?php echo e(jsQuote(localizeName($u['full_name']))); ?>)">
+                                            onclick="openPwdModal(<?php echo (int)$u['id']; ?>, <?php echo e(jsQuote(displayUserName($u['full_name'], $u['username']))); ?>)">
                                         <i class="bi bi-key"></i>
                                     </button>
                                     <button class="btn btn-sm btn-outline-danger" title="<?php echo t('delete'); ?>"

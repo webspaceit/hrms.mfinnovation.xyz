@@ -84,7 +84,7 @@ require dirname(__DIR__) . '/partials/header.php';
                                 <?php if ($isAdmin): ?>
                                 <td>
                                     <?php if (!empty($tn['created_by_name'])): ?>
-                                        <span class="badge bg-secondary-subtle text-secondary-emphasis"><?php echo e($tn['created_by_name']); ?></span>
+                                        <span class="badge bg-secondary-subtle text-secondary-emphasis"><?php echo e(displayUserName($tn['created_by_name'], $tn['created_by_username'] ?? '')); ?></span>
                                     <?php else: ?>
                                         <span class="text-muted">-</span>
                                     <?php endif; ?>
@@ -137,7 +137,7 @@ require dirname(__DIR__) . '/partials/header.php';
                         <select name="created_by" id="tn_created_by" class="form-select">
                             <?php foreach ($users as $u): ?>
                                 <option value="<?php echo (int)$u['id']; ?>"<?php echo (int)$u['id'] === (int)\Auth::id() ? ' selected' : ''; ?>>
-                                    <?php echo e($u['full_name'] ?: $u['username']); ?> (<?php echo e(t($u['role'], $u['role'])); ?>)
+                                    <?php echo e(displayUserName($u['full_name'], $u['username'])); ?> (<?php echo e(t($u['role'], $u['role'])); ?>)
                                 </option>
                             <?php endforeach; ?>
                         </select>
