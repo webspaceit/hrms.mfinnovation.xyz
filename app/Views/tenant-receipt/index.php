@@ -100,6 +100,12 @@ $currentLang = Lang::current();
             width: 100%;
             border-collapse: collapse;
         }
+        /* Column 2 only carries a short value, so a narrower column closes the
+           dead space between it and the right-hand label/value block. */
+        .details col.c1 { width: 16%; }
+        .details col.c2 { width: 28%; }
+        .details col.c3 { width: 15%; }
+        .details col.c4 { width: 32%; }
         .details td {
             padding: 4px 4px;
             vertical-align: baseline;
@@ -110,7 +116,7 @@ $currentLang = Lang::current();
         }
         .details tr > td:first-child {
             width: 182px;
-            min-width: 182px;
+            min-width: 165px;
         }
         .value-cell {
             text-align: left;
@@ -294,6 +300,9 @@ $currentLang = Lang::current();
                 width: auto;
                 min-width: 74px;
             }
+            /* Phones keep the original proportions so values do not wrap. */
+            .details col.c2 { width: 40%; }
+            .details col.c4 { width: 20%; }
             .details table.fourcol .label-cell {
                 white-space: normal;
                 font-size: 13px;
@@ -397,10 +406,10 @@ $currentLang = Lang::current();
                 <?php if ($propertyType === 'shop'): ?>
                 <table class="fourcol">
                     <colgroup>
-                        <col style="width:16%;">
-                        <col style="width:40%;">
-                        <col style="width:15%;">
-                        <col style="width:20%;">
+                        <col class="c1">
+                        <col class="c2">
+                        <col class="c3">
+                        <col class="c4">
                     </colgroup>
                     <?php if ($currentLang === 'bn'): ?>
                     <tr>
@@ -475,10 +484,10 @@ $currentLang = Lang::current();
                 <?php else: ?>
                 <table class="fourcol">
                     <colgroup>
-                        <col style="width:16%;">
-                        <col style="width:40%;">
-                        <col style="width:15%;">
-                        <col style="width:20%;">
+                        <col class="c1">
+                        <col class="c2">
+                        <col class="c3">
+                        <col class="c4">
                     </colgroup>
                     <?php if ($currentLang === 'bn'): ?>
                     <tr>
@@ -542,10 +551,10 @@ $currentLang = Lang::current();
 
                 <table class="fourcol">
                     <colgroup>
-                        <col style="width:16%;">
-                        <col style="width:40%;">
-                        <col style="width:15%;">
-                        <col style="width:20%;">
+                        <col class="c1">
+                        <col class="c2">
+                        <col class="c3">
+                        <col class="c4">
                     </colgroup>
                     <?php if ($currentLang === 'bn'): ?>
                     <tr>
@@ -623,7 +632,7 @@ $currentLang = Lang::current();
                 <table style="margin-top:8px; width:100%;">
                     <?php if ($currentLang === 'bn'): ?>
                     <tr class="total-row">
-                        <td style="font-weight:bold; width:18%; white-space:nowrap;">মোট পরিমাণ :</td>
+                        <td style="font-weight:bold; width:12%; white-space:nowrap;">মোট পরিমাণ :</td>
                         <td class="value-cell" style="font-size:22px; font-weight:bold; text-align:left;"><?php echo $cur . ' ' . bnNumeral(number_format($totalAmount, 2)); ?> /- টাকা মাত্র</td>
                     </tr>
                     <?php if ($paymentStatus === 'partial'): ?>
