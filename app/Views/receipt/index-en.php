@@ -518,7 +518,7 @@
                 <table style="margin-top:8px; width:100%;">
                     
                     <tr class="total-row">
-                        <td style="font-weight:bold; width:16%; white-space:nowrap;">Total Amount :</td>
+                        <td style="font-weight:bold; width:18%; white-space:nowrap;">Total Amount :</td>
                         <td class="value-cell" style="font-size:22px; font-weight:bold; text-align:left;"><?php echo $cur . ' ' . number_format($totalAmount, 2); ?> /- Taka Only</td>
                     </tr>
                     <?php if ($paymentStatus === 'partial'): ?>
