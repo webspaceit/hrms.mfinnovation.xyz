@@ -271,19 +271,25 @@
                 flex-direction: column;
                 align-items: center;
             }
+            /* Meta block stays in the top-right corner, exactly like the
+               desktop copy, instead of being centred under the badge. */
             .receipt-no {
-                position: static;
-                text-align: center;
-                margin-bottom: 8px;
+                position: absolute;
+                right: 0;
+                top: 0;
+                text-align: right;
+                margin: 0;
             }
-            /* Same stacked header as desktop. Inline, the 16px copy label ran
-               into "নং: RMS-…" and read as one unreadable line. */
             .receipt-no > div {
                 display: block;
+                font-size: 11px !important;   /* inline 14px would crowd the title */
+            }
+            .receipt-no > .label {
+                font-size: 12px !important;
             }
             .title {
                 font-size: 24px;
-                margin-top: 6px;
+                margin-top: 60px;   /* clears the stacked meta block above it */
                 margin-bottom: 10px;
             }
             .badge {
