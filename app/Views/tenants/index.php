@@ -47,7 +47,7 @@ require dirname(__DIR__) . '/partials/header.php';
                                 <td><?php echo bnNumeral($i + 1); ?></td>
                                 <td class="fw-semibold">
                                     <?php if ($tn['photo']): ?>
-                                        <img src="<?php echo e($tn['photo']); ?>" class="rounded-circle mr-1" width="28" height="28" style="object-fit:cover;">
+                                        <img src="<?php echo e(uploadUrl($tn['photo'])); ?>" class="rounded-circle mr-1" width="28" height="28" style="object-fit:cover;">
                                     <?php else: ?>
                                         <i class="bi bi-person rounded-circle mr-1 text-primary"></i>
                                     <?php endif; ?>
@@ -158,6 +158,11 @@ require dirname(__DIR__) . '/partials/header.php';
                         <label class="form-label"><?php echo t('nid'); ?></label>
                         <input type="text" name="nid" id="tn_nid" class="form-control">
                     </div>
+                    <div class="mb-3">
+                        <label class="form-label"><?php echo t('tenant_photo'); ?></label>
+                        <input type="file" name="photo_file" id="tn_photo_file" class="form-control" accept="image/*">
+                        <div class="form-text mt-1" id="tn_photo_link"></div>
+                    </div>
                     <div class="grid grid-cols-2 gap-3">
                         <div>
                             <label class="form-label"><?php echo t('deed'); ?></label>
@@ -252,11 +257,14 @@ require dirname(__DIR__) . '/partials/header.php';
 $extraJs = '
 <script>
 var currentUserId = ' . (int)\Auth::id() . ';
-function resetTenantForm() {
+ // 300 px long edge: the stored photo is only ever shown as a 28-56 px avatar.
+ compressImageInput(document.getElementById("tn_photo_file"), 300, 0.85);
+ function resetTenantForm() {
     document.getElementById("tenantForm").reset();
     document.getElementById("tn_id").value = "";
-    document.getElementById("tn_deed_link").innerHTML = "";
-    document.getElementById("tn_nid_link").innerHTML = "";
+     document.getElementById("tn_deed_link").innerHTML = "";
+     document.getElementById("tn_nid_link").innerHTML = "";
+     document.getElementById("tn_photo_link").innerHTML = "";
     document.getElementById("tn_portal_username").value = "";
     document.getElementById("tn_portal_password").value = "";
     document.getElementById("tn_portal_enabled").checked = true;
@@ -352,7 +360,15 @@ function editTenant(id) {
             document.getElementById("tn_portal_password").value = "";
             document.getElementById("tn_portal_enabled").checked = (d.portal_enabled === undefined ? 1 : d.portal_enabled) == 1;
             setDocLink(document.getElementById("tn_deed_link"), d.deed_file, "' . t('deed') . '", d.id, "deed");
-            setDocLink(document.getElementById("tn_nid_link"), d.nid_file, "' . t('nid') . '", d.id, "nid");
+             setDocLink(document.getElementById("tn_nid_link"), d.nid_file, "' . t('nid') . '", d.id, "nid");
+             // Existing photo: thumbnail + hint that picking a file replaces it.
+             var photoBox = document.getElementById("tn_photo_link");
+             if (d.photo) {
+                 photoBox.innerHTML = \'<img src="\' + BASE_URL + d.photo + \'" width="48" height="48" class="rounded border mr-1" style="object-fit:cover;">\'
+                     + \'<span class="text-muted">\' + ' . json_encode(t('photo_replace_hint')) . ' + \'</span>\';
+             } else {
+                 photoBox.innerHTML = "";
+             }
             document.getElementById("tenantModalTitle").textContent = "' . t('edit_tenant') . '";
             document.getElementById("tn_submit").textContent = "' . t('update') . '";
             openModal("tenantModal");

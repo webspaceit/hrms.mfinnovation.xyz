@@ -86,22 +86,37 @@ if ($unit) {
     ]);
 }
 
-foreach (['deed_file' => 'deed', 'nid_file' => 'nid'] as $field => $kind) {
+// deed / nid accept images or PDF; the tenant photo is image-only.
+// $column matters: the form field is photo_file but the DB column is `photo`
+// (writing $field straight through threw "Unknown column 'photo_file'").
+$uploads = [
+    'deed_file'  => ['deed',  false, 'deed_file'],
+    'nid_file'   => ['nid',   false, 'nid_file'],
+    'photo_file' => ['photo', true,  'photo'],
+];
+foreach ($uploads as $field => $spec) {
+    list($kind, $imagesOnly, $column) = $spec;
     if (empty($_FILES[$field]) || ($_FILES[$field]['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {
         continue;
     }
-    $path = uploadDocument($_FILES[$field], $kind, $tenantId);
+    $path = uploadDocument($_FILES[$field], $kind, $tenantId, $imagesOnly);
     if ($path === false) {
         if ($created) {
             $tenantModel->delete($tenantId);
         }
-        jsonResponse(['success' => false, 'message' => t('invalid_file')]);
+        // UPLOAD_ERR_INI_SIZE / FORM_SIZE mean php.ini's upload_max_filesize or
+        // post_max_size rejected it before our 20 MB check ever ran.
+        $code = (int)($_FILES[$field]['error'] ?? 0);
+        $msg  = in_array($code, [UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE], true)
+            ? t('file_too_large')
+            : ($kind === 'photo' ? t('invalid_photo') : t('invalid_file'));
+        jsonResponse(['success' => false, 'message' => $msg]);
     }
     $current = $tenantModel->find($tenantId);
-    if ($current && !empty($current[$field])) {
-        deleteUploadedDocument($current[$field]);
+    if ($current && !empty($current[$column])) {
+        deleteUploadedDocument($current[$column]);
     }
-    $tenantModel->update($tenantId, [$field => $path]);
+    $tenantModel->update($tenantId, [$column => $path]);
 }
 
 jsonResponse(['success' => true, 'message' => $id > 0 ? t('updated_success') : t('added_success')]);

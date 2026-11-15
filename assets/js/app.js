@@ -503,25 +503,72 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 });
 
+// ---- Image inputs: shrink in the browser before upload ----
+// php.ini on typical hosting is 2 MB upload / 128 MB memory, and a modern phone
+// photo breaks both (upload_max_filesize first, then GD's decode memory). Sending
+// a <=maxSide JPEG keeps the request ~300-600 KB and the server decode cheap.
+function compressImageInput(input, maxSide, quality) {
+    if (!input || !window.File || !window.DataTransfer) return;
+    input.addEventListener('change', function () {
+        var file = input.files && input.files[0];
+        if (!file || !/^image\//.test(file.type) || file.type === 'image/gif') return;
+
+        var img = new Image();
+        var url = URL.createObjectURL(file);
+        img.onload = function () {
+            var w = img.naturalWidth, h = img.naturalHeight;
+            var scale = Math.min(1, (maxSide || 1600) / Math.max(w, h));
+            if (scale === 1 && file.size < 500 * 1024) { URL.revokeObjectURL(url); return; }
+            var canvas = document.createElement('canvas');
+            canvas.width = Math.round(w * scale);
+            canvas.height = Math.round(h * scale);
+            canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+            canvas.toBlob(function (blob) {
+                URL.revokeObjectURL(url);
+                if (!blob) return;
+                var name = file.name.replace(/\.[^.]+$/, '') + '.jpg';
+                var dt = new DataTransfer();
+                dt.items.add(new File([blob], name, { type: 'image/jpeg' }));
+                input.files = dt.files;
+            }, 'image/jpeg', quality || 0.85);
+        };
+        img.onerror = function () { URL.revokeObjectURL(url); };
+        img.src = url;
+    });
+}
+
 // ---- Modal Form Submission (for modals that post via AJAX) ----
 function submitModalForm(formId, url, onSuccess) {
     const form = document.getElementById(formId);
     if (!form) return;
 
-    const data = new FormData(form);
-    fetch(withLang(url), {
-        method: 'POST',
-        body: data
-    })
-        .then(res => res.text().then(function (body) {
-            var parsed = null;
-            try { parsed = JSON.parse(body); } catch (err) { parsed = null; }
-            if (parsed) return parsed;
-            // HTML instead of JSON means the POST was redirected to the login
-            // page (expired session / CSRF window) or PHP died before it could
-            // answer. Reporting "Request failed" there hides the only clue.
-            throw { httpStatus: res.status, redirected: res.redirected };
-        }))
+    // A form rendered before the token expired (or before a re-login) posts a
+    // stale token. csrf_require() answers 403 + a fresh token, so swap it in and
+    // retry once instead of making the user reload the whole page.
+    function post(attempt) {
+        return fetch(withLang(url), { method: 'POST', body: new FormData(form) })
+            .then(res => res.text().then(function (body) {
+                var parsed = null;
+                try { parsed = JSON.parse(body); } catch (err) { parsed = null; }
+                if (parsed) return parsed;
+                // HTML instead of JSON means the POST was redirected to the login
+                // page (expired session) or PHP died before it could answer.
+                // Reporting "Request failed" there hides the only clue.
+                throw { httpStatus: res.status, redirected: res.redirected };
+            }))
+            .then(result => {
+                if (!result.success && result.csrf && result.token && attempt === 1) {
+                    var field = form.querySelector('input[name="csrf_token"]');
+                    if (field) {
+                        field.value = result.token;
+                        return post(2);
+                    }
+                }
+                return result;
+            });
+    }
+
+    post(1)
         .then(result => {
             if (result.success) {
                 showToast(result.message, 'success');

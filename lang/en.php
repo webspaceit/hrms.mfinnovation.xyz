@@ -306,6 +306,8 @@ return [
     'per_month'      => 'Per Month',
     'overview'       => 'Overview',
     'invalid_file'   => 'Invalid file. Only images or PDF (max 20 MB) are allowed.',
+    'file_too_large' => 'The file is larger than the server allows. Try a smaller image.',
+    'invalid_photo'  => 'Not a usable photo. Please choose a JPG or PNG image.',
 
     // Receipt
     'original_copy'  => 'ORIGINAL COPY',
@@ -477,6 +479,9 @@ return [
     'no_due'               => 'Nothing due',
     'personal_info'        => 'Personal Information',
     'flat_details'         => 'Flat Information',
+    'shop_details'         => 'Shop Information',
+    'tenant_photo'         => 'Tenant Photo',
+    'photo_replace_hint'   => 'Choosing a new file replaces the current photo',
     'lease_details'        => 'Lease Information',
     'change_password'      => 'Change Password',
     'current_password'     => 'Current Password',

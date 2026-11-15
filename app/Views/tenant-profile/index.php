@@ -1,6 +1,9 @@
 <?php
 // Tenant Profile view - data: tenantId, tenant, lease
 $pageTitle = t('my_info');
+// A shop tenant must not see "flat" wording. unit_type drives the labels on
+// this page (and already drives the type/floor rows below).
+$isShopUnit = (($lease['unit_type'] ?? 'flat') === 'shop');
 require dirname(__DIR__) . '/partials/tenant_header.php';
 ?>
 
@@ -11,7 +14,7 @@ require dirname(__DIR__) . '/partials/tenant_header.php';
             <h5 class="card-title mb-3"><i class="bi bi-person mr-1"></i><?php echo t('personal_info'); ?></h5>
             <div class="flex items-center gap-3 mb-3">
                 <?php if (!empty($tenant['photo'])): ?>
-                    <img src="<?php echo e($tenant['photo']); ?>" class="rounded-circle" width="56" height="56" style="object-fit:cover;" alt="">
+                    <img src="<?php echo e(uploadUrl($tenant['photo'])); ?>" class="rounded-circle" width="56" height="56" style="object-fit:cover;" alt="">
                 <?php else: ?>
                     <i class="bi bi-person-circle text-primary" style="font-size:3rem;"></i>
                 <?php endif; ?>
@@ -27,14 +30,14 @@ require dirname(__DIR__) . '/partials/tenant_header.php';
         </div>
     </div>
 
-    <!-- Flat information -->
+    <!-- Flat / shop information -->
     <div class="card">
         <div class="card-body">
-            <h5 class="card-title mb-3"><i class="bi bi-door-open mr-1"></i><?php echo t('flat_details'); ?></h5>
+            <h5 class="card-title mb-3"><i class="bi bi-door-open mr-1"></i><?php echo t($isShopUnit ? 'shop_details' : 'flat_details'); ?></h5>
             <?php if ($lease): ?>
                 <table class="table table-sm mb-0">
                     <tr><th style="width:40%;"><?php echo t('building_name'); ?></th><td><?php echo e(localizeText($lease['building_name'] ?? '') ?: '-'); ?></td></tr>
-                    <tr><th><?php echo t('flat_no'); ?></th><td><span class="badge bg-primary-subtle text-primary-emphasis"><?php echo e(bnFlatCode($lease['flat_no'] ?? '-')); ?></span></td></tr>
+                    <tr><th><?php echo t($isShopUnit ? 'shop_no' : 'flat_no'); ?></th><td><span class="badge bg-primary-subtle text-primary-emphasis"><?php echo e(bnFlatCode($lease['flat_no'] ?? '-')); ?></span></td></tr>
                     <tr><th><?php echo t('unit_type'); ?></th><td><?php echo e(unitTypeLabel($lease['unit_type'] ?? 'flat')); ?></td></tr>
                     <tr><th><?php echo t('floor'); ?></th><td><?php echo e(floorLabel($lease['floor'] ?? '')); ?></td></tr>
                 </table>

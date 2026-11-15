@@ -260,7 +260,13 @@ function csrf_verify($token = null) {
         return false;
     }
     $provided = $token ?? ($_POST[CSRF_TOKEN_NAME] ?? ($_GET[CSRF_TOKEN_NAME] ?? ''));
-    return hash_equals($expected, (string)$provided);
+    if (!hash_equals($expected, (string)$provided)) {
+        return false;
+    }
+    // Sliding window: a verified request keeps the token alive, so only a tab
+    // that sat idle for longer than the expiry needs the client-side retry.
+    $_SESSION[CSRF_TOKEN_NAME . '_time'] = time();
+    return true;
 }
 
 /**
@@ -276,7 +282,16 @@ function csrf_field() {
  */
 function csrf_require() {
     if (!csrf_verify()) {
-        jsonResponse(['success' => false, 'message' => 'Invalid CSRF token'], 403);
+        // Hand back a usable token instead of a dead end: a tab left open past
+        // CSRF_TOKEN_EXPIRY (or rendered before a re-login) would otherwise fail
+        // every submit with no way forward. The response is same-origin and only
+        // reachable with the session cookie, so nothing new is exposed.
+        jsonResponse([
+            'success' => false,
+            'message' => 'Invalid CSRF token',
+            'csrf'    => true,
+            'token'   => csrf_token(),
+        ], 403);
     }
 }
 
@@ -1101,7 +1116,7 @@ $two = function($n) use ($ones, $teens, $tenth, $irregular) {
  * Returns the relative path (e.g. "uploads/tenants/deed_3_1710000000.pdf"),
  * false on an invalid/unreadable file, or null when no file was provided.
  */
-function uploadDocument($file, $kind, $ownerId) {
+function uploadDocument($file, $kind, $ownerId, $imagesOnly = false) {
     if (!$file || !isset($file['error'])) {
         return null;
     }
@@ -1123,6 +1138,11 @@ function uploadDocument($file, $kind, $ownerId) {
     $mime = finfo_file($finfo, $file['tmp_name']);
 
     if (!isset($allowed[$mime])) {
+        return false;
+    }
+    // Tenant photo: raster images only. PDFs make no sense here, and GIF is
+    // skipped by the resizer, so it could never honour the 300 px cap.
+    if ($imagesOnly && in_array($mime, ['application/pdf', 'image/gif'], true)) {
         return false;
     }
 
@@ -1147,7 +1167,10 @@ function uploadDocument($file, $kind, $ownerId) {
     }
 
     $tmp = $uploadDir . 'tmp_' . $filename;
-    if ($mime !== 'image/gif' && compressUploadedDocument($filepath, $tmp, $mime)) {
+    // Tenant photo is an avatar: cap the long edge at 300 px so the stored file
+    // stays a few tens of KB no matter what the camera produced.
+    $maxDim = ($kind === 'photo') ? 300 : null;
+    if ($mime !== 'image/gif' && compressUploadedDocument($filepath, $tmp, $mime, $maxDim)) {
         @unlink($filepath);
         @rename($tmp, $filepath);
     } else {
@@ -1158,14 +1181,31 @@ function uploadDocument($file, $kind, $ownerId) {
 }
 
 /**
+ * Browser URL for a stored upload path ('uploads/tenants/x.jpg').
+ *
+ * Stored values are app-relative, so echoing them straight into src breaks on
+ * nested routes (/tenants, /tenant-profile). Absolute URLs pass through.
+ */
+function uploadUrl($path) {
+    $path = trim((string)$path);
+    if ($path === '') {
+        return '';
+    }
+    if (preg_match('#^(https?:)?//#i', $path)) {
+        return $path;
+    }
+    return BASE_URL . ltrim($path, '/');
+}
+
+/**
  * Compress an uploaded document in place: images via GD, PDFs via Ghostscript.
  * Returns true on success (a smaller valid file at $destPath).
  */
-function compressUploadedDocument($srcPath, $destPath, $mime) {
+function compressUploadedDocument($srcPath, $destPath, $mime, $maxDim = null) {
     if ($mime === 'application/pdf') {
         return compressPdfWithGhostscript($srcPath, $destPath);
     }
-    return compressUploadedImage($srcPath, $destPath, $mime);
+    return compressUploadedImage($srcPath, $destPath, $mime, $maxDim);
 }
 
 /**
@@ -1175,6 +1215,13 @@ function compressUploadedDocument($srcPath, $destPath, $mime) {
 function compressUploadedImage($srcPath, $destPath, $mime, $maxDim = null, $quality = 82) {
     if (!function_exists('imagecreatefromjpeg')) {
         return false;
+    }
+    // A 12 MP phone photo needs ~48 MB as a GD truecolor image; decoding it in
+    // a 128 MB process ends in a fatal error and an HTML 500, which the modal
+    // can only report as "Request failed". Give the decode room to breathe.
+    $limit = ini_get('memory_limit');
+    if ($limit !== '-1' && (int)$limit < 256) {
+        @ini_set('memory_limit', '256M');
     }
     $maxDim = $maxDim ?: MAX_IMAGE_DIM;
 

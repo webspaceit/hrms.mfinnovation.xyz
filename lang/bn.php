@@ -306,6 +306,8 @@ return [
     'per_month'      => 'প্রতি মাসে',
     'overview'       => 'সারসংক্ষেপ',
     'invalid_file'   => 'অবৈধ ফাইল। শুধুমাত্র ছবি বা PDF (সর্বোচ্চ ২০ MB) অনুমোদিত।',
+    'file_too_large' => 'ফাইলটি সার্ভারের সীমার চেয়ে বড়। ছোট ছবি দিয়ে চেষ্টা করুন।',
+    'invalid_photo'  => 'ব্যবহারযোগ্য ছবি নয়। JPG বা PNG ছবি দিন।',
 
     // Receipt
     'original_copy'  => 'মূল কপি',
@@ -478,6 +480,9 @@ return [
     'no_due'               => 'কোনো বাকি নেই',
     'personal_info'        => 'ব্যক্তিগত তথ্য',
     'flat_details'         => 'ফ্ল্যাটের তথ্য',
+    'shop_details'         => 'দোকানের তথ্য',
+    'tenant_photo'         => 'ভাড়াটিয়ার ছবি',
+    'photo_replace_hint'   => 'নতুন ছবি দিলে পুরোনোটি বদলে যাবে',
     'lease_details'        => 'চুক্তির তথ্য',
     'change_password'      => 'পাসওয়ার্ড পরিবর্তন',
     'current_password'     => 'বর্তমান পাসওয়ার্ড',
