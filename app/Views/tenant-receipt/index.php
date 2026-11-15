@@ -250,6 +250,7 @@ $currentLang = Lang::current();
                 display: flex;
                 flex-direction: column;
                 align-items: center;
+                margin-bottom: 6px;   /* was 12px base: pulls the details up */
             }
             /* Meta block stays in the top-right corner, exactly like the
                desktop copy, instead of being centred under the badge. */
@@ -262,20 +263,20 @@ $currentLang = Lang::current();
             }
             .receipt-no > div {
                 display: block;
-                font-size: 11px !important;   /* inline 14px would crowd the title */
+                font-size: 10px !important;   /* inline 14px would crowd the title */
             }
             .receipt-no > .label {
-                font-size: 12px !important;
+                font-size: 11px !important;
             }
             .title {
-                font-size: 24px;
-                margin-top: 60px;   /* clears the stacked meta block above it */
-                margin-bottom: 10px;
+                font-size: 20px;
+                margin-top: 0;        /* header sits at the top of the frame */
+                margin-bottom: 4px;
             }
             .badge {
                 font-size: 11px;
                 padding: 3px 14px;
-                margin-bottom: 10px;
+                margin-bottom: 6px;
             }
             .label-cell,
             .value-cell,
