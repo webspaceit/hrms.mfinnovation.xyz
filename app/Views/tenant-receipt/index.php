@@ -256,9 +256,10 @@ $currentLang = Lang::current();
                 text-align: center;
                 margin-bottom: 8px;
             }
+            /* Same stacked header as desktop. Inline, the 16px copy label ran
+               into "নং: RMS-…" and read as one unreadable line. */
             .receipt-no > div {
-                display: inline-block;
-                margin: 0 6px;
+                display: block;
             }
             .title {
                 font-size: 24px;
