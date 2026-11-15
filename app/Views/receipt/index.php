@@ -617,7 +617,7 @@
                 <table style="margin-top:8px; width:100%;">
                     <?php if ($currentLang === 'bn'): ?>
                     <tr class="total-row">
-                        <td style="font-weight:bold; width:18%; white-space:nowrap;">মোট পরিমাণ :</td>
+                        <td style="font-weight:bold; width:16%; white-space:nowrap;">মোট পরিমাণ :</td>
                         <td class="value-cell" style="font-size:22px; font-weight:bold; text-align:left;"><?php echo $cur . ' ' . bnNumeral(number_format($totalAmount, 2)); ?> /- টাকা মাত্র</td>
                     </tr>
                     <?php if ($paymentStatus === 'partial'): ?>
@@ -632,7 +632,7 @@
                     <?php endif; ?>
                     <?php else: ?>
                     <tr class="total-row">
-                        <td style="font-weight:bold; width:18%; white-space:nowrap;">Total Amount :</td>
+                        <td style="font-weight:bold; width:16%; white-space:nowrap;">Total Amount :</td>
                         <td class="value-cell" style="font-size:22px; font-weight:bold; text-align:left;"><?php echo $cur . ' ' . number_format($totalAmount, 2); ?> /- Taka Only</td>
                     </tr>
                     <?php if ($paymentStatus === 'partial'): ?>
