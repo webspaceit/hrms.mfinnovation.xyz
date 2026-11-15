@@ -739,7 +739,12 @@ $currentLang = Lang::current();
                 useCORS: true, 
                 logging: false, 
                 backgroundColor: '#fff',
-                fontFamily: <?php echo json_encode($fontFamily); ?>
+                fontFamily: <?php echo json_encode($fontFamily); ?>,
+                // html2canvas applies @media against this width, not the real
+                // viewport. Without it a phone captures the <=576px layout and
+                // the PDF comes out in the mobile format; 1000px keeps desktop.
+                windowWidth: 1000,
+                windowHeight: 1400
             },
             jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
             pagebreak:    { mode: ['avoid-all', 'css', 'legacy'] }
