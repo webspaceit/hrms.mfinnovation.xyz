@@ -482,6 +482,7 @@ return [
     'flat_details'         => 'ফ্ল্যাটের তথ্য',
     'shop_details'         => 'দোকানের তথ্য',
     'tenant_photo'         => 'ভাড়াটিয়ার ছবি',
+    'photo'                => 'ছবি',
     'photo_replace_hint'   => 'নতুন ছবি দিলে পুরোনোটি বদলে যাবে',
     'lease_details'        => 'চুক্তির তথ্য',
     'change_password'      => 'পাসওয়ার্ড পরিবর্তন',

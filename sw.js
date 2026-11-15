@@ -15,7 +15,9 @@
    data never leaks from a cache on a shared device.
    ============================================================ */
 
-const VERSION = 'rms-pwa-v2';
+// Bump on every deploy that changes assets: cache-first means an old app.js
+// survives normal reloads until the cache name changes.
+const VERSION = 'rms-pwa-v3';
 const STATIC_CACHE = VERSION + '-static';
 const CDN_CACHE = VERSION + '-cdn';
 

@@ -481,6 +481,7 @@ return [
     'flat_details'         => 'Flat Information',
     'shop_details'         => 'Shop Information',
     'tenant_photo'         => 'Tenant Photo',
+    'photo'                => 'Photo',
     'photo_replace_hint'   => 'Choosing a new file replaces the current photo',
     'lease_details'        => 'Lease Information',
     'change_password'      => 'Change Password',

@@ -24,6 +24,7 @@ require dirname(__DIR__) . '/partials/header.php';
                     <tr>
                         <th><input type="checkbox" id="selectAll" class="form-check-input"></th>
                         <th>#</th>
+                        <th class="text-center"><?php echo t('photo'); ?></th>
                         <th><?php echo t('tenant_name'); ?></th>
                         <th><?php echo t('phone'); ?></th>
                         <th><?php echo t('nid'); ?></th>
@@ -38,20 +39,22 @@ require dirname(__DIR__) . '/partials/header.php';
                 </thead>
                 <tbody>
                     <?php if (empty($tenants)): ?>
-                        <tr><td colspan="<?php echo $isAdmin ? 12 : 11; ?>" class="text-muted py-4"><?php echo t('no_data'); ?></td></tr>
+                        <tr><td colspan="<?php echo $isAdmin ? 13 : 12; ?>" class="text-muted py-4"><?php echo t('no_data'); ?></td></tr>
                     <?php else: ?>
                         <?php foreach ($tenants as $i => $tn): ?>
                             <?php $st = statusBadge($tn['status']); ?>
                             <tr data-id="<?php echo $tn['id']; ?>">
                                 <td><input type="checkbox" class="bulk-checkbox form-check-input" value="<?php echo $tn['id']; ?>"></td>
                                 <td><?php echo bnNumeral($i + 1); ?></td>
-                                <td class="fw-semibold">
-                                    <?php if ($tn['photo']): ?>
-                                        <img src="<?php echo e(uploadUrl($tn['photo'])); ?>" class="rounded-circle mr-1" width="28" height="28" style="object-fit:cover;">
-                                    <?php else: ?>
-                                        <i class="bi bi-person rounded-circle mr-1 text-primary"></i>
-                                    <?php endif; ?>
-                                    <?php echo e(localizeName($tn['name'])); ?>
+                                 <td class="text-center">
+                                     <?php if (!empty($tn['photo'])): ?>
+                                         <img src="<?php echo e(uploadUrl($tn['photo'])); ?>" class="rounded-circle border" width="32" height="32" style="object-fit:cover;" alt="">
+                                     <?php else: ?>
+                                         <i class="bi bi-person-circle text-primary" style="font-size:1.5rem;"></i>
+                                     <?php endif; ?>
+                                 </td>
+                                 <td class="fw-semibold">
+                                     <?php echo e(localizeName($tn['name'])); ?>
                                     <?php if (!empty($tn['portal_password']) || !empty($tn['portal_username'])): ?>
                                         <span class="badge bg-light text-dark border ml-1" title="<?php echo t('tenant_portal'); ?>: <?php echo e($tn['portal_username'] ?: '-'); ?>"><i class="bi bi-person-lock"></i></span>
                                     <?php endif; ?>
@@ -123,7 +126,10 @@ require dirname(__DIR__) . '/partials/header.php';
                 <h5 class="modal-title" id="tenantModalTitle"><?php echo t('add_tenant'); ?></h5>
                 <button type="button" class="btn-close btn-close-white" onclick="closeModal('tenantModal')" aria-label="Close"></button>
             </div>
-            <form id="tenantForm">
+            <!-- method=post is a safety net: if the inline script ever fails,
+                 a native submit must not dump the fields (incl. the portal
+                 password) into the query string and the access log. -->
+            <form id="tenantForm" method="post">
                 <?php echo csrf_field(); ?>
                 <input type="hidden" name="id" id="tn_id">
                 <div class="modal-body">
@@ -258,7 +264,13 @@ $extraJs = '
 <script>
 var currentUserId = ' . (int)\Auth::id() . ';
  // 300 px long edge: the stored photo is only ever shown as a 28-56 px avatar.
- compressImageInput(document.getElementById("tn_photo_file"), 300, 0.85);
+ // Guarded because app.js is cache-first through the service worker: a browser
+ // still holding the previous app.js has no compressImageInput, and calling it
+ // here would abort this whole block - which also killed the submit handler and
+ // made the form fall back to a native GET submit.
+ if (typeof compressImageInput === "function") {
+     compressImageInput(document.getElementById("tn_photo_file"), 300, 0.85);
+ }
  function resetTenantForm() {
     document.getElementById("tenantForm").reset();
     document.getElementById("tn_id").value = "";
