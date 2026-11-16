@@ -45,6 +45,7 @@ $pushCardAttrs = [
     'data-msg-blocked'   => t('reminder_blocked'),
     'data-msg-denied'    => t('reminder_denied'),
     'data-msg-error'     => t('error_occurred'),
+    'data-msg-service'   => t('reminder_service_failed'),
     'data-btn-on'        => t('reminder_disable_btn'),
     'data-btn-off'       => t('reminder_enable_btn'),
 ];

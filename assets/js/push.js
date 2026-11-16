@@ -24,6 +24,7 @@
         blocked: d.msgBlocked || 'Notifications are blocked in your browser settings',
         denied: d.msgDenied || 'Notification permission was not granted',
         error: d.msgError || 'Something went wrong',
+        service: d.msgService || 'Notification service is not ready. Reload the app and try again.',
         onBtn: d.btnOn || 'Turn off reminders',
         offBtn: d.btnOff || 'Turn on reminders'
     };
@@ -74,12 +75,38 @@
     }
 
     var registration = null;
+    var BASE = window.RMS_PWA_BASE || '/';
 
+    // navigator.serviceWorker.ready never settles while no registration is
+    // active for this scope, which left the button disabled forever on devices
+    // whose service worker was stale or missing. Resolve from the registration
+    // itself and register explicitly when there is none.
     function getRegistration() {
         if (registration) return Promise.resolve(registration);
-        return navigator.serviceWorker.ready.then(function (reg) {
+        return navigator.serviceWorker.getRegistration(BASE).then(function (reg) {
+            if (reg && reg.active) return reg;
+            return navigator.serviceWorker.register(BASE + 'sw.js', { scope: BASE })
+                .then(function (fresh) {
+                    return navigator.serviceWorker.ready.catch(function () { return fresh; });
+                });
+        }).then(function (reg) {
             registration = reg;
             return reg;
+        });
+    }
+
+    // Hard deadline so a hung service worker shows a message instead of a
+    // button that looks clickable but does nothing.
+    function withTimeout(promise, ms, message) {
+        return new Promise(function (resolve, reject) {
+            var timer = setTimeout(function () { reject(new Error(message)); }, ms);
+            promise.then(function (value) {
+                clearTimeout(timer);
+                resolve(value);
+            }, function (err) {
+                clearTimeout(timer);
+                reject(err);
+            });
         });
     }
 
@@ -87,11 +114,13 @@
         if (!('Notification' in window)) { setState('unsupported'); return; }
         if (Notification.permission === 'denied') { setState('blocked'); return; }
 
-        getRegistration().then(function (reg) {
+        withTimeout(getRegistration(), 6000, MSG.service).then(function (reg) {
             return reg.pushManager.getSubscription();
         }).then(function (sub) {
             setState(sub ? 'subscribed' : 'off');
         }).catch(function () {
+            // Still enable the button: tapping it retries registration and
+            // surfaces the real reason in a toast.
             setState('off');
         });
     }
@@ -136,7 +165,7 @@
             if (perm !== 'granted') {
                 throw new Error(perm === 'denied' ? MSG.blocked : MSG.denied);
             }
-            return getRegistration();
+            return withTimeout(getRegistration(), 8000, MSG.service);
         }).then(function (reg) {
             return reg.pushManager.subscribe({
                 userVisibleOnly: true,

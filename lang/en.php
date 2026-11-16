@@ -308,6 +308,7 @@ return [
     'invalid_file'   => 'Invalid file. Only images or PDF (max 20 MB) are allowed.',
     'file_too_large' => 'The file is larger than the server allows. Try a smaller image.',
     'invalid_photo'  => 'Not a usable photo. Please choose a JPG or PNG image.',
+    'reminder_service_failed' => 'The notification service did not start. Reload the app and try again.',
 
     // Receipt
     'original_copy'  => 'ORIGINAL COPY',
